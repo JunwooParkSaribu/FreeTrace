@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Park
+    given-names: Junwoo
+    orcid: https://orcid.org/0009-0000-6126-2125
+title: "FreeTrace"
+version: v0.1.2-alpha
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.13336251
+date-released: 2024-08-17
