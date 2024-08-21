@@ -11,6 +11,7 @@ from FileIO import write_trajectory, read_localization, read_parameters, write_t
 from timeit import default_timer as timer
 from Bipartite_searching import hungarian_algo_max
 from scipy.stats import beta
+import networkx as nx
 
 
 WSL_PATH = '/mnt/c/Users/jwoo/Desktop'
@@ -488,11 +489,71 @@ def proba_direction(paired_probas, paired_infos, paired_positions):
     return new_proba_pairs
 
 
-def forecast(localization: dict)
+def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, threshold):
+    tracked_locs = []
+    time_steps = []
+    print(nx.descendants(sub_graph, (0, 0)))
+    print(localizations)
+    last_nodes = nx.descendants(sub_graph, (0, 0))
+    index = 0
+    while True:
+        for last_node in last_nodes:
+            for cur_time in next_times[index:]:
+                for next_idx, loc in enumerate(localizations[cur_time]):
+                    node_loc = localizations[last_node[0]][last_node[1]]
+                    if np.sqrt((loc[0] - node_loc[0])**2 + (loc[1] - node_loc[1])**2 + (loc[2] - node_loc[2])**2) < threshold:
+                        next_node = (cur_time, next_idx)
+                        sub_graph.add_edge(last_node, next_node)
+        index += 1
+        if index == len(next_times):
+            break
+    
+    plt.figure()
+    nx.draw(sub_graph, with_labels=True, font_weight='bold')
+    plt.show()
+    """
+    for time, loc_per_time in zip(time_steps, localizations):
+        print(loc_per_time.shape)
+        tracked_time_locs = []
+        for i in range(loc_per_time.shape[0]):
+            tracked_time_locs.append(time, i)
+        tracked_locs.append(tracked_time_locs)
+
+    possible_trajs_combos = []
+    for time_set in tracked_locs:
+    
+    sub_networks.add_edge()
+    MG.add_weighted_edges_from([(1, 2, 0.5), (1, 2, 0.75), (2, 3, 0.5)])
+    dict(MG.degree(weight='weight'))
+            
+    GG = nx.Graph()
+    for n, nbrs in MG.adjacency():
+        for nbr, edict in nbrs.items():
+            minvalue = min([d['weight'] for d in edict.values()])
+            GG.add_edge(n, nbr, weight = minvalue)
+
+    nx.shortest_path(GG, 1, 3)
+    """
+
+
+def forecast(localization: dict):
+    graph = nx.DiGraph()
+    time_steps = list(localization.keys())
+    graph.add_node((0, 0))
+    graph.add_edges_from([((0, 0), (time_steps[0], index)) for index in range(len(localization[time_steps[0]]))])
+    #plt.figure()
+    #nx.draw(graph, with_labels=True, font_weight='bold')
+    #plt.show()
+    selected_time_steps = [2, 3, 4, 5, 6]
+    #forcast_matrix = np.array([localization[time] for time in selected_time_steps], dtype=object)
+    set_traj_combinations(graph, localization, selected_time_steps, threshold=10)
+    print(time_steps)
 
 
 def simple_connect(localization: dict, localization_infos: dict,
                    time_steps: np.ndarray, distrib: dict, blink_lag=1, on=None):
+    forecast(localization)
+    exit(1)
     if on is None:
         on = [1, 2, 3, 4]
     trajectory_dict = {}
