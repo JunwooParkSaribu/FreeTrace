@@ -512,21 +512,23 @@ def dfs_edges(G, source=None, depth_limit=None, *, sort_neighbors=None):
                 #if child not in visited:
                     #yield parent, child
                     #visited.add(child)
+                flag = True
                 if depth_now > 1:
                     stack.append((child, depth_now - 1, iter(G[child])))
             except StopIteration:
-                paths.append([node[0] for node in stack])
+                if flag:
+                    path_list = [node[0] for node in stack]
+                    if len(path_list) >= 2:
+                        paths.append(path_list)
+                flag = False
                 stack.pop()
     return paths
 
 
 
-def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, threshold):
-    tracked_locs = []
-    time_steps = []
+def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, threshold, distribution):
+    selected_graph = nx.DiGraph()
     source_node = (0, 0)
-    #print(nx.descendants(sub_graph, (0, 0)))
-    #print(localizations)
 
     #cur_start_nodes = [(next_times[0] - 1, point) for point in range(localizations[next_times[0] - 1].shape[0])]
 
@@ -540,9 +542,12 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, thresho
                     if last_node[0] < cur_time:
                         for next_idx, loc in enumerate(localizations[cur_time]):
                             node_loc = localizations[last_node[0]][last_node[1]]
-                            if np.sqrt((loc[0] - node_loc[0])**2 + (loc[1] - node_loc[1])**2 + (loc[2] - node_loc[2])**2) < threshold:
+                            jump_d = np.sqrt((loc[0] - node_loc[0])**2 + (loc[1] - node_loc[1])**2 + (loc[2] - node_loc[2])**2)
+                            if jump_d < threshold:
                                 next_node = (cur_time, next_idx)
-                                sub_graph.add_edge(last_node, next_node)
+                                time_gap = cur_time - last_node[0] - 1
+                                log_p = displacement_probability(np.array([jump_d]), np.array([threshold]), np.array([distribution[time_gap][1]]), np.array([distribution[time_gap][2]]))[1][0]
+                                sub_graph.add_edge(last_node, next_node, cost=abs(log_p))
             index += 1
             if index == len(next_times):
                 break
@@ -550,42 +555,45 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, thresho
         if start_g_len == end_g_len:
             break
 
-    raw_trajectories = []
-    paths = dfs_edges(sub_graph, source=source_node)
-    for path in paths:
+    while True:
+        raw_trajectories = []
+        trajectories_costs = []
+        paths = dfs_edges(sub_graph, source=source_node)
+        for path in paths:
             raw_trajectories.append(path)
-    
-    for traj in raw_trajectories:
-        print(traj)
-    plt.figure()
-    nx.draw(sub_graph, with_labels=True, font_weight='bold')
-    plt.show()
-    """
-    for time, loc_per_time in zip(time_steps, localizations):
-        print(loc_per_time.shape)
-        tracked_time_locs = []
-        for i in range(loc_per_time.shape[0]):
-            tracked_time_locs.append(time, i)
-        tracked_locs.append(tracked_time_locs)
 
-    possible_trajs_combos = []
-    for time_set in tracked_locs:
-    
-    sub_networks.add_edge()
-    MG.add_weighted_edges_from([(1, 2, 0.5), (1, 2, 0.75), (2, 3, 0.5)])
-    dict(MG.degree(weight='weight'))
-            
-    GG = nx.Graph()
-    for n, nbrs in MG.adjacency():
-        for nbr, edict in nbrs.items():
-            minvalue = min([d['weight'] for d in edict.values()])
-            GG.add_edge(n, nbr, weight = minvalue)
+        for traj in raw_trajectories:
+            traj_cost = 0
+            for edge_index in range(1, len(traj)):
+                before_node = traj[edge_index - 1]
+                next_node = traj[edge_index]
+                cost = sub_graph.edges[before_node, next_node]['cost']
+                traj_cost += cost
+            trajectories_costs.append(traj_cost / (len(traj) - 1))
 
-    nx.shortest_path(GG, 1, 3)
-    """
+        low_cost_args = np.argsort(trajectories_costs)
+        raw_trajectories = np.array(raw_trajectories, dtype=object, subok=True)[low_cost_args]
+
+        trajectories_costs = np.array(trajectories_costs)[low_cost_args]
+        lowest_cost_traj = list(raw_trajectories[0])
+        for i in range(len(lowest_cost_traj)):
+            lowest_cost_traj[i] = tuple(lowest_cost_traj[i])
+
+        for edge_index in range(1, len(lowest_cost_traj)):
+            before_node = lowest_cost_traj[edge_index - 1]
+            next_node = lowest_cost_traj[edge_index]
+            selected_graph.add_edge(before_node, next_node)
+        sub_graph.remove_nodes_from(lowest_cost_traj[1:])
+        if len(sub_graph) == 1:
+            break
+    return selected_graph
 
 
-def forecast(localization: dict):
+def forecast(localization: dict, distribution):
+    last_time = 50
+    time_forcast = 5
+    final_graph = nx.DiGraph()
+    final_graph.add_node((0, 0))
     graph = nx.DiGraph()
     time_steps = list(localization.keys())
     graph.add_node((0, 0))
@@ -593,18 +601,59 @@ def forecast(localization: dict):
     #plt.figure()
     #nx.draw(graph, with_labels=True, font_weight='bold')
     #plt.show()
-    graph.add_edges_from([((0, 0), (time_steps[0], index)) for index in range(len(localization[time_steps[0]]))])
+    graph.add_edges_from([((0, 0), (time_steps[0], index), {'cost':100.0}) for index in range(len(localization[time_steps[0]]))])
     selected_time_steps = [2, 3, 4, 5, 6]
     for selected_time in selected_time_steps:
-        graph.add_edges_from([((0, 0), (selected_time, index)) for index in range(len(localization[selected_time]))])
+        graph.add_edges_from([((0, 0), (selected_time, index), {'cost':100.0}) for index in range(len(localization[selected_time]))])
     #forcast_matrix = np.array([localization[time] for time in selected_time_steps], dtype=object)
-    set_traj_combinations(graph, localization, selected_time_steps, threshold=10)
-    print(time_steps)
+    #set_traj_combinations(graph, localization, selected_time_steps, 10, distribution)
+    first_construction = True
+    while True:
+        min_time = 99999
+        max_time = -1
+        selected_sub_graph = set_traj_combinations(graph, localization, selected_time_steps, 10, distribution)
+        last_nodes = []
+        if first_construction:
+            start_index = 1
+        else:
+            start_index = 2
+        for path in dfs_edges(selected_sub_graph, source=(0, 0)):
+            if len(path) == 2:
+                continue
+            for edge_index in range(start_index, len(path)):
+                before_node = path[edge_index - 1]
+                next_node = path[edge_index]
+                final_graph.add_edge(before_node, next_node)
+            min_time = min(min_time, path[-1][0])
+            max_time = max(max_time, path[-1][0])
+            last_nodes.append(path[-1])
+        
+        if last_time in selected_time_steps:
+            break
+        selected_time_steps = [t for t in range(max_time + 1, min(last_time + 1, min_time + time_forcast + 1))]
+        print(selected_time_steps)
+        graph = nx.DiGraph()
+        graph.add_node((0, 0))
+        graph.add_edges_from([((0, 0), node, {'cost':100.0}) for node in last_nodes])
+        for selected_time in selected_time_steps:
+            graph.add_edges_from([((0, 0), (selected_time, index), {'cost':100.0}) for index in range(len(localization[selected_time]))])
+
+        print(nx.is_directed_acyclic_graph(final_graph))
+        first_construction = False
+
+    trajectory_list = []
+    for traj_idx, path in enumerate(dfs_edges(final_graph, source=(0, 0))):
+        traj = TrajectoryObj(index=traj_idx, localizations=localization)
+        for node in path[1:]:
+            traj.add_trajectory_tuple(node[0], node[1])
+        trajectory_list.append(traj)
+    return trajectory_list
 
 
 def simple_connect(localization: dict, localization_infos: dict,
                    time_steps: np.ndarray, distrib: dict, blink_lag=1, on=None):
-    forecast(localization)
+    trajectory_list = forecast(localization, distrib)
+    return trajectory_list
     exit(1)
     if on is None:
         on = [1, 2, 3, 4]
@@ -1099,7 +1148,7 @@ if __name__ == '__main__':
     methods = [1, 3, 4]
     confidence = 0.995
 
-    THRESHOLDS = [8, 14.5] # None 
+    THRESHOLDS = [14.5, 14.5, 14.5, 14.5, 14.5] # None 
 
     images = read_tif(input_tif)
     loc, loc_infos = read_localization(f'{OUTPUT_DIR}/{input_tif.split("/")[-1].split(".tif")[0]}_loc.csv', images)
@@ -1116,7 +1165,7 @@ if __name__ == '__main__':
     for repeat in range(1):
         start_time = timer()
         segment_distribution = mcmc_parallel(raw_segment_distribution, confidence, bin_size, amp, n_iter=1e3, burn=0,
-                                             approx='metropolis_hastings', parallel=var_parallel, thresholds=THRESHOLDS)
+                                             approx=None, parallel=var_parallel, thresholds=THRESHOLDS)
         print(f'MCMC duration: {timer() - start_time:.2f}s')
         for lag in segment_distribution.keys():
             print(f'{lag}_limit_length: {segment_distribution[lag][0]}')
