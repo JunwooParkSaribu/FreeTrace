@@ -509,11 +509,11 @@ def dfs_edges(G, source=None, depth_limit=None, *, sort_neighbors=None):
             parent, depth_now, children = stack[-1]
             try:
                 child = next(children)
-                if child not in visited:
+                #if child not in visited:
                     #yield parent, child
-                    visited.add(child)
-                    if depth_now > 1:
-                        stack.append((child, depth_now - 1, iter(G[child])))
+                    #visited.add(child)
+                if depth_now > 1:
+                    stack.append((child, depth_now - 1, iter(G[child])))
             except StopIteration:
                 paths.append([node[0] for node in stack])
                 stack.pop()
@@ -524,29 +524,35 @@ def dfs_edges(G, source=None, depth_limit=None, *, sort_neighbors=None):
 def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, threshold):
     tracked_locs = []
     time_steps = []
+    source_node = (0, 0)
     #print(nx.descendants(sub_graph, (0, 0)))
     #print(localizations)
 
-    cur_start_nodes = [(next_times[0] - 1, point) for point in range(localizations[next_times[0] - 1].shape[0])]
-    index = 0
+    #cur_start_nodes = [(next_times[0] - 1, point) for point in range(localizations[next_times[0] - 1].shape[0])]
+
     while True:
+        start_g_len = len(sub_graph)
+        index = 0
         last_nodes = nx.descendants(sub_graph, (0, 0))
-        for last_node in last_nodes:
-            for cur_time in next_times[index:]:
-                if last_node[0] < cur_time:
-                    for next_idx, loc in enumerate(localizations[cur_time]):
-                        node_loc = localizations[last_node[0]][last_node[1]]
-                        if np.sqrt((loc[0] - node_loc[0])**2 + (loc[1] - node_loc[1])**2 + (loc[2] - node_loc[2])**2) < threshold:
-                            next_node = (cur_time, next_idx)
-                            sub_graph.add_edge(last_node, next_node)
-        index += 1
-        if index == len(next_times):
+        while True:
+            for last_node in last_nodes:
+                for cur_time in next_times[index:]:
+                    if last_node[0] < cur_time:
+                        for next_idx, loc in enumerate(localizations[cur_time]):
+                            node_loc = localizations[last_node[0]][last_node[1]]
+                            if np.sqrt((loc[0] - node_loc[0])**2 + (loc[1] - node_loc[1])**2 + (loc[2] - node_loc[2])**2) < threshold:
+                                next_node = (cur_time, next_idx)
+                                sub_graph.add_edge(last_node, next_node)
+            index += 1
+            if index == len(next_times):
+                break
+        end_g_len = len(sub_graph)
+        if start_g_len == end_g_len:
             break
 
     raw_trajectories = []
-    for cur_start_node in cur_start_nodes:
-        paths = dfs_edges(sub_graph, source=cur_start_node)
-        for path in paths:
+    paths = dfs_edges(sub_graph, source=source_node)
+    for path in paths:
             raw_trajectories.append(path)
     
     for traj in raw_trajectories:
@@ -583,11 +589,14 @@ def forecast(localization: dict):
     graph = nx.DiGraph()
     time_steps = list(localization.keys())
     graph.add_node((0, 0))
-    graph.add_edges_from([((0, 0), (time_steps[0], index)) for index in range(len(localization[time_steps[0]]))])
+
     #plt.figure()
     #nx.draw(graph, with_labels=True, font_weight='bold')
     #plt.show()
+    graph.add_edges_from([((0, 0), (time_steps[0], index)) for index in range(len(localization[time_steps[0]]))])
     selected_time_steps = [2, 3, 4, 5, 6]
+    for selected_time in selected_time_steps:
+        graph.add_edges_from([((0, 0), (selected_time, index)) for index in range(len(localization[selected_time]))])
     #forcast_matrix = np.array([localization[time] for time in selected_time_steps], dtype=object)
     set_traj_combinations(graph, localization, selected_time_steps, threshold=10)
     print(time_steps)
