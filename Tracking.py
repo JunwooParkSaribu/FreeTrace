@@ -489,25 +489,68 @@ def proba_direction(paired_probas, paired_infos, paired_positions):
     return new_proba_pairs
 
 
+def dfs_edges(G, source=None, depth_limit=None, *, sort_neighbors=None):
+    paths = []
+    if source is None:
+        # edges for all components
+        nodes = G
+    else:
+        # edges for components with source
+        nodes = [source]
+    visited = set()
+    if depth_limit is None:
+        depth_limit = len(G)
+    for start in nodes:
+        if start in visited:
+            continue
+        visited.add(start)
+        stack = [(start, depth_limit, iter(G[start]))]
+        while stack:
+            parent, depth_now, children = stack[-1]
+            try:
+                child = next(children)
+                if child not in visited:
+                    #yield parent, child
+                    visited.add(child)
+                    if depth_now > 1:
+                        stack.append((child, depth_now - 1, iter(G[child])))
+            except StopIteration:
+                paths.append([node[0] for node in stack])
+                stack.pop()
+    return paths
+
+
+
 def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, threshold):
     tracked_locs = []
     time_steps = []
-    print(nx.descendants(sub_graph, (0, 0)))
-    print(localizations)
-    last_nodes = nx.descendants(sub_graph, (0, 0))
+    #print(nx.descendants(sub_graph, (0, 0)))
+    #print(localizations)
+
+    cur_start_nodes = [(next_times[0] - 1, point) for point in range(localizations[next_times[0] - 1].shape[0])]
     index = 0
     while True:
+        last_nodes = nx.descendants(sub_graph, (0, 0))
         for last_node in last_nodes:
             for cur_time in next_times[index:]:
-                for next_idx, loc in enumerate(localizations[cur_time]):
-                    node_loc = localizations[last_node[0]][last_node[1]]
-                    if np.sqrt((loc[0] - node_loc[0])**2 + (loc[1] - node_loc[1])**2 + (loc[2] - node_loc[2])**2) < threshold:
-                        next_node = (cur_time, next_idx)
-                        sub_graph.add_edge(last_node, next_node)
+                if last_node[0] < cur_time:
+                    for next_idx, loc in enumerate(localizations[cur_time]):
+                        node_loc = localizations[last_node[0]][last_node[1]]
+                        if np.sqrt((loc[0] - node_loc[0])**2 + (loc[1] - node_loc[1])**2 + (loc[2] - node_loc[2])**2) < threshold:
+                            next_node = (cur_time, next_idx)
+                            sub_graph.add_edge(last_node, next_node)
         index += 1
         if index == len(next_times):
             break
+
+    raw_trajectories = []
+    for cur_start_node in cur_start_nodes:
+        paths = dfs_edges(sub_graph, source=cur_start_node)
+        for path in paths:
+            raw_trajectories.append(path)
     
+    for traj in raw_trajectories:
+        print(traj)
     plt.figure()
     nx.draw(sub_graph, with_labels=True, font_weight='bold')
     plt.show()
