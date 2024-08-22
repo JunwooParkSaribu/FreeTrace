@@ -572,7 +572,7 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, thresho
             trajectories_costs.append(traj_cost / (len(traj) - 1))
 
         low_cost_args = np.argsort(trajectories_costs)
-        raw_trajectories = np.array(raw_trajectories, dtype=object, subok=True)[low_cost_args]
+        raw_trajectories = np.array(raw_trajectories, dtype=object)[low_cost_args]
 
         trajectories_costs = np.array(trajectories_costs)[low_cost_args]
         lowest_cost_traj = list(raw_trajectories[0])
@@ -612,24 +612,36 @@ def forecast(localization: dict, distribution):
         min_time = 99999
         max_time = -1
         selected_sub_graph = set_traj_combinations(graph, localization, selected_time_steps, 10, distribution)
+
         last_nodes = []
         if first_construction:
             start_index = 1
         else:
             start_index = 2
         for path in dfs_edges(selected_sub_graph, source=(0, 0)):
-            if len(path) == 2:
-                continue
-            for edge_index in range(start_index, len(path)):
-                before_node = path[edge_index - 1]
-                next_node = path[edge_index]
+            ######################################
+            if len(path) == 2: ### MAYBE MODIFY
+                before_node = path[0]
+                next_node = path[1]
                 final_graph.add_edge(before_node, next_node)
-            min_time = min(min_time, path[-1][0])
-            max_time = max(max_time, path[-1][0])
-            last_nodes.append(path[-1])
+            else:
+                for edge_index in range(start_index, len(path)):
+                    before_node = path[edge_index - 1]
+                    next_node = path[edge_index]
+
+                    if before_node in final_graph:
+                        final_graph.add_edge(before_node, next_node)
+                    else:
+                        final_graph.add_edge((0, 0), before_node)
+                        final_graph.add_edge(before_node, next_node)
+                min_time = min(min_time, path[-1][0])
+                max_time = max(max_time, path[-1][0])
+                last_nodes.append(path[-1])
+            #######################################
         
         if last_time in selected_time_steps:
             break
+
         selected_time_steps = [t for t in range(max_time + 1, min(last_time + 1, min_time + time_forcast + 1))]
         print(selected_time_steps)
         graph = nx.DiGraph()
@@ -637,9 +649,18 @@ def forecast(localization: dict, distribution):
         graph.add_edges_from([((0, 0), node, {'cost':100.0}) for node in last_nodes])
         for selected_time in selected_time_steps:
             graph.add_edges_from([((0, 0), (selected_time, index), {'cost':100.0}) for index in range(len(localization[selected_time]))])
-
         print(nx.is_directed_acyclic_graph(final_graph))
         first_construction = False
+
+    all_nodes_ = []
+    for t in list(localization.keys()):
+        for nb_sample in range(len(localization[t])):
+            all_nodes_.append((t, nb_sample))
+    
+    print('----------------------------------------')
+    for node_ in all_nodes_:
+        if node_ not in final_graph:
+            print('missing node:', node_)
 
     trajectory_list = []
     for traj_idx, path in enumerate(dfs_edges(final_graph, source=(0, 0))):
