@@ -590,7 +590,7 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, thresho
 
 
 def forecast(localization: dict, distribution):
-    last_time = 50
+    last_time = np.sort(list(localization.keys()))[-1]
     time_forcast = 5
     final_graph = nx.DiGraph()
     final_graph.add_node((0, 0))
