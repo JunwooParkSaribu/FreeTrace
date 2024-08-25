@@ -563,6 +563,7 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, thresho
             raw_trajectories.append(path)
 
         for traj in raw_trajectories:
+            ## TODO: Cost Redefine ###############################
             traj_cost = 0
             for edge_index in range(1, len(traj)):
                 before_node = traj[edge_index - 1]
@@ -570,12 +571,14 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, thresho
                 cost = sub_graph.edges[before_node, next_node]['cost']
                 traj_cost += cost
             trajectories_costs.append(traj_cost / (len(traj) - 1))
+            #################################################
 
         low_cost_args = np.argsort(trajectories_costs)
         raw_trajectories = np.array(raw_trajectories, dtype=object)[low_cost_args]
 
         trajectories_costs = np.array(trajectories_costs)[low_cost_args]
         lowest_cost_traj = list(raw_trajectories[0])
+
         for i in range(len(lowest_cost_traj)):
             lowest_cost_traj[i] = tuple(lowest_cost_traj[i])
 
@@ -641,7 +644,7 @@ def forecast(localization: dict, distribution):
         
         if last_time in selected_time_steps:
             break
-
+        print(max_time, min_time)
         selected_time_steps = [t for t in range(max_time + 1, min(last_time + 1, min_time + time_forcast + 1))]
         print(selected_time_steps)
         graph = nx.DiGraph()
@@ -1169,9 +1172,9 @@ if __name__ == '__main__':
     methods = [1, 3, 4]
     confidence = 0.995
 
-    THRESHOLDS = [14.5, 14.5, 14.5, 14.5, 14.5] # None 
+    THRESHOLDS = [14.5, 14.5, 14.5, 14.5, 14.5, 14.5, 14.5, 14.5, 14.5, 14.5] # None 
 
-    images = read_tif(input_tif)
+    images = read_tif(input_tif)[253:]
     loc, loc_infos = read_localization(f'{OUTPUT_DIR}/{input_tif.split("/")[-1].split(".tif")[0]}_loc.csv', images)
 
     time_steps, mean_nb_per_time, xyz_min, xyz_max = count_localizations(loc)
@@ -1234,4 +1237,4 @@ if __name__ == '__main__':
     if visualization:
         print(f'Visualizing trajectories...')
         make_image_seqs(final_trajectories, output_dir=output_imgstack, img_stacks=images, time_steps=time_steps, cutoff=cutoff,
-                        add_index=False, local_img=None, gt_trajectory=None)
+                        add_index=True, local_img=None, gt_trajectory=None)
