@@ -564,13 +564,19 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, thresho
 
         for traj in raw_trajectories:
             ## TODO: Cost Redefine ###############################
-            traj_cost = 0
-            for edge_index in range(1, len(traj)):
-                before_node = traj[edge_index - 1]
-                next_node = traj[edge_index]
-                cost = sub_graph.edges[before_node, next_node]['cost']
-                traj_cost += cost
-            trajectories_costs.append(traj_cost / (len(traj) - 1))
+            if len(traj) == 2:
+                trajectories_costs.append(100.0)
+            else:
+                traj_cost = 0
+                for edge_index in range(1, len(traj)):
+                    before_node = traj[edge_index - 1]
+                    next_node = traj[edge_index]
+                    cost = sub_graph.edges[before_node, next_node]['cost']
+                    traj_cost += cost * 1000
+                traj_cost = traj_cost / (len(traj) - 1)
+                #traj_cost = traj_cost / (len(traj) - 1) + 10./(traj[-1][0] - traj[1][0] + len(traj))
+                trajectories_costs.append(traj_cost)
+                #print(traj, traj_cost)
             #################################################
 
         low_cost_args = np.argsort(trajectories_costs)
@@ -581,7 +587,7 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, thresho
 
         for i in range(len(lowest_cost_traj)):
             lowest_cost_traj[i] = tuple(lowest_cost_traj[i])
-
+        print(lowest_cost_traj)
         for edge_index in range(1, len(lowest_cost_traj)):
             before_node = lowest_cost_traj[edge_index - 1]
             next_node = lowest_cost_traj[edge_index]
