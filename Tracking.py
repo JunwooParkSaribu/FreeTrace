@@ -531,7 +531,7 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, thresho
     source_node = (0, 0)
 
     #cur_start_nodes = [(next_times[0] - 1, point) for point in range(localizations[next_times[0] - 1].shape[0])]
-    print(localizations[1][6],localizations[2][9], localizations[3][9], localizations[4][10])
+    #print(localizations[1][6],localizations[2][9], localizations[3][9], localizations[4][10])
 
     while True:
         start_g_len = len(sub_graph)
@@ -539,6 +539,8 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, thresho
         #last_nodes = nx.descendants(sub_graph, (0, 0))
         while True:
             last_nodes = list(set([nodes[-1] for nodes in dfs_edges(sub_graph, source=(0, 0))]))
+            if 358 in next_times:
+                print('#@@#', dfs_edges(sub_graph, source=(0, 0)))
             print('LAST NODES', last_nodes)
             for path in dfs_edges(sub_graph, source=(0, 0)):
                 print(path)
@@ -569,16 +571,16 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, thresho
         if start_g_len == end_g_len:
             break
     print('#####################################')
-    print(len(sub_graph))
+
     while True:
         raw_trajectories = []
         trajectories_costs = []
-        #print('@@@@@@@@@@@@@@@@@@@@@@@@@@', len(sub_graph), sub_graph.edges)
+        #print('@@@@@@@@@@@@@@@@@@@@@@@@@@', len(sub_graph), sub_graph.edges, sub_graph.nodes)
         paths = dfs_edges(sub_graph, source=source_node)
         #print(paths)
         for path in paths:
             raw_trajectories.append(path)
-
+        print('raw_trajectories:, ', raw_trajectories)
         for traj in raw_trajectories:
             ## TODO: Cost Redefine ###############################
             if len(traj) == 2:
@@ -612,48 +614,53 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, thresho
         for i in range(len(lowest_cost_traj)):
             lowest_cost_traj[i] = tuple(lowest_cost_traj[i])
         #print(lowest_cost_traj, trajectories_costs[0])
-        for edge_index in range(1, len(lowest_cost_traj)):
-            before_node = lowest_cost_traj[edge_index - 1]
-            next_node = lowest_cost_traj[edge_index]
-            selected_graph.add_edge(before_node, next_node)
         print('!', lowest_cost_traj)
         #sub_graph.remove_nodes_from(lowest_cost_traj[1:])
 
         for rm_node in lowest_cost_traj[1:]:
             predcessors = list(sub_graph.predecessors(rm_node)).copy()
             sucessors = list(sub_graph.successors(rm_node)).copy()
+            sub_graph_copy = sub_graph.copy()
+            sub_graph_copy.remove_node(rm_node)
+
 
             for pred in predcessors:
                 for suc in sucessors:
-                    if (pred, rm_node) in sub_graph.edges and (rm_node, suc) in sub_graph.edges:
+                    if (pred, rm_node) in sub_graph.edges and (rm_node, suc) in sub_graph.edges and not nx.has_path(sub_graph_copy, pred, suc):
                         
-                        if pred == (0, 0):
-                            if pred == (0, 0) and suc == (4, 10):
-                                print((pred, rm_node))
-                                print(pred, rm_node, suc)
-                                print(sub_graph.edges)
-                                print((pred, rm_node) in sub_graph.edges)
-                                print(localizations[4][10])
-                                print("$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+                        if pred == (0, 0) and not nx.has_path(sub_graph_copy, (0, 0), suc):
             
                             sub_graph.add_edge(pred, suc, cost=100.0)
                         else:
-                            pred_loc = localizations[pred[0]][pred[1]]
-                            suc_loc = localizations[suc[0]][suc[1]]
-                            jump_d = np.sqrt((pred_loc[0] - suc_loc[0])**2 + (pred_loc[1] - suc_loc[1])**2 + (pred_loc[2] - suc_loc[2])**2)
-                            if jump_d < threshold:
-
+                            if pred in sub_graph and suc in sub_graph and pred != (0, 0):
+                                print(pred, suc)
+                                pred_loc = localizations[pred[0]][pred[1]]
+                                suc_loc = localizations[suc[0]][suc[1]]
+                                jump_d = np.sqrt((pred_loc[0] - suc_loc[0])**2 + (pred_loc[1] - suc_loc[1])**2 + (pred_loc[2] - suc_loc[2])**2)
                                 time_gap = suc[0] - pred[0] - 1
-                                log_p = displacement_probability(np.array([jump_d]), np.array([threshold]), np.array([distribution[time_gap][1]]), np.array([distribution[time_gap][2]]))[1][0]
+                                if jump_d < threshold and time_gap in distribution:
 
-                                sub_graph.add_edge(pred, suc, cost=abs(log_p))
+                                    
+                                    log_p = displacement_probability(np.array([jump_d]), np.array([threshold]), np.array([distribution[time_gap][1]]), np.array([distribution[time_gap][2]]))[1][0]
+
+                                    sub_graph.add_edge(pred, suc, cost=abs(log_p))
             
             #for suc in list(sucessors):
             #    if len(list(sub_graph.predecessors(suc))) == 0:
             #        sub_graph.add_edge((0, 0), suc)
         print('removed path: ', lowest_cost_traj)
         sub_graph.remove_nodes_from(lowest_cost_traj[1:])
-         
+
+        if len(sub_graph.edges) == 0 and len(sub_graph.nodes) > 1:
+            for node in sub_graph.nodes:
+                if node != (0, 0):
+                    sub_graph.add_edge((0, 0), node, cost=100.0)
+
+        for edge_index in range(1, len(lowest_cost_traj)):
+            before_node = lowest_cost_traj[edge_index - 1]
+            next_node = lowest_cost_traj[edge_index]
+            selected_graph.add_edge(before_node, next_node)
+
         if len(sub_graph) == 1:
             break
     return selected_graph
@@ -682,6 +689,13 @@ def forecast(localization: dict, distribution):
         min_time = 99999
         max_time = -1
         selected_sub_graph = set_traj_combinations(graph, localization, selected_time_steps, 10, distribution)
+        print('sub-graph path--------------------------------------')
+        for path in dfs_edges(selected_sub_graph, source=(0, 0)):
+            print(path)
+        print('-----------------------------------------------')
+        last_times = list(set([nodes[-1][0] for nodes in dfs_edges(selected_sub_graph, source=(0, 0))]))
+        max_time = np.max(last_times)
+        min_time = np.min(last_times)
 
         last_nodes = []
         if first_construction:
@@ -693,7 +707,8 @@ def forecast(localization: dict, distribution):
             if len(path) == 2: ### MAYBE MODIFY
                 before_node = path[0]
                 next_node = path[1]
-                final_graph.add_edge(before_node, next_node)
+                if next_node not in final_graph.nodes:
+                    final_graph.add_edge(before_node, next_node)
             else:
                 for edge_index in range(start_index, len(path)):
                     before_node = path[edge_index - 1]
@@ -704,20 +719,27 @@ def forecast(localization: dict, distribution):
                     else:
                         final_graph.add_edge((0, 0), before_node)
                         final_graph.add_edge(before_node, next_node)
-                min_time = min(min_time, path[-1][0])
-                max_time = max(max_time, path[-1][0])
+            if max_time - path[-1][0] < time_forcast: 
+
                 last_nodes.append(path[-1])
             #######################################
-        
+
         if last_time in selected_time_steps:
             break
-        print(max_time, min_time)
+        min_time = np.min([node[0] for node in last_nodes])
         selected_time_steps = [t for t in range(max_time + 1, min(last_time + 1, min_time + time_forcast + 1))]
-        if len(selected_time_steps) == 1:
-            selected_time_steps.append(selected_time_steps[-1] + 1)
+
+        ################  TODO:MOIFY  ############################
+        if len(selected_time_steps) == 1 and last_time not in selected_time_steps:
+            tmp = selected_time_steps[-1] + 1
+            if tmp <= last_time:
+                selected_time_steps.append(tmp)
+        ###########################################
         print(selected_time_steps)
-        if 8 in selected_time_steps:
-            exit()
+        #if 15 in selected_time_steps:
+        #    break
+
+
         graph = nx.DiGraph()
         graph.add_node((0, 0))
         graph.add_edges_from([((0, 0), node, {'cost':100.0}) for node in last_nodes])
@@ -732,9 +754,11 @@ def forecast(localization: dict, distribution):
             all_nodes_.append((t, nb_sample))
     
     print('----------------------------------------')
-    for node_ in all_nodes_:
-        if node_ not in final_graph:
-            print('missing node:', node_)
+    #for node_ in all_nodes_:
+    #    if node_ not in final_graph:
+    #        print('missing node:', node_)
+    for path in dfs_edges(final_graph, source=(0, 0)):
+        print(path)
 
     trajectory_list = []
     for traj_idx, path in enumerate(dfs_edges(final_graph, source=(0, 0))):
@@ -747,6 +771,11 @@ def forecast(localization: dict, distribution):
 
 def simple_connect(localization: dict, localization_infos: dict,
                    time_steps: np.ndarray, distrib: dict, blink_lag=1, on=None):
+    #print(localization[7][3], localization[8][1], localization[12][1], localization[12][4], localization[11][2], localization[12][2], localization[11][0], localization[12][0])
+    #print(localization[6][8], localization[7][4], localization[8][2])
+    #print(localization[356][3])
+    #exit(1)
+
     trajectory_list = forecast(localization, distrib)
     return trajectory_list
     exit(1)
@@ -1243,9 +1272,10 @@ if __name__ == '__main__':
     methods = [1, 3, 4]
     confidence = 0.995
 
-    THRESHOLDS = [14.5, 14.5, 14.5, 14.5, 14.5] # None 
+    THRESHOLDS = [14.5, 14.5, 14.5, 14.5, 14.5, 14.5, 14.5, 14.5, 14.5, 14.5] # None 
 
-    images = read_tif(input_tif)[253:263]
+    #images = read_tif(input_tif)[253:263]
+    images = read_tif(input_tif)
     loc, loc_infos = read_localization(f'{OUTPUT_DIR}/{input_tif.split("/")[-1].split(".tif")[0]}_loc.csv', images)
 
     time_steps, mean_nb_per_time, xyz_min, xyz_max = count_localizations(loc)
