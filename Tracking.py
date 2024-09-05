@@ -705,9 +705,6 @@ def forecast(localization: dict, distribution):
                 selected_time_steps.append(tmp)
         ###########################################
         print(selected_time_steps)
-        if 475 in selected_time_steps:
-            break
-
 
         graph = nx.DiGraph()
         graph.add_node((0, 0))
@@ -1235,7 +1232,7 @@ if __name__ == '__main__':
     methods = [1, 3, 4]
     confidence = 0.995
 
-    THRESHOLDS = [14.5, 14.5, 14.5, 14.5, 14.5, 14.5, 14.5, 14.5, 14.5, 14.5] # None 
+    THRESHOLDS = [20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20] # None 
 
     #images = read_tif(input_tif)[253:263]
     images = read_tif(input_tif)
