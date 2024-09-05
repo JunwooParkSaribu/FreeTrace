@@ -541,8 +541,7 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, thresho
                         for next_idx, loc in enumerate(localizations[cur_time]):
                             node_loc = localizations[last_node[0]][last_node[1]]
                             jump_d = np.sqrt((loc[0] - node_loc[0])**2 + (loc[1] - node_loc[1])**2 + (loc[2] - node_loc[2])**2)
-                            if last_node == (3, 9):
-                                print(jump_d, last_node, (cur_time, next_idx))
+
                             if jump_d < threshold:
                                 next_node = (cur_time, next_idx)
                                 time_gap = cur_time - last_node[0] - 1
@@ -559,7 +558,6 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, thresho
         end_g_len = len(sub_graph)
         if start_g_len == end_g_len:
             break
-    print('#####################################')
 
     while True:
         raw_trajectories = []
@@ -567,7 +565,7 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, thresho
         paths = dfs_edges(sub_graph, source=source_node)
         for path in paths:
             raw_trajectories.append(path)
-        print('raw_trajectories:, ', raw_trajectories)
+
         for traj in raw_trajectories:
             ## TODO: Cost Redefine ###############################
             if len(traj) == 2:
@@ -589,7 +587,7 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, thresho
                 #traj_cost = traj_cost / (len(traj) - 1)
                 #traj_cost = traj_cost / (len(traj) - 1) + 10./(traj[-1][0] - traj[1][0] + len(traj))
                 trajectories_costs.append(traj_cost)
-                print(traj, traj_cost)
+                #print(traj, traj_cost)
             #################################################
 
         low_cost_args = np.argsort(trajectories_costs)
@@ -600,7 +598,6 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, thresho
 
         for i in range(len(lowest_cost_traj)):
             lowest_cost_traj[i] = tuple(lowest_cost_traj[i])
-        print('Lowest_cost_traj: ', lowest_cost_traj)
 
         for rm_node in lowest_cost_traj[1:]:
             predcessors = list(sub_graph.predecessors(rm_node)).copy()
@@ -623,7 +620,7 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, thresho
                                     log_p = displacement_probability(np.array([jump_d]), np.array([threshold]), np.array([distribution[time_gap][1]]), np.array([distribution[time_gap][2]]))[1][0]
                                     sub_graph.add_edge(pred, suc, cost=abs(log_p))
             
-        print('removed path: ', lowest_cost_traj)
+        #print('removed path: ', lowest_cost_traj)
         sub_graph.remove_nodes_from(lowest_cost_traj[1:])
 
         if len(sub_graph.edges) == 0 and len(sub_graph.nodes) > 1:
@@ -704,14 +701,14 @@ def forecast(localization: dict, distribution):
             if tmp <= last_time:
                 selected_time_steps.append(tmp)
         ###########################################
-        print(selected_time_steps)
+        print('processing frames: ', selected_time_steps)
 
         graph = nx.DiGraph()
         graph.add_node((0, 0))
         graph.add_edges_from([((0, 0), node, {'cost':100.0}) for node in last_nodes])
         #for selected_time in selected_time_steps:
         #    graph.add_edges_from([((0, 0), (selected_time, index), {'cost':100.0}) for index in range(len(localization[selected_time]))])
-        print(nx.is_directed_acyclic_graph(final_graph))
+        print('DAG:',nx.is_directed_acyclic_graph(final_graph))
         first_construction = False
 
     all_nodes_ = []
@@ -1298,4 +1295,4 @@ if __name__ == '__main__':
     if visualization:
         print(f'Visualizing trajectories...')
         make_image_seqs(final_trajectories, output_dir=output_imgstack, img_stacks=images, time_steps=time_steps, cutoff=cutoff,
-                        add_index=True, local_img=None, gt_trajectory=None)
+                        add_index=False, local_img=None, gt_trajectory=None)
