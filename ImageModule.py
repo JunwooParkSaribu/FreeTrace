@@ -212,12 +212,12 @@ def make_image_seqs(trajectory_list, output_dir, img_stacks, time_steps, cutoff=
                 if len(indices) > 0:
                     if add_index:
                         cv2.putText(overlay, f'[{times[indices[0]]},{times[indices[-1]]}]',
-                                    org=[xy[0][0], xy[0][1] + 12], fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                                    org=[xy[-1][0], xy[-1][1] + 12], fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                                     fontScale=font_scale,
                                     color=(traj.get_color()[0],
                                            traj.get_color()[1],
                                            traj.get_color()[2]))
-                        cv2.putText(overlay, f'{traj.get_index()}', org=xy[0], fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                        cv2.putText(overlay, f'{traj.get_index()}', org=xy[-1], fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                                     fontScale=font_scale,
                                     color=(traj.get_color()[0],
                                            traj.get_color()[1],
