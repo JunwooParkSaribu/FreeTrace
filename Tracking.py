@@ -587,7 +587,12 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, thresho
                 #traj_cost = traj_cost / (len(traj) - 1)
                 #traj_cost = traj_cost / (len(traj) - 1) + 10./(traj[-1][0] - traj[1][0] + len(traj))
                 trajectories_costs.append(traj_cost)
-                #print(traj, traj_cost)
+                """
+                print(traj, traj_cost)
+                for node in traj[1:]:
+                    print(localizations[node[0]][node[1]], end=' -- ')
+                print()
+                """
             #################################################
 
         low_cost_args = np.argsort(trajectories_costs)
@@ -640,7 +645,7 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, thresho
 
 def forecast(localization: dict, distribution):
     last_time = np.sort(list(localization.keys()))[-1]
-    time_forcast = 5
+    time_forcast = 2
     final_graph = nx.DiGraph()
     final_graph.add_node((0, 0))
     graph = nx.DiGraph()
@@ -649,7 +654,7 @@ def forecast(localization: dict, distribution):
 
 
     graph.add_edges_from([((0, 0), (time_steps[0], index), {'cost':100.0}) for index in range(len(localization[time_steps[0]]))])
-    selected_time_steps = [2, 3, 4, 5, 6]
+    selected_time_steps = [2, 3]
     #for selected_time in selected_time_steps:
     #    graph.add_edges_from([((0, 0), (selected_time, index), {'cost':100.0}) for index in range(len(localization[selected_time]))])
     #forcast_matrix = np.array([localization[time] for time in selected_time_steps], dtype=object)
@@ -696,10 +701,10 @@ def forecast(localization: dict, distribution):
         selected_time_steps = [t for t in range(max_time + 1, min(last_time + 1, min_time + time_forcast + 1))]
 
         ################  TODO:MOIFY  ############################
-        if len(selected_time_steps) == 1 and last_time not in selected_time_steps:
-            tmp = selected_time_steps[-1] + 1
-            if tmp <= last_time:
-                selected_time_steps.append(tmp)
+        #if len(selected_time_steps) == 1 and last_time not in selected_time_steps:
+        #    tmp = selected_time_steps[-1] + 1
+        #    if tmp <= last_time:
+        #        selected_time_steps.append(tmp)
         ###########################################
         print('processing frames: ', selected_time_steps)
 
@@ -1229,7 +1234,7 @@ if __name__ == '__main__':
     methods = [1, 3, 4]
     confidence = 0.995
 
-    THRESHOLDS = [20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20] # None 
+    THRESHOLDS = [10, 20] # None 
 
     #images = read_tif(input_tif)[253:263]
     images = read_tif(input_tif)
