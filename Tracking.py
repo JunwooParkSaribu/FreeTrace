@@ -157,8 +157,6 @@ def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
     length_max_val = np.max(distribution)
     bins = np.arange(0, length_max_val + bin_size, bin_size)
     hist = np.histogram(distribution, bins=bins)
-
-
     kde = KernelDensity(kernel="gaussian", bandwidth=0.75).fit(distribution.reshape(-1, 1))
 
     hist_dist = scipy.stats.rv_histogram(hist)
@@ -167,8 +165,6 @@ def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
 
     pdf = np.where(pdf > 0.0005, pdf, 0)
     pdf = pdf / np.sum(pdf)
-    print(len(pdf))
-
 
     #reduced_bin_size = bin_size * 2
     if approx == 'metropolis_hastings':
@@ -1241,7 +1237,7 @@ if __name__ == '__main__':
     amp = params['tracking']['AMP_MAX_LEN']
     visualization = params['tracking']['TRACK_VISUALIZATION']
     pixel_microns = params['tracking']['PIXEL_MICRONS']
-    frame_rate = params['tracking']['FRAME_RATE']
+    frame_rate = params['tracking']['FRAME_PER_SEC']
 
     output_xml = f'{OUTPUT_DIR}/{input_tif.split("/")[-1].split(".tif")[0]}_traces.xml'
     output_trj = f'{OUTPUT_DIR}/{input_tif.split("/")[-1].split(".tif")[0]}_traces.csv'
@@ -1251,7 +1247,7 @@ if __name__ == '__main__':
 
     final_trajectories = []
     confidence = 0.90
-    THRESHOLDS = None
+    THRESHOLDS = [10 + 2 * thr for thr in range(blink_lag + 1)]
 
     images = read_tif(input_tif)
     loc, loc_infos = read_localization(f'{OUTPUT_DIR}/{input_tif.split("/")[-1].split(".tif")[0]}_loc.csv', images)
@@ -1271,7 +1267,7 @@ if __name__ == '__main__':
         for lag in segment_distribution.keys():
             print(f'{lag}_limit_length: {segment_distribution[lag][0]}')
 
-  
+        """
         plt.figure()
         fig, axs = plt.subplots((blink_lag + 1), 2, figsize=(20, 10))
         show_x_max = 20
@@ -1292,7 +1288,7 @@ if __name__ == '__main__':
             axs[lag][0].set_ylim([0, show_y_max])
             axs[lag][1].set_ylim([0, show_y_max])
         plt.show()
-       
+        """
 
         #loc = create_2d_window(images, loc, time_steps, pixel_size=1, window_size=window_size) ## 1 or 0.16
         #likelihood_graphics(time_steps=time_steps, distrib=segment_distribution, blink_lag=blink_lag, on=methods)
