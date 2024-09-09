@@ -3,19 +3,14 @@ import scipy
 import sys
 import matplotlib.pyplot as plt
 import concurrent.futures
-from numba.typed import List
 from ImageModule import read_tif, make_image_seqs, make_whole_img
 from TrajectoryObject import TrajectoryObj
 from XmlModule import write_xml
 from FileIO import write_trajectory, read_localization, read_parameters, write_trxyt, check_video_ext
 from timeit import default_timer as timer
 from Bipartite_searching import hungarian_algo_max
-from scipy.stats import beta
 import networkx as nx
-
-
-WSL_PATH = '/mnt/c/Users/jwoo/Desktop'
-WINDOWS_PATH = 'C:/Users/jwoo/Desktop'
+from sklearn.neighbors import KernelDensity
 
 
 def greedy_shortest(srcs, dests):
@@ -162,12 +157,17 @@ def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
     length_max_val = np.max(distribution)
     bins = np.arange(0, length_max_val + bin_size, bin_size)
     hist = np.histogram(distribution, bins=bins)
+
+
+    kde = KernelDensity(kernel="gaussian", bandwidth=0.75).fit(distribution.reshape(-1, 1))
+
     hist_dist = scipy.stats.rv_histogram(hist)
     pdf = hist[0] / np.sum(hist[0])
     bin_edges = hist[1]
 
     pdf = np.where(pdf > 0.0005, pdf, 0)
     pdf = pdf / np.sum(pdf)
+    print(len(pdf))
 
 
     #reduced_bin_size = bin_size * 2
@@ -180,13 +180,13 @@ def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
         bin_edges = hist[1]
     #X = np.linspace(0, length_max_val + reduced_bin_size, 1000)
 
-
+    return np.quantile(distribution, conf), pdf, bin_edges, hist_dist.cdf, distribution, kde
     X = np.linspace(0, length_max_val + bin_size, 1000)
     for threshold, ax_val in zip(X, hist_dist.cdf(X)):
         if ax_val > conf:
-            #return threshold, pdf, bin_edges, hist_dist.cdf, distribution
+            return threshold, pdf, bin_edges, hist_dist.cdf, distribution
             #return np.mean(distribution), pdf, bin_edges, hist_dist.cdf, distribution
-            return np.quantile(distribution, 0.995), pdf, bin_edges, hist_dist.cdf, distribution
+            #return np.quantile(distribution, 0.995), pdf, bin_edges, hist_dist.cdf, distribution
 
 
 def mcmc_parallel(real_distribution, conf, bin_size, amp_factor, approx='metropolis_hastings',
@@ -202,20 +202,25 @@ def mcmc_parallel(real_distribution, conf, bin_size, amp_factor, approx='metropo
                 future = executor.submit(approx_cdf, real_distribution[lag], conf, bin_size, approx, n_iter, burn)
                 executors[lag] = future
             for index, lag in enumerate(executors):
-                seg_len_obv, pdf_obv, bins_obv, cdf_obv, distrib = executors[lag].result()
+                seg_len_obv, pdf_obv, bins_obv, cdf_obv, distrib, kde = executors[lag].result()
                 if thresholds is not None:
-                    approx_distribution[lag] = [thresholds[index], pdf_obv, bins_obv, cdf_obv, distrib]
+                    approx_distribution[lag] = [thresholds[index], pdf_obv, bins_obv, cdf_obv, distrib, kde]
                 else:
-                    approx_distribution[lag] = [seg_len_obv * amp_factor, pdf_obv, bins_obv, cdf_obv, distrib]
+                    approx_distribution[lag] = [seg_len_obv * amp_factor, pdf_obv, bins_obv, cdf_obv, distrib, kde]
     else:
         for index, lag in enumerate(real_distribution.keys()):
-            seg_len_obv, pdf_obv, bins_obv, cdf_obv, distrib = (
+            seg_len_obv, pdf_obv, bins_obv, cdf_obv, distrib, kde = (
                 approx_cdf(distribution=real_distribution[lag],
                            conf=conf, bin_size=bin_size, approx=approx, n_iter=n_iter, burn=burn))
             if thresholds is not None:
-                approx_distribution[lag] = [thresholds[index], pdf_obv, bins_obv, cdf_obv, distrib]
+                approx_distribution[lag] = [thresholds[index], pdf_obv, bins_obv, cdf_obv, distrib, kde]
             else:
-                approx_distribution[lag] = [seg_len_obv * amp_factor, pdf_obv, bins_obv, cdf_obv, distrib]
+                approx_distribution[lag] = [seg_len_obv * amp_factor, pdf_obv, bins_obv, cdf_obv, distrib, kde]
+
+    if thresholds == None:
+        max_length_0 = approx_distribution[0][0]
+        for index, lag in enumerate(real_distribution.keys()):
+            approx_distribution[lag][0] = max_length_0 * (index + 1)  # where alpha = 1.9999
 
     bin_max = -1
     for lag in real_distribution.keys():
@@ -526,7 +531,7 @@ def dfs_edges(G, source=None, depth_limit=None, *, sort_neighbors=None):
 
 
 
-def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, threshold, distribution):
+def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, distribution):
     selected_graph = nx.DiGraph()
     source_node = (0, 0)
 
@@ -541,12 +546,14 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, thresho
                         for next_idx, loc in enumerate(localizations[cur_time]):
                             node_loc = localizations[last_node[0]][last_node[1]]
                             jump_d = np.sqrt((loc[0] - node_loc[0])**2 + (loc[1] - node_loc[1])**2 + (loc[2] - node_loc[2])**2)
+                            time_gap = cur_time - last_node[0] - 1
 
-                            if jump_d < threshold:
-                                next_node = (cur_time, next_idx)
-                                time_gap = cur_time - last_node[0] - 1
-                                if time_gap in distribution:
-                                    log_p = displacement_probability(np.array([jump_d]), np.array([threshold]), np.array([distribution[time_gap][1]]), np.array([distribution[time_gap][2]]))[1][0]
+                            if time_gap in distribution:
+                                threshold = distribution[time_gap][0]
+                                if jump_d < threshold:
+                                    next_node = (cur_time, next_idx)
+                                    #log_p = displacement_probability(np.array([jump_d]), np.array([threshold]), np.array([distribution[time_gap][1]]), np.array([distribution[time_gap][2]]))[1][0]
+                                    log_p = distribution[time_gap][5].score_samples([[jump_d]])
                                     sub_graph.add_edge(last_node, next_node, cost=abs(log_p))
 
             for cur_time in next_times[index:index+1]:
@@ -622,9 +629,12 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, thresho
                                 suc_loc = localizations[suc[0]][suc[1]]
                                 jump_d = np.sqrt((pred_loc[0] - suc_loc[0])**2 + (pred_loc[1] - suc_loc[1])**2 + (pred_loc[2] - suc_loc[2])**2)
                                 time_gap = suc[0] - pred[0] - 1
-                                if jump_d < threshold:
-                                    if time_gap in distribution:
-                                        log_p = displacement_probability(np.array([jump_d]), np.array([threshold]), np.array([distribution[time_gap][1]]), np.array([distribution[time_gap][2]]))[1][0]
+                                
+                                if time_gap in distribution:
+                                    threshold = distribution[time_gap][0]
+                                    if jump_d < threshold:
+                                        #log_p = displacement_probability(np.array([jump_d]), np.array([threshold]), np.array([distribution[time_gap][1]]), np.array([distribution[time_gap][2]]))[1][0]
+                                        log_p = distribution[time_gap][5].score_samples([[jump_d]])
                                         sub_graph.add_edge(pred, suc, cost=abs(log_p))
             
         print('removed path: ', lowest_cost_traj)
@@ -649,10 +659,10 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, thresho
     return selected_graph
 
 
-def forecast(localization: dict, distribution):
+def forecast(localization: dict, distribution, blink_lag):
     last_time = np.sort(list(localization.keys()))[-1]
     time_forcast = 10
-    max_pause_time = 2
+    max_pause_time = blink_lag
     final_graph = nx.DiGraph()
     final_graph.add_node((0, 0))
     graph = nx.DiGraph()
@@ -670,7 +680,7 @@ def forecast(localization: dict, distribution):
     while True:
         min_time = 99999
         max_time = -1
-        selected_sub_graph = set_traj_combinations(graph, localization, selected_time_steps, 10, distribution)
+        selected_sub_graph = set_traj_combinations(graph, localization, selected_time_steps, distribution)
         last_times = list(set([nodes[-1][0] for nodes in dfs_edges(selected_sub_graph, source=(0, 0))]))
         max_time = np.max(last_times)
         min_time = np.min(last_times)
@@ -745,9 +755,9 @@ def forecast(localization: dict, distribution):
 
 
 def simple_connect(localization: dict, localization_infos: dict,
-                   time_steps: np.ndarray, distrib: dict, blink_lag=1, on=None):
+                   time_steps: np.ndarray, distrib: dict, blink_lag=1):
 
-    trajectory_list = forecast(localization, distrib)
+    trajectory_list = forecast(localization, distrib, blink_lag)
     return trajectory_list
     exit(1)
     if on is None:
@@ -1240,12 +1250,9 @@ if __name__ == '__main__':
     output_img = f'{OUTPUT_DIR}/{input_tif.split("/")[-1].split(".tif")[0]}_traces.png'
 
     final_trajectories = []
-    methods = [1, 3, 4]
-    confidence = 0.995
+    confidence = 0.90
+    THRESHOLDS = None
 
-    THRESHOLDS = [12, 20, 20] # None 
-
-    #images = read_tif(input_tif)[253:263]
     images = read_tif(input_tif)
     loc, loc_infos = read_localization(f'{OUTPUT_DIR}/{input_tif.split("/")[-1].split(".tif")[0]}_loc.csv', images)
 
@@ -1259,25 +1266,23 @@ if __name__ == '__main__':
     bin_size = np.mean(xyz_max - xyz_min) / 5000.
 
     for repeat in range(1):
-        start_time = timer()
         segment_distribution = mcmc_parallel(raw_segment_distribution, confidence, bin_size, amp, n_iter=1e3, burn=0,
                                              approx=None, parallel=var_parallel, thresholds=THRESHOLDS)
-        print(f'MCMC duration: {timer() - start_time:.2f}s')
         for lag in segment_distribution.keys():
             print(f'{lag}_limit_length: {segment_distribution[lag][0]}')
 
-        """
+  
         plt.figure()
         fig, axs = plt.subplots((blink_lag + 1), 2, figsize=(20, 10))
         show_x_max = 20
-        show_y_max = 0.15
+        show_y_max = 0.30
         for lag in segment_distribution.keys():
             raw_segs_hist, bin_edges = np.histogram(raw_segment_distribution[lag],
                                                     bins=np.arange(0, show_x_max, bin_size * 2))
             mcmc_segs_hist, _ = np.histogram(segment_distribution[lag][4], bins=bin_edges)
             axs[lag][1].hist(bin_edges[:-1], bin_edges, weights=raw_segs_hist / np.sum(raw_segs_hist), alpha=0.5)
             axs[lag][0].hist(bin_edges[:-1], bin_edges, weights=mcmc_segs_hist / np.sum(mcmc_segs_hist), alpha=0.5)
-            axs[lag][0].plot(segment_distribution[lag][2], segment_distribution[lag][1], label=f'{lag}_PDF')
+            axs[lag][0].plot(segment_distribution[lag][2], np.exp(segment_distribution[lag][5].score_samples(segment_distribution[lag][2].reshape(-1, 1))), label=f'{lag}_PDF')
             #axs[lag].plot(segment_distribution[lag][2][:200], segment_distribution[lag][3](segment_distribution[lag][2])[:200], label=f'{lag}_CDF')
             axs[lag][0].vlines(segment_distribution[lag][0], ymin=0, ymax=.14, alpha=0.6, colors='r', label=f'{lag}_limit')
             axs[lag][0].legend()
@@ -1287,12 +1292,12 @@ if __name__ == '__main__':
             axs[lag][0].set_ylim([0, show_y_max])
             axs[lag][1].set_ylim([0, show_y_max])
         plt.show()
-        """
+       
 
         #loc = create_2d_window(images, loc, time_steps, pixel_size=1, window_size=window_size) ## 1 or 0.16
         #likelihood_graphics(time_steps=time_steps, distrib=segment_distribution, blink_lag=blink_lag, on=methods)
         trajectory_list = simple_connect(localization=loc, localization_infos=loc_infos, time_steps=time_steps,
-                                         distrib=segment_distribution, blink_lag=blink_lag, on=methods)
+                                         distrib=segment_distribution, blink_lag=blink_lag)
         #trajectory_optimality_check(trajectory_list, localizations, distrib=segment_distribution)
         segment_distribution = trajectory_to_segments(trajectory_list, blink_lag)
 
