@@ -335,8 +335,8 @@ def read_parameters(param_file):
                 params['tracking']['OUTPUT_DIR'] = line.strip().split('=')[1]
             if 'pixel_microns' in line.lower():
                 params['tracking']['PIXEL_MICRONS'] = float(eval(line.strip().split('=')[1]))
-            if 'frame_rate' in line.lower():
-                params['tracking']['FRAME_RATE'] = float(eval(line.strip().split('=')[1]))
+            if 'frame_per_sec' in line.lower():
+                params['tracking']['FRAME_PER_SEC'] = float(eval(line.strip().split('=')[1]))
             if 'blink_lag' in line.lower():
                 params['tracking']['BLINK_LAG'] = int(eval(line.strip().split('=')[1]))
             if 'cutoff' in line.lower():
