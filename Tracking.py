@@ -541,21 +541,23 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, distrib
                     if last_node[0] < cur_time:
                         for next_idx, loc in enumerate(localizations[cur_time]):
                             node_loc = localizations[last_node[0]][last_node[1]]
-                            jump_d = np.sqrt((loc[0] - node_loc[0])**2 + (loc[1] - node_loc[1])**2 + (loc[2] - node_loc[2])**2)
-                            time_gap = cur_time - last_node[0] - 1
+                            if len(loc) == 3 and len(node_loc) == 3:
+                                jump_d = np.sqrt((loc[0] - node_loc[0])**2 + (loc[1] - node_loc[1])**2 + (loc[2] - node_loc[2])**2)
+                                time_gap = cur_time - last_node[0] - 1
 
-                            if time_gap in distribution:
-                                threshold = distribution[time_gap][0]
-                                if jump_d < threshold:
-                                    next_node = (cur_time, next_idx)
-                                    #log_p = displacement_probability(np.array([jump_d]), np.array([threshold]), np.array([distribution[time_gap][1]]), np.array([distribution[time_gap][2]]))[1][0]
-                                    log_p = distribution[time_gap][5].score_samples([[jump_d]])
-                                    sub_graph.add_edge(last_node, next_node, cost=abs(log_p))
+                                if time_gap in distribution:
+                                    threshold = distribution[time_gap][0]
+                                    if jump_d < threshold:
+                                        next_node = (cur_time, next_idx)
+                                        #log_p = displacement_probability(np.array([jump_d]), np.array([threshold]), np.array([distribution[time_gap][1]]), np.array([distribution[time_gap][2]]))[1][0]
+                                        log_p = distribution[time_gap][5].score_samples([[jump_d]])
+                                        sub_graph.add_edge(last_node, next_node, cost=abs(log_p))
 
             for cur_time in next_times[index:index+1]:
                 for idx in range(len(localizations[cur_time])):
-                    if (cur_time, idx) not in sub_graph:
+                    if (cur_time, idx) not in sub_graph and len(localizations[cur_time][0]) == 3:
                         sub_graph.add_edge((0, 0), (cur_time, idx))
+
             index += 1
             if index == len(next_times):
                 break
@@ -734,7 +736,8 @@ def forecast(localization: dict, distribution, blink_lag):
     all_nodes_ = []
     for t in list(localization.keys()):
         for nb_sample in range(len(localization[t])):
-            all_nodes_.append((t, nb_sample))
+            if len(localization[t][nb_sample]) == 3:
+                all_nodes_.append((t, nb_sample))
     
     print('----------------------------------------')
     for node_ in all_nodes_:
@@ -1247,7 +1250,7 @@ if __name__ == '__main__':
 
     final_trajectories = []
     confidence = 0.90
-    THRESHOLDS = [10 + 2 * thr for thr in range(blink_lag + 1)]
+    THRESHOLDS = [8 + 2 * thr for thr in range(blink_lag + 1)]
 
     images = read_tif(input_tif)
     loc, loc_infos = read_localization(f'{OUTPUT_DIR}/{input_tif.split("/")[-1].split(".tif")[0]}_loc.csv', images)
