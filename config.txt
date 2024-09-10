@@ -1,4 +1,4 @@
-VIDEO=./vesicle_7_low.tif
+VIDEO=./parp1.tif
 OUTPUT_DIR=.
 
 # LOCALIZATION
@@ -20,7 +20,7 @@ TRACK_VISUALIZATION = True
 # SUPP
 LOC_PARALLEL = False
 CORE = 4
-DIV_Q = 50
+DIV_Q = 200
 SHIFT = 1
 
 TRACKING_PARALLEL = False
