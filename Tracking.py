@@ -8,7 +8,6 @@ from TrajectoryObject import TrajectoryObj
 from XmlModule import write_xml
 from FileIO import write_trajectory, read_localization, read_parameters, write_trxyt, check_video_ext
 from timeit import default_timer as timer
-from Bipartite_searching import hungarian_algo_max
 import networkx as nx
 from sklearn.neighbors import KernelDensity
 
