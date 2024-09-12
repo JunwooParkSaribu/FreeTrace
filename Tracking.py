@@ -665,6 +665,7 @@ def forecast(localization: dict, distribution, blink_lag):
     graph = nx.DiGraph()
     time_steps = list(localization.keys())
     graph.add_node((0, 0))
+    saved_last_nodes = []
 
 
     graph.add_edges_from([((0, 0), (time_steps[0], index), {'cost':100.0}) for index in range(len(localization[time_steps[0]]))])
@@ -712,7 +713,10 @@ def forecast(localization: dict, distribution, blink_lag):
         if last_time in selected_time_steps:
             break
         min_time = np.min([node[0] for node in last_nodes])
-        selected_time_steps = [t for t in range(max_time + 1, min(last_time + 1, min_time + time_forcast + 1))]
+        if last_nodes == saved_last_nodes:
+            selected_time_steps = [t for t in range(selected_time_steps[-1], selected_time_steps[-1]+time_forcast)]
+        else:
+            selected_time_steps = [t for t in range(max_time + 1, min(last_time + 1, min_time + time_forcast + 1))]
 
         ################  TODO:MOIFY  ############################
         #if len(selected_time_steps) == 1 and last_time not in selected_time_steps:
@@ -721,6 +725,7 @@ def forecast(localization: dict, distribution, blink_lag):
         #        selected_time_steps.append(tmp)
         ###########################################
         print('processing frames: ', selected_time_steps)
+        saved_last_nodes = last_nodes.copy()
         #if 28 in selected_time_steps:
         #    exit()
 
@@ -1117,7 +1122,8 @@ def make_graph(pairs, probas):
     #print('Nb of sub_graphs  after: ', len(sub_graphs))
 
     for sub_graph in sub_graphs:
-        linkages, val = graph_matrix(sub_graph, pair_probas)
+        #linkages, val = graph_matrix(sub_graph, pair_probas)
+        linkages, val = [], []
         for linkage in linkages:
             links.append(linkage)
     return links
@@ -1142,6 +1148,7 @@ def merge_graphs(graph, sub_graphs, index):
     return sub_graphs
 
 
+"""
 def graph_matrix(graph, pair_proba):
     opt_matchs = []
     default_val = -1e5
@@ -1159,6 +1166,7 @@ def graph_matrix(graph, pair_proba):
         if graph_mat[row, col] > default_val + 1:
             opt_matchs.append((row_list[row], col_list[col]))
     return opt_matchs, val
+"""
 
 
 def bi_variate_normal_pdf(xy, cov, mu, normalization=True):
@@ -1304,9 +1312,9 @@ if __name__ == '__main__':
             final_trajectories.append(trajectory)
 
 
-    write_xml(output_file=output_xml, trajectory_list=final_trajectories,
-              snr='7', density='low', scenario='Vesicle', cutoff=cutoff)
-    write_trajectory(output_trj, final_trajectories)
+    #write_xml(output_file=output_xml, trajectory_list=final_trajectories,
+    #          snr='7', density='low', scenario='Vesicle', cutoff=cutoff)
+    #write_trajectory(output_trj, final_trajectories)
     write_trxyt(output_trxyt, final_trajectories, pixel_microns, frame_rate)
     make_whole_img(final_trajectories, output_dir=output_img, img_stacks=images)
     if visualization:
