@@ -634,7 +634,7 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, distrib
                                         log_p = distribution[time_gap][5].score_samples([[jump_d]])
                                         sub_graph.add_edge(pred, suc, cost=abs(log_p))
             
-        print('removed path: ', lowest_cost_traj)
+        #print('removed path: ', lowest_cost_traj)
         sub_graph.remove_nodes_from(lowest_cost_traj[1:])
 
         #print(len(sub_graph.edges), len(sub_graph.nodes), sub_graph.edges, sub_graph.nodes)
@@ -726,8 +726,6 @@ def forecast(localization: dict, distribution, blink_lag):
         ###########################################
         print('processing frames: ', selected_time_steps)
         saved_last_nodes = last_nodes.copy()
-        #if 28 in selected_time_steps:
-        #    exit()
 
         graph = nx.DiGraph()
         graph.add_node((0, 0))
@@ -743,7 +741,7 @@ def forecast(localization: dict, distribution, blink_lag):
             if len(localization[t][nb_sample]) == 3:
                 all_nodes_.append((t, nb_sample))
     
-    print('----------------------------------------')
+    print('-----------------------------------------')
     for node_ in all_nodes_:
         if node_ not in final_graph:
             print('missing node:', node_)
