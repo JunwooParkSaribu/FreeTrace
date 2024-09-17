@@ -27,7 +27,7 @@ def write_config(filename):
     BLINK_LAG = 2\n\
     PIXEL_MICRONS = 0.16\n\
     FRAME_PER_SEC = 0.01\n\
-    TRACK_VISUALIZATION = False\n\
+    TRACK_VISUALIZATION = True\n\
     \n\
     \n\
     # SUPP\n\
