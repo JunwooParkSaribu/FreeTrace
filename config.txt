@@ -1,12 +1,12 @@
-    VIDEO=./inputs/receptor_7_low.tif
+    VIDEO=./inputs/sample4.tiff
     OUTPUT_DIR=./outputs
     
     # LOCALIZATION
-    WINDOW_SIZE = 9
+    WINDOW_SIZE = 5
     THRESHOLD_ALPHA = 1.0
     DEFLATION_LOOP_IN_BACKWARD = 1
     SIGMA = 4.0
-    LOC_VISUALIZATION = False
+    LOC_VISUALIZATION = True
     
     
     # TRACKING
