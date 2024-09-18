@@ -325,8 +325,22 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
             for hm in h_maps:
                 plt.figure()
                 plt.imshow(hm[0], vmin=0., vmax=1.)
+            fig, ax = plt.subplots(subplot_kw=dict(projection='3d'))
+            from matplotlib.colors import LightSource
+            from matplotlib import cbook, cm
+            ls = LightSource(270, 45)
+            x = np.arange(hm[0].shape[0])
+            y = np.arange(hm[0].shape[1])
+            x, y = np.meshgrid(x, y)
+            z = hm[0][x, y]
+            # To use a custom hillshading mode, override the built-in shading and pass
+            # in the rgb colors of the shaded surface calculated from "shade".
+            rgb = ls.shade(z, cmap=cm.gist_earth, vert_exag=0.1, blend_mode='soft')
+            surf = ax.plot_surface(x, y, z, rstride=1, cstride=1, facecolors=rgb,
+                                linewidth=0, antialiased=True, shade=False)
             plt.show()
             """
+            
 
             indices = region_max_filter(h_maps, single_winsizes, single_thresholds, detect_range=1)
             if len(indices) != 0:

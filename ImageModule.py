@@ -13,19 +13,28 @@ def read_tif(filepath):
         axes = tif.series[0].axes
         imagej_metadata = tif.imagej_metadata
 
-    nb_tif = imgs.shape[0]
-    y_size = imgs.shape[1]
-    x_size = imgs.shape[2]
+    if len(imgs.shape) == 3:
+        nb_tif = imgs.shape[0]
+        y_size = imgs.shape[1]
+        x_size = imgs.shape[2]
 
-    s_min = np.min(np.min(imgs, axis=(1, 2)))
-    s_max = np.max(np.max(imgs, axis=(1, 2)))
+        s_min = np.min(np.min(imgs, axis=(1, 2)))
+        s_max = np.max(np.max(imgs, axis=(1, 2)))
+    elif len(imgs.shape) == 2:
+        nb_tif = 1
+        y_size = imgs.shape[0]
+        x_size = imgs.shape[1]
+        s_min = np.min(np.min(imgs, axis=(0, 1)))
+        s_max = np.max(np.max(imgs, axis=(0, 1)))
+    else:
+        raise Exception 
 
     #modes = scipy.stats.mode(imgs.reshape(nb_tif, y_size*x_size), axis=1, keepdims=False)[0]
     for i, img in enumerate(imgs):
         img = (img - s_min) / (s_max - s_min)
         normalized_imgs.append(img)
 
-    normalized_imgs = np.array(normalized_imgs, dtype=np.double)
+    normalized_imgs = np.array(normalized_imgs, dtype=np.double).reshape(-1, y_size, x_size)
     return normalized_imgs
 
 
