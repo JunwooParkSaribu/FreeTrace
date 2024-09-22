@@ -12,7 +12,7 @@ import networkx as nx
 from sklearn.neighbors import KernelDensity
 
 
-def greedy_shortest(srcs, dests):
+def greedy_shortest(srcs, dests, lag):
     srcs = np.array(srcs)
     dests = np.array(dests)
     distribution = []
@@ -38,8 +38,14 @@ def greedy_shortest(srcs, dests):
             linked_dest[dest] = True
             linked_src[src] = True
             distribution.append(linkage[src][dest])
-    return distribution
 
+    # eliminate the speed bigger than diffraction ligth limit.
+    diffraction_light_limit = 15.0 * np.power(lag + 1, (1/4))
+    filtered_distrib = []
+    for jump_d in distribution[:-1]:
+        if jump_d < diffraction_light_limit:
+            filtered_distrib.append(jump_d)
+    return filtered_distrib
 
 def parallel_shortest(srcs, dests):
     distribution = []
@@ -129,7 +135,7 @@ def distribution_segments(localization: dict, time_steps: np.ndarray, lag=2,
                 dest = localization[time_steps[j]]
                 dests[j - i - 1].extend(dest)
             for l, dest in enumerate(dests):
-                dist = greedy_shortest(srcs=srcs, dests=dest)
+                dist = greedy_shortest(srcs=srcs, dests=dest, lag=l)
                 seg_distribution[l].extend(dist)
     return seg_distribution
 
@@ -215,7 +221,8 @@ def mcmc_parallel(real_distribution, conf, bin_size, amp_factor, approx='metropo
     if thresholds == None:
         max_length_0 = approx_distribution[0][0]
         for index, lag in enumerate(real_distribution.keys()):
-            approx_distribution[lag][0] = max_length_0 * (index + 1)  # where alpha = 1.9999
+            #approx_distribution[lag][0] = max_length_0 * np.sqrt((index + 1))  # assuming free difusive where alpha = 1.0
+            approx_distribution[lag][0] = max_length_0 * np.power(index + 1, (1/4)) + 2
 
     bin_max = -1
     for lag in real_distribution.keys():
@@ -1254,10 +1261,12 @@ if __name__ == '__main__':
     output_img = f'{OUTPUT_DIR}/{input_tif.split("/")[-1].split(".tif")[0]}_traces.png'
 
     final_trajectories = []
-    confidence = 0.90
-    THRESHOLDS = [8 + 2 * thr for thr in range(blink_lag + 1)]
+    confidence = 0.99
+    THRESHOLDS = None #[8 + 2 * thr for thr in range(blink_lag + 1)]
 
     images = read_tif(input_tif)
+    if images.shape[0] <= 1:
+        sys.exit('Image squence length error: Cannot track on a single image.')
     loc, loc_infos = read_localization(f'{OUTPUT_DIR}/{input_tif.split("/")[-1].split(".tif")[0]}_loc.csv', images)
 
     time_steps, mean_nb_per_time, xyz_min, xyz_max = count_localizations(loc)
