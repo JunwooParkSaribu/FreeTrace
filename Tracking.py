@@ -222,7 +222,7 @@ def mcmc_parallel(real_distribution, conf, bin_size, amp_factor, approx='metropo
         max_length_0 = approx_distribution[0][0]
         for index, lag in enumerate(real_distribution.keys()):
             #approx_distribution[lag][0] = max_length_0 * np.sqrt((index + 1))  # assuming free difusive where alpha = 1.0
-            approx_distribution[lag][0] = max_length_0 * np.power(index + 1, (1/4)) + 2
+            approx_distribution[lag][0] = max_length_0 * np.power(index + 1, (1/4)) + 4
 
     bin_max = -1
     for lag in real_distribution.keys():
@@ -1261,7 +1261,7 @@ if __name__ == '__main__':
     output_img = f'{OUTPUT_DIR}/{input_tif.split("/")[-1].split(".tif")[0]}_traces.png'
 
     final_trajectories = []
-    confidence = 0.99
+    confidence = 0.95
     THRESHOLDS = None #[8 + 2 * thr for thr in range(blink_lag + 1)]
 
     images = read_tif(input_tif)
