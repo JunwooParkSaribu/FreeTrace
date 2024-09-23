@@ -185,6 +185,7 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
     bg_means = bgs[multi_winsizes[0][0]][:, 0]
     extended_imgs = np.zeros((imgs.shape[0], imgs.shape[1] + extend, imgs.shape[2] + extend))
     extended_imgs[:, int(extend/2):int(extend/2) + imgs.shape[1], int(extend/2):int(extend/2) + imgs.shape[2]] += imgs
+    extended_imgs_copy = extended_imgs.copy()
 
     before_time = timer()
     extended_imgs = image_pad.add_block_noise(extended_imgs, extend)
