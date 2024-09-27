@@ -22,7 +22,7 @@ def write_config(exp_n, fov_n):
     THRESHOLD_ALPHA = 1.0\n\
     DEFLATION_LOOP_IN_BACKWARD = 1\n\
     SIGMA = 4.0\n\
-    LOC_VISUALIZATION = True\n\
+    LOC_VISUALIZATION = False\n\
     \n\
     \n\
     # TRACKING\n\
@@ -30,7 +30,7 @@ def write_config(exp_n, fov_n):
     BLINK_LAG = 1\n\
     PIXEL_MICRONS = 1\n\
     FRAME_PER_SEC = 1\n\
-    TRACK_VISUALIZATION = True\n\
+    TRACK_VISUALIZATION = False\n\
     \n\
     \n\
     # SUPP\n\
