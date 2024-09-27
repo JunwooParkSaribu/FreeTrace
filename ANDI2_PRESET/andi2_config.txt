@@ -1,4 +1,4 @@
-    VIDEO=./public_data_challenge_v0/track_1/exp_0/videos_fov_1.tiff
+    VIDEO=./public_data_challenge_v0/track_1/exp_0/videos_fov_0.tiff
     OUTPUT_DIR=./public_data_challenge_v0/track_1/exp_0
     
     # LOCALIZATION

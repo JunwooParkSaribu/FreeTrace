@@ -7,7 +7,7 @@
 > - Cython</br>
 
 ---------------------------------------------------------------------------------------------------- </br>
-<b>*** To run the <b>FreeTrace</b> for [AnDi2 Challenge](http://andi-challenge.org/challenge-2024/#andi2seminar) final-phase datasets[^1], check ANDI2_PRESET folder. ***</b></br>
+<b>*** For the video prediction of [AnDi2 Challenge](http://andi-challenge.org/challenge-2024/#andi2seminar) final-phase datasets, please check README.txt in ANDI2_PRESET folder. ***</b></br>
 PRE-REQUISITE: Build C object files by running setup.py on your platform(check setup.py file).</br>
 ---------------------------------------------------------------------------------------------------- </br>
 
@@ -26,13 +26,6 @@ PRE-REQUISITE: Build C object files by running setup.py on your platform(check s
 
 </br></br>
 
-
-<h3> To remake results on AnDi2 final-phase datasets</h3>
-1. Clone the repository on your local device.</br>
-2. Download datasets, place the *public_data_challenge_v0* folder inside of *ANDI2_PRESET* folder.</br>
-3. Build object files with setup.py.</br>
-4. Run *andi2_pipeline.py* script with python.</br>
-5. Trajectory results will be made in the dataset folder.
 
 <h3> Contacts </h3>
 junwoo.park@sorbonne-universite.fr<br>
