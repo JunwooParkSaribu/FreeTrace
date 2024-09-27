@@ -7,7 +7,7 @@
 > - Cython</br>
 
 ---------------------------------------------------------------------------------------------------- </br>
-<b>*** For the video prediction of [AnDi2 Challenge](http://andi-challenge.org/challenge-2024/#andi2seminar) final-phase datasets, please check README.txt in ANDI2_PRESET folder. ***</b></br>
+<b>*** For the video prediction of [AnDi2 Challenge](http://andi-challenge.org/challenge-2024/#andi2seminar) final-phase datasets, please check [ANDI2_PRESET](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/ANDI2_PRESET). ***</b></br>
 PRE-REQUISITE: Build C object files by running setup.py on your platform(check setup.py file).</br>
 ---------------------------------------------------------------------------------------------------- </br>
 
