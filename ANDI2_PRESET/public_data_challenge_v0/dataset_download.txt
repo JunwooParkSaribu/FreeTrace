@@ -1,0 +1,3 @@
+To download the AnDi2 dataset,
+Please visit the AnDi2 challenge page.
+https://codalab.lisn.upsaclay.fr/competitions/16618#participate-get_starting_kit
