@@ -3,8 +3,8 @@
 
 > [!IMPORTANT]  
 > Requirements </br>
-> - Python 3.10 or higher
-> - Cython
+> - Python 3.10 or higher</br>
+> - Cython</br>
 
 ---------------------------------------------------------------------------------------------------- </br>
 <b>*** To run the <b>FreeTrace</b> for [AnDi2 Challenge](http://andi-challenge.org/challenge-2024/#andi2seminar) final-phase datasets[^1], check ANDI2_PRESET folder. ***</b></br>
