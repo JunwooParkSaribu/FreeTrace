@@ -21,11 +21,7 @@ PRE-REQUISITE: Build C object files by running setup.py on your platform(check s
         </tr> 
 </table>
 
-
-<h3> [Brief description of the method](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/method_description.pdf) </h3>
-
-</br></br>
-
+[Brief description of the method](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/method_description.pdf)</br>
 
 <h3> Contacts </h3>
 junwoo.park@sorbonne-universite.fr<br>
