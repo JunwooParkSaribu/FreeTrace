@@ -1,0 +1,28 @@
+    VIDEO=./public_data_challenge_v0/track_1/exp_0/videos_fov_1.tiff
+    OUTPUT_DIR=./public_data_challenge_v0/track_1/exp_0
+    
+    # LOCALIZATION
+    WINDOW_SIZE = 5
+    THRESHOLD_ALPHA = 1.0
+    DEFLATION_LOOP_IN_BACKWARD = 1
+    SIGMA = 4.0
+    LOC_VISUALIZATION = True
+    
+    
+    # TRACKING
+    CUTOFF = 2
+    BLINK_LAG = 1
+    PIXEL_MICRONS = 1
+    FRAME_PER_SEC = 1
+    TRACK_VISUALIZATION = True
+    
+    
+    # SUPP
+    LOC_PARALLEL = False
+    CORE = 4
+    DIV_Q = 50
+    SHIFT = 1
+    
+    TRACKING_PARALLEL = False
+    AMP_MAX_LEN = 1.5
+    

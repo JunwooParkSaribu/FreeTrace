@@ -4,14 +4,30 @@ import cv2
 import tifffile
 from tifffile import TiffFile
 from PIL import Image
+import imageio as iio
+ 
 
 
-def read_tif(filepath):
+def read_tif(filepath, andi2=False):
     normalized_imgs = []
-    with TiffFile(filepath) as tif:
-        imgs = tif.asarray()
-        axes = tif.series[0].axes
-        imagej_metadata = tif.imagej_metadata
+    if andi2:
+        imgs = []
+        with Image.open(filepath) as img:
+            try:
+                for i in range(9999999):
+                    if i == 0:
+                        indice_image = np.array(img.copy())
+                    else:
+                        imgs.append(np.array(img))
+                        img.seek(img.tell() + 1)
+            except Exception as e:
+                pass
+        imgs = np.array(imgs)
+    else:
+        with TiffFile(filepath) as tif:
+            imgs = tif.asarray()
+            axes = tif.series[0].axes
+            imagej_metadata = tif.imagej_metadata
 
     if len(imgs.shape) == 3:
         nb_tif = imgs.shape[0]
@@ -29,13 +45,15 @@ def read_tif(filepath):
     else:
         raise Exception 
 
-    #modes = scipy.stats.mode(imgs.reshape(nb_tif, y_size*x_size), axis=1, keepdims=False)[0]
     for i, img in enumerate(imgs):
         img = (img - s_min) / (s_max - s_min)
         normalized_imgs.append(img)
 
     normalized_imgs = np.array(normalized_imgs, dtype=np.double).reshape(-1, y_size, x_size)
-    return normalized_imgs
+    if andi2:
+        return normalized_imgs, indice_image
+    else:
+        return normalized_imgs
 
 
 def read_single_tif(filepath, ch3=True):
@@ -338,17 +356,3 @@ def compare_two_localization_visual(output_dir, images, localized_xys_1, localiz
         stacked_imgs.append(np.hstack((orignal_imgs_3ch[img_n-1], original_imgs_3ch_2[img_n-1])))
     stacked_imgs = np.array(stacked_imgs)
     tifffile.imwrite(f'{output_dir}/local_comparison.tif', data=(stacked_imgs * 255).astype(np.uint8), imagej=True)
-
-
-"""
-imgs = []
-for i in range(100):
-    if i < 10:
-        i = '00'+str(i)
-    else:
-        i = '0' + str(i)
-    f = f'/home/junwoo/SPT_a/simulated_data/MICROTUBULE/MICROTUBULE snr 4 density mid/MICROTUBULE snr 4 density mid t{i} z0.tif'
-    imgs.append(read_single_tif(f, ch3=False))
-stack_tif(filename=f'microtubule_4_mid.tif', normalized_imgs=imgs)
-exit(1)
-"""

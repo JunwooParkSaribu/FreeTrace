@@ -15,7 +15,7 @@ def write_config(filename):
     OUTPUT_DIR=./outputs\n\
     \n\
     # LOCALIZATION\n\
-    WINDOW_SIZE = 9\n\
+    WINDOW_SIZE = 7\n\
     THRESHOLD_ALPHA = 1.0\n\
     DEFLATION_LOOP_IN_BACKWARD = 1\n\
     SIGMA = 4.0\n\

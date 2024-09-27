@@ -6,4 +6,5 @@ setup(
     ext_modules=cythonize(["./module/image_pad.pyx", "./module/regression.pyx"], language_level = "3", annotate=True),
 )
 
-#  python3 setup.py build_ext --inplace
+# Install Cython with pip, and build c object file with below command.
+# python setup.py build_ext --inplace

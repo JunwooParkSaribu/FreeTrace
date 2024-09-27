@@ -369,4 +369,4 @@ def check_video_ext(args, andi2=False):
         print(f'video format err, only .tif or .tiff are acceptable')
         exit(1)
     else:
-        return read_tif(args)
+        return read_tif(args, andi2)
