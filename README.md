@@ -18,7 +18,7 @@ PRE-REQUISITE: Build C object files by running setup.py on your platform (check 
 <table border="0"> 
         <tr> 
             <td><img src="https://github.com/JunwooParkSaribu/FreeTrace/blob/main/tmps/trjs0.gif" width="380" height="380"></td> 
-            <td><img src="https://github.com/JunwooParkSaribu/FreeTrace/blob/main/tmps/tjfs1.gif" width="380" height="380"></td>
+            <td><img src="https://github.com/JunwooParkSaribu/FreeTrace/blob/main/tmps/trjs1.gif" width="380" height="380"></td>
         </tr>  
 </table>
 
