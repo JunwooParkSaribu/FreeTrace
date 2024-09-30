@@ -25,6 +25,8 @@
 *.log
 *.sql
 *.sqlite
+*.pyc
+*.html
 
 # ML Models #
 ######################
