@@ -13,7 +13,7 @@ from sklearn.neighbors import KernelDensity
 from models.load_models import RegModel
 
 
-reg_model = RegModel([12])
+reg_model = RegModel([5, 8, 12])
 
 
 def greedy_shortest(srcs, dests, lag):
@@ -585,10 +585,6 @@ def set_traj_combinations(prev_graph:nx.graph, next_graph:nx.graph, localization
         #print(next_paths)
 
         for prev_path in prev_paths:
-            if len(prev_path) < 12:
-                print(prev_path)
-        """
-        for prev_path in prev_paths:
             prev_xys = np.array([localizations[txy[0]][txy[1]][:2] for txy in prev_path[1:]])
             prev_x_pos = prev_xys[:, 0]
             prev_y_pos = prev_xys[:, 1]
@@ -604,7 +600,7 @@ def set_traj_combinations(prev_graph:nx.graph, next_graph:nx.graph, localization
                         print(next_path, next_alpha)
                 
             print("--------------------------------------------------------------------")
-        """
+
                 
   
     while True:
