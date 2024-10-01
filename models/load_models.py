@@ -1,5 +1,5 @@
 import numpy as np
-from tensorflow.keras.models import load_model
+from tensorflow.keras.models import load_model # type: ignore
 
 
 class RegModel:
@@ -32,6 +32,9 @@ class RegModel:
 
     def alpha_predict(self, inputs):
         if len(inputs) == 2:
+            print(inputs)
+            if len(inputs[0]) < 5:
+                return 1.0
             alpha_signal, model_num = self.call(inputs)
             pred_alphas = self.alpha_models[model_num].predict_on_batch(alpha_signal)
             if pred_alphas.shape[0] > 4:
@@ -75,7 +78,12 @@ class RegModel:
         else:
             reg_model_num = self.reg_model_nums[6]
         """
-        reg_model_num = 12 
+        if length < 8:
+            reg_model_num = self.reg_model_nums[0]
+        elif length < 12:
+            reg_model_num = self.reg_model_nums[1]
+        else:
+            reg_model_num = self.reg_model_nums[2]
         return reg_model_num
 
     def log_displacements(self, xs, ys):
