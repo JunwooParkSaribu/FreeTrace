@@ -32,7 +32,6 @@ class RegModel:
 
     def alpha_predict(self, inputs):
         if len(inputs) == 2:
-            print(inputs)
             if len(inputs[0]) < 5:
                 return 1.0
             alpha_signal, model_num = self.call(inputs)
@@ -43,6 +42,8 @@ class RegModel:
                 pred_alpha = np.mean(pred_alphas)
             return pred_alpha
         elif len(inputs) == 3:
+            if len(inputs[0]) < 5:
+                return 1.0
             alpha_preds = []
             for inputs_ in inputs:
                 alpha_signal, model_num = self.call(inputs_)
