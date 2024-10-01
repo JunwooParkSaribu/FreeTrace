@@ -1410,24 +1410,29 @@ if __name__ == '__main__':
     print(f'Mean nb of molecules per frame: {mean_nb_per_time:.2f} molecules/frame')
 
     start_time = timer()
-    raw_segment_distribution = distribution_segments(loc, time_steps=time_steps, lag=blink_lag,
+
+    images2 = read_tif('./inputs/alpha_test0.tiff') ######
+    loc2, loc_infos2 = read_localization(f'{OUTPUT_DIR}/alpha_test0_loc.csv', images2) ######
+    time_steps2, mean_nb_per_time2, xyz_min2, xyz_max2 = count_localizations(loc2) ######
+
+    raw_segment_distribution2 = distribution_segments(loc2, time_steps=time_steps2, lag=blink_lag, ######
                                                      parallel=False)
     print(f'Segmentation duration: {timer() - start_time:.2f}s')
-    bin_size = np.mean(xyz_max - xyz_min) / 5000.
+    bin_size = np.mean(xyz_max2 - xyz_min2) / 5000. ######
 
     for repeat in range(1):
-        segment_distribution = mcmc_parallel(raw_segment_distribution, confidence, bin_size, amp, n_iter=1e3, burn=0,
+        segment_distribution = mcmc_parallel(raw_segment_distribution2, confidence, bin_size, amp, n_iter=1e3, burn=0, ######
                                              approx=None, parallel=var_parallel, thresholds=THRESHOLDS)
         for lag in segment_distribution.keys():
             print(f'{lag}_limit_length: {segment_distribution[lag][0]}')
 
-        """
+        
         plt.figure()
         fig, axs = plt.subplots((blink_lag + 1), 2, figsize=(20, 10))
         show_x_max = 20
         show_y_max = 0.30
         for lag in segment_distribution.keys():
-            raw_segs_hist, bin_edges = np.histogram(raw_segment_distribution[lag],
+            raw_segs_hist, bin_edges = np.histogram(raw_segment_distribution2[lag], ######
                                                     bins=np.arange(0, show_x_max, bin_size * 2))
             mcmc_segs_hist, _ = np.histogram(segment_distribution[lag][4], bins=bin_edges)
             axs[lag][1].hist(bin_edges[:-1], bin_edges, weights=raw_segs_hist / np.sum(raw_segs_hist), alpha=0.5)
@@ -1442,7 +1447,7 @@ if __name__ == '__main__':
             axs[lag][0].set_ylim([0, show_y_max])
             axs[lag][1].set_ylim([0, show_y_max])
         plt.show()
-        """
+        
 
         #loc = create_2d_window(images, loc, time_steps, pixel_size=1, window_size=window_size) ## 1 or 0.16
         #likelihood_graphics(time_steps=time_steps, distrib=segment_distribution, blink_lag=blink_lag, on=methods)

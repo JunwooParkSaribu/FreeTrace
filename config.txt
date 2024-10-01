@@ -1,4 +1,4 @@
-    VIDEO=./inputs/receptor_7_low.tif
+    VIDEO=./inputs/alpha_test2.tiff
     OUTPUT_DIR=./outputs
     
     # LOCALIZATION

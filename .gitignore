@@ -26,11 +26,15 @@
 *.sql
 *.sqlite
 *.pyc
-*.html
 
 # ML Models #
 ######################
 *.keras
+
+# Result Files #
+######################
+*.html
+*_traces.tiff
 
 # OS generated files #
 ######################
