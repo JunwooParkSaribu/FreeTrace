@@ -541,17 +541,24 @@ def predict_alphas(x, y, reg_model):
     return pred_alpha
 
 
-def set_traj_combinations(prev_graph:nx.graph, next_graph:nx.graph, localizations, next_times, distribution):
+def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizations, next_times, distribution, max_pause_time, first_step):
     alpha_lambda = 1.0
     initial_cost = 1000
     selected_graph = nx.DiGraph()
+    prev_graph = saved_graph.copy()
     source_node = (0, 0)
     alpha_values = {}
-    if 2 not in next_times:
+
+    print('Len prev graph:', len(prev_graph), end=' ')
+    if not first_step:
+        for path in dfs_edges(prev_graph, source=source_node):
+            if next_times[0] - path[-1][0] > max_pause_time:
+                prev_graph.remove_edges_from(path)
+    print('after deletion: ', len(prev_graph))
+    if not first_step:
         prev_paths = dfs_edges(prev_graph, source=source_node)
         for prev_path in prev_paths:
             prev_xys = np.array([localizations[txy[0]][txy[1]][:2] for txy in prev_path[1:]])[-15:]
-            print(len(prev_path), len(prev_xys))
             prev_x_pos = prev_xys[:, 0]
             prev_y_pos = prev_xys[:, 1]
             prev_alpha = predict_alphas(prev_x_pos, prev_y_pos, reg_model)
@@ -596,13 +603,10 @@ def set_traj_combinations(prev_graph:nx.graph, next_graph:nx.graph, localization
         next_trajectories = []
         next_paths = dfs_edges(next_graph, source=source_node)
         trajectories_costs = {tuple(next_path):initial_cost for next_path in next_paths}
-        if 2 not in next_times:
-            pass
-            #print('@@@@ - ', len(prev_paths), len(next_paths))
         for path in next_paths:
             next_trajectories.append(path)
 
-        if 2 in next_times:
+        if first_step:
             for traj in next_trajectories:
                 traj = tuple(traj)
                 if len(traj) == 2:
@@ -655,8 +659,8 @@ def set_traj_combinations(prev_graph:nx.graph, next_graph:nx.graph, localization
 
         trajs = [path for path in trajectories_costs.keys()]
         costs = [trajectories_costs[path] for path in trajectories_costs.keys()]
-
-        if 2 not in next_times:
+        """
+        if not first_step:
             for path, cost in zip(trajs, costs):
                 xxx = []
                 for i in range(2, len(path)):
@@ -665,7 +669,7 @@ def set_traj_combinations(prev_graph:nx.graph, next_graph:nx.graph, localization
                     print(path, cost, alpha_values[tuple(path)], xxx)
                 else:
                     print(path, cost, 'No alpha', xxx)
-
+        """
         low_cost_args = np.argsort(costs)
         next_trajectories = np.array(trajs, dtype=object)[low_cost_args]
         trajectories_costs = np.array(costs)[low_cost_args]
@@ -702,7 +706,6 @@ def set_traj_combinations(prev_graph:nx.graph, next_graph:nx.graph, localization
         #print('removed path: ', lowest_cost_traj)
         next_graph.remove_nodes_from(lowest_cost_traj[1:])
 
-        #print(len(sub_graph.edges), len(sub_graph.nodes), sub_graph.edges, sub_graph.nodes)
         nodes = np.array([node for node in next_graph.nodes])
         args = np.argsort([node[0] for node in nodes])
         nodes = nodes[args]
@@ -815,7 +818,7 @@ def set_traj_combinations(prev_graph:nx.graph, next_graph:nx.graph, localization
 
 def forecast(localization: dict, distribution, blink_lag):
     last_time = np.sort(list(localization.keys()))[-1]
-    time_forecast = 5
+    time_forecast = 10
     max_pause_time = blink_lag
     prev_graph = nx.DiGraph()
     prev_graph.add_node((0, 0))
@@ -833,7 +836,7 @@ def forecast(localization: dict, distribution, blink_lag):
     #set_traj_combinations(graph, localization, selected_time_steps, 10, distribution)
     first_construction = True
     while True:
-        selected_sub_graph = set_traj_combinations(prev_graph, next_graph, localization, selected_time_steps, distribution)
+        selected_sub_graph = set_traj_combinations(prev_graph, next_graph, localization, selected_time_steps, distribution, max_pause_time, first_construction)
         last_times = list(set([nodes[-1][0] for nodes in dfs_edges(selected_sub_graph, source=(0, 0))]))
         max_time = np.max(last_times)
         min_time = np.min(last_times)
