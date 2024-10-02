@@ -3,6 +3,7 @@ import scipy
 import sys
 import matplotlib.pyplot as plt
 import concurrent.futures
+import pandas as pd
 from ImageModule import read_tif, make_image_seqs, make_whole_img
 from TrajectoryObject import TrajectoryObj
 from XmlModule import write_xml
@@ -10,6 +11,8 @@ from FileIO import write_trajectory, read_localization, read_parameters, write_t
 from timeit import default_timer as timer
 import networkx as nx
 from sklearn.neighbors import KernelDensity
+from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
+from sklearn.model_selection import GridSearchCV
 from models.load_models import RegModel
 
 
@@ -160,20 +163,56 @@ def euclidian_displacement(pos1, pos2):
         return np.sqrt((pos1[:, 0] - pos2[:, 0]) ** 2 + (pos1[:, 1] - pos2[:, 1]) ** 2)
 
 
+def gmm_bic_score(estimator, x):
+    return -estimator.bic(x)
+
+
 def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
     bin_size *= 2  ## added
-
     length_max_val = np.max(distribution)
     bins = np.arange(0, length_max_val + bin_size, bin_size)
-    hist = np.histogram(distribution, bins=bins)
-    kde = KernelDensity(kernel="gaussian", bandwidth=0.75).fit(distribution.reshape(-1, 1))
 
+    param_grid = {
+        "n_components": [1, 2, 3],
+    }
+    grid_search = GridSearchCV(
+        GaussianMixture(max_iter=2000, n_init=20, covariance_type='diag'), param_grid=param_grid,
+        scoring=gmm_bic_score
+    )
+    grid_search.fit(distribution.reshape(-1, 1))
+    cluster_df = pd.DataFrame(grid_search.cv_results_)[
+        ["param_n_components", "mean_test_score"]
+    ]
+    cluster_df["mean_test_score"] = -cluster_df["mean_test_score"]
+    cluster_df = cluster_df.rename(
+        columns={
+            "param_n_components": "Number of components",
+            "mean_test_score": "BIC score",
+        }
+    )
+    opt_nb_component = np.argmin(cluster_df["BIC score"]) + param_grid['n_components'][0]
+    print("Optimal number of components: ",opt_nb_component)
+    cluster = BayesianGaussianMixture(n_components=opt_nb_component, max_iter=4000, n_init=20,
+                                      mean_precision_prior=1e-7,
+                                      covariance_type='diag').fit(distribution.reshape(-1, 1))
+    print(cluster.means_)
+    print(cluster.weights_)
+    print(cluster.covariances_)
+
+    kdes = []
+    for mean, cov, weight in zip(cluster.means_.flatten(), cluster.covariances_.flatten(), cluster.weights_.flatten()):
+        sample = np.random.normal(loc=mean, scale=cov, size=10000)
+        kde = KernelDensity(kernel="gaussian", bandwidth=0.75).fit(sample.reshape(-1, 1))
+        kdes.append(kde)
+
+
+    hist = np.histogram(distribution, bins=bins)
     hist_dist = scipy.stats.rv_histogram(hist)
     pdf = hist[0] / np.sum(hist[0])
     bin_edges = hist[1]
-
     pdf = np.where(pdf > 0.0005, pdf, 0)
     pdf = pdf / np.sum(pdf)
+    #kdes = KernelDensity(kernel="gaussian", bandwidth=0.75).fit(distribution.reshape(-1, 1))
 
     #reduced_bin_size = bin_size * 2
     if approx == 'metropolis_hastings':
@@ -185,7 +224,7 @@ def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
         bin_edges = hist[1]
     #X = np.linspace(0, length_max_val + reduced_bin_size, 1000)
 
-    return np.quantile(distribution, conf), pdf, bin_edges, hist_dist.cdf, distribution, kde
+    return np.quantile(distribution, conf), pdf, bin_edges, hist_dist.cdf, distribution, kdes, cluster
     X = np.linspace(0, length_max_val + bin_size, 1000)
     for threshold, ax_val in zip(X, hist_dist.cdf(X)):
         if ax_val > conf:
@@ -214,13 +253,13 @@ def mcmc_parallel(real_distribution, conf, bin_size, amp_factor, approx='metropo
                     approx_distribution[lag] = [seg_len_obv * amp_factor, pdf_obv, bins_obv, cdf_obv, distrib, kde]
     else:
         for index, lag in enumerate(real_distribution.keys()):
-            seg_len_obv, pdf_obv, bins_obv, cdf_obv, distrib, kde = (
+            seg_len_obv, pdf_obv, bins_obv, cdf_obv, distrib, kdes, cluster = (
                 approx_cdf(distribution=real_distribution[lag],
                            conf=conf, bin_size=bin_size, approx=approx, n_iter=n_iter, burn=burn))
             if thresholds is not None:
-                approx_distribution[lag] = [thresholds[index], pdf_obv, bins_obv, cdf_obv, distrib, kde]
+                approx_distribution[lag] = [thresholds[index], pdf_obv, bins_obv, cdf_obv, distrib, kdes, cluster]
             else:
-                approx_distribution[lag] = [seg_len_obv * amp_factor, pdf_obv, bins_obv, cdf_obv, distrib, kde]
+                approx_distribution[lag] = [seg_len_obv * amp_factor, pdf_obv, bins_obv, cdf_obv, distrib, kdes, cluster]
 
     if thresholds == None:
         max_length_0 = approx_distribution[0][0]
@@ -542,7 +581,7 @@ def predict_alphas(x, y, reg_model):
 
 
 def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizations, next_times, distribution, max_pause_time, first_step):
-    alpha_lambda = 1.0
+    alpha_lambda = 0.25
     initial_cost = 1000
     selected_graph = nx.DiGraph()
     prev_graph = saved_graph.copy()
@@ -586,7 +625,11 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
                                     if jump_d < threshold:
                                         next_node = (cur_time, next_idx)
                                         #log_p = displacement_probability(np.array([jump_d]), np.array([threshold]), np.array([distribution[time_gap][1]]), np.array([distribution[time_gap][2]]))[1][0]
-                                        log_p = distribution[time_gap][5].score_samples([[jump_d]])
+    
+                                        label = distribution[time_gap][6].predict([[jump_d]])[0]
+                                        mean = distribution[time_gap][6].means_[label][0]
+                                        log_ps = distribution[time_gap][5][label].score_samples([[jump_d], [mean]])
+                                        log_p = log_ps[0] - log_ps[1]
                                         next_graph.add_edge(last_node, next_node, cost=abs(log_p))
 
             for cur_time in next_times[index:index+1]:
@@ -621,11 +664,14 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
                         next_node = traj[edge_index]
                         cost = next_graph.edges[before_node, next_node]['cost']
                         traj_cost.append(cost)
-                    traj_cost = np.mean(traj_cost)
-                    traj_cost = traj_cost - len(traj) / 100.
-                    traj_cost = 1 / traj_cost
-                    traj_cost = initial_cost - traj_cost
-                    trajectories_costs[traj] = traj_cost
+                    #traj_cost = np.mean(traj_cost)
+                    #traj_cost = traj_cost - len(traj) / 100.
+                    #traj_cost = 1 / traj_cost
+                    #traj_cost = initial_cost - traj_cost
+                    traj_cost = np.mean(traj_cost)# - alpha_lambda * (-1/2. * abs(prev_alpha - next_alpha) + 1)
+                    trajectories_costs[traj] = min(traj_cost, trajectories_costs[traj])
+                    
+                    
         else:
             for prev_path in prev_paths:
                 prev_alpha = alpha_values[tuple(prev_path)]
@@ -655,24 +701,24 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
                                 traj_cost.append(cost)
 
                             traj_cost = np.mean(traj_cost) - alpha_lambda * (-1/2. * abs(prev_alpha - next_alpha) + 1)
-
                             trajectories_costs[next_path] = min(traj_cost, trajectories_costs[next_path])
                     else:
                         trajectories_costs[next_path] = min(initial_cost, trajectories_costs[next_path])
 
         trajs = [path for path in trajectories_costs.keys()]
         costs = [trajectories_costs[path] for path in trajectories_costs.keys()]
-        """
-        if not first_step:
-            for path, cost in zip(trajs, costs):
-                xxx = []
-                for i in range(2, len(path)):
-                    xxx.append(next_graph.edges[path[i-1], path[i]]['cost'])
-                if tuple(path) in alpha_values:
-                    print(path, cost, alpha_values[tuple(path)], xxx)
-                else:
-                    print(path, cost, 'No alpha', xxx)
-        """
+        
+        
+        for path, cost in zip(trajs, costs):
+            xxx = []
+            for i in range(2, len(path)):
+                xxx.append(next_graph.edges[path[i-1], path[i]]['cost'])
+            if tuple(path) in alpha_values:
+                print(path, cost, alpha_values[tuple(path)], xxx)
+            else:
+                print(path, cost, 'No alpha', xxx)
+        
+        
         low_cost_args = np.argsort(costs)
         next_trajectories = np.array(trajs, dtype=object)[low_cost_args]
         trajectories_costs = np.array(costs)[low_cost_args]
@@ -703,7 +749,11 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
                                     threshold = distribution[time_gap][0]
                                     if jump_d < threshold:
                                         #log_p = displacement_probability(np.array([jump_d]), np.array([threshold]), np.array([distribution[time_gap][1]]), np.array([distribution[time_gap][2]]))[1][0]
-                                        log_p = distribution[time_gap][5].score_samples([[jump_d]])
+
+                                        label = distribution[time_gap][6].predict([[jump_d]])[0]
+                                        mean = distribution[time_gap][6].means_[label][0]
+                                        log_ps = distribution[time_gap][5][label].score_samples([[jump_d], [mean]])
+                                        log_p = log_ps[0] - log_ps[1]
                                         next_graph.add_edge(pred, suc, cost=abs(log_p))
             
         #print('removed path: ', lowest_cost_traj)
@@ -821,7 +871,7 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
 
 def forecast(localization: dict, distribution, blink_lag):
     last_time = np.sort(list(localization.keys()))[-1]
-    time_forecast = 10
+    time_forecast = 8
     max_pause_time = blink_lag
     prev_graph = nx.DiGraph()
     prev_graph.add_node((0, 0))
@@ -839,6 +889,7 @@ def forecast(localization: dict, distribution, blink_lag):
     #set_traj_combinations(graph, localization, selected_time_steps, 10, distribution)
     first_construction = True
     while True:
+        print('processing frames: ', selected_time_steps)
         selected_sub_graph = set_traj_combinations(prev_graph, next_graph, localization, selected_time_steps, distribution, max_pause_time, first_construction)
         last_times = list(set([nodes[-1][0] for nodes in dfs_edges(selected_sub_graph, source=(0, 0))]))
         max_time = np.max(last_times)
@@ -885,7 +936,7 @@ def forecast(localization: dict, distribution, blink_lag):
         #    if tmp <= last_time:
         #        selected_time_steps.append(tmp)
         ###########################################
-        print('processing frames: ', selected_time_steps)
+
         saved_last_nodes = last_nodes.copy()
 
         next_graph = nx.DiGraph()
@@ -1437,7 +1488,6 @@ if __name__ == '__main__':
                                                      parallel=False)
     print(f'Segmentation duration: {timer() - start_time:.2f}s')
     bin_size = np.mean(xyz_max2 - xyz_min2) / 5000. ######
-
     for repeat in range(1):
         segment_distribution = mcmc_parallel(raw_segment_distribution2, confidence, bin_size, amp, n_iter=1e3, burn=0, ######
                                              approx=None, parallel=var_parallel, thresholds=THRESHOLDS)
@@ -1455,7 +1505,8 @@ if __name__ == '__main__':
             mcmc_segs_hist, _ = np.histogram(segment_distribution[lag][4], bins=bin_edges)
             axs[lag][1].hist(bin_edges[:-1], bin_edges, weights=raw_segs_hist / np.sum(raw_segs_hist), alpha=0.5)
             axs[lag][0].hist(bin_edges[:-1], bin_edges, weights=mcmc_segs_hist / np.sum(mcmc_segs_hist), alpha=0.5)
-            axs[lag][0].plot(segment_distribution[lag][2], np.exp(segment_distribution[lag][5].score_samples(segment_distribution[lag][2].reshape(-1, 1))), label=f'{lag}_PDF')
+            for i in range(len(segment_distribution[lag][6].weights_)):
+                axs[lag][0].plot(segment_distribution[lag][2], np.exp(segment_distribution[lag][5][i].score_samples(segment_distribution[lag][2].reshape(-1, 1))), label=f'{lag}_PDF')
             #axs[lag].plot(segment_distribution[lag][2][:200], segment_distribution[lag][3](segment_distribution[lag][2])[:200], label=f'{lag}_CDF')
             axs[lag][0].vlines(segment_distribution[lag][0], ymin=0, ymax=.14, alpha=0.6, colors='r', label=f'{lag}_limit')
             axs[lag][0].legend()
@@ -1479,10 +1530,10 @@ if __name__ == '__main__':
             final_trajectories.append(trajectory)
 
 
-    #write_xml(output_file=output_xml, trajectory_list=final_trajectories,
-    #          snr='7', density='low', scenario='Vesicle', cutoff=cutoff)
-    #write_trajectory(output_trj, final_trajectories)
-    write_trxyt(output_trxyt, final_trajectories, pixel_microns, frame_rate)
+    write_xml(output_file=output_xml, trajectory_list=final_trajectories,
+              snr='7', density='low', scenario='Vesicle', cutoff=cutoff)
+    write_trajectory(output_trj, final_trajectories)
+    #write_trxyt(output_trxyt, final_trajectories, pixel_microns, frame_rate)
     make_whole_img(final_trajectories, output_dir=output_img, img_stacks=images)
     if visualization:
         print(f'Visualizing trajectories...')
