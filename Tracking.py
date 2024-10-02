@@ -549,16 +549,19 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
     source_node = (0, 0)
     alpha_values = {}
 
-    print('Len prev graph:', len(prev_graph), end=' ')
-    if not first_step:
-        for path in dfs_edges(prev_graph, source=source_node):
-            if next_times[0] - path[-1][0] > max_pause_time:
-                prev_graph.remove_edges_from(path)
-    print('after deletion: ', len(prev_graph))
+    
     if not first_step:
         prev_paths = dfs_edges(prev_graph, source=source_node)
+        print('Len prev graph:', len(prev_paths), end=' ')
+        for path in prev_paths:
+            if next_times[0] - path[-1][0] > max_pause_time:
+                prev_graph.remove_nodes_from(path[1:])
+
+    if not first_step:
+        prev_paths = dfs_edges(prev_graph, source=source_node)
+        print('after deletion: ', len(prev_paths))
         for prev_path in prev_paths:
-            prev_xys = np.array([localizations[txy[0]][txy[1]][:2] for txy in prev_path[1:]])[-15:]
+            prev_xys = np.array([localizations[txy[0]][txy[1]][:2] for txy in prev_path[1:]])[-9:]
             prev_x_pos = prev_xys[:, 0]
             prev_y_pos = prev_xys[:, 1]
             prev_alpha = predict_alphas(prev_x_pos, prev_y_pos, reg_model)
