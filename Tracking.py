@@ -542,6 +542,8 @@ def predict_alphas(x, y, reg_model):
 
 
 def set_traj_combinations(prev_graph:nx.graph, next_graph:nx.graph, localizations, next_times, distribution):
+    alpha_lambda = 1.0
+    initial_cost = 1000
     selected_graph = nx.DiGraph()
     source_node = (0, 0)
     alpha_values = {}
@@ -593,9 +595,10 @@ def set_traj_combinations(prev_graph:nx.graph, next_graph:nx.graph, localization
     while True:
         next_trajectories = []
         next_paths = dfs_edges(next_graph, source=source_node)
-        trajectories_costs = {tuple(next_path):100 for next_path in next_paths}
+        trajectories_costs = {tuple(next_path):initial_cost for next_path in next_paths}
         if 2 not in next_times:
-            print('@@@@ - ', len(prev_paths), len(next_paths))
+            pass
+            #print('@@@@ - ', len(prev_paths), len(next_paths))
         for path in next_paths:
             next_trajectories.append(path)
 
@@ -603,7 +606,7 @@ def set_traj_combinations(prev_graph:nx.graph, next_graph:nx.graph, localization
             for traj in next_trajectories:
                 traj = tuple(traj)
                 if len(traj) == 2:
-                    trajectories_costs[traj] = 100.0
+                    trajectories_costs[traj] = initial_cost
                 else:
                     traj_cost = []
                     for edge_index in range(2, len(traj)):
@@ -614,11 +617,12 @@ def set_traj_combinations(prev_graph:nx.graph, next_graph:nx.graph, localization
                     traj_cost = np.mean(traj_cost)
                     traj_cost = traj_cost - len(traj) / 100.
                     traj_cost = 1 / traj_cost
-                    traj_cost = 100 - traj_cost
+                    traj_cost = initial_cost - traj_cost
                     trajectories_costs[traj] = traj_cost
         else:
             for prev_path in prev_paths:
                 prev_alpha = alpha_values[tuple(prev_path)]
+                #print('prev ', prev_path, prev_alpha)
                 for next_path in next_paths:
                     next_path = tuple(next_path)
                     if prev_path[-1] == next_path[1]:
@@ -629,12 +633,12 @@ def set_traj_combinations(prev_graph:nx.graph, next_graph:nx.graph, localization
                             next_y_pos = next_xys[:, 1]
                             next_alpha = predict_alphas(next_x_pos, next_y_pos, reg_model)
                             alpha_values[tuple(next_path)] = next_alpha
-                            print(len(next_path), len(next_xys), next_alpha)
+                            #print(len(next_path), len(next_xys), next_alpha)
                         else:
                             next_alpha = alpha_values[tuple(next_path)]
-
+                        #print('next ', next_path, next_alpha)
                         if len(next_path) == 2:
-                            trajectories_costs[next_path] = min(100.0, trajectories_costs[next_path])
+                            trajectories_costs[next_path] = min(initial_cost, trajectories_costs[next_path])
                         else:
                             traj_cost = []
                             for edge_index in range(2, len(next_path)):
@@ -643,14 +647,25 @@ def set_traj_combinations(prev_graph:nx.graph, next_graph:nx.graph, localization
                                 cost = next_graph.edges[before_node, next_node]['cost']
                                 traj_cost.append(cost)
 
-                            traj_cost = 100 - np.mean(traj_cost) - (-1/2. * abs(prev_alpha - next_alpha) + 1)
+                            traj_cost = np.mean(traj_cost) - alpha_lambda * (-1/2. * abs(prev_alpha - next_alpha) + 1)
 
                             trajectories_costs[next_path] = min(traj_cost, trajectories_costs[next_path])
                     else:
-                        trajectories_costs[next_path] = min(100.0, trajectories_costs[next_path])
+                        trajectories_costs[next_path] = min(initial_cost, trajectories_costs[next_path])
 
         trajs = [path for path in trajectories_costs.keys()]
         costs = [trajectories_costs[path] for path in trajectories_costs.keys()]
+
+        if 2 not in next_times:
+            for path, cost in zip(trajs, costs):
+                xxx = []
+                for i in range(2, len(path)):
+                    xxx.append(next_graph.edges[path[i-1], path[i]]['cost'])
+                if tuple(path) in alpha_values:
+                    print(path, cost, alpha_values[tuple(path)], xxx)
+                else:
+                    print(path, cost, 'No alpha', xxx)
+
         low_cost_args = np.argsort(costs)
         next_trajectories = np.array(trajs, dtype=object)[low_cost_args]
         trajectories_costs = np.array(costs)[low_cost_args]
@@ -800,8 +815,8 @@ def set_traj_combinations(prev_graph:nx.graph, next_graph:nx.graph, localization
 
 def forecast(localization: dict, distribution, blink_lag):
     last_time = np.sort(list(localization.keys()))[-1]
-    time_forcast = 5
-    time_forcast += 1
+    time_forecast = 5
+    #time_forcast += 1
     max_pause_time = blink_lag
     prev_graph = nx.DiGraph()
     prev_graph.add_node((0, 0))
@@ -812,7 +827,7 @@ def forecast(localization: dict, distribution, blink_lag):
 
 
     next_graph.add_edges_from([((0, 0), (time_steps[0], index), {'cost':100.0}) for index in range(len(localization[time_steps[0]]))])
-    selected_time_steps = np.arange(2, 2+time_forcast)
+    selected_time_steps = np.arange(2, 2+time_forecast)
     #for selected_time in selected_time_steps:
     #    graph.add_edges_from([((0, 0), (selected_time, index), {'cost':100.0}) for index in range(len(localization[selected_time]))])
     #forcast_matrix = np.array([localization[time] for time in selected_time_steps], dtype=object)
@@ -857,9 +872,9 @@ def forecast(localization: dict, distribution, blink_lag):
             break
         min_time = np.min([node[0] for node in last_nodes])
         if last_nodes == saved_last_nodes:
-            selected_time_steps = [t for t in range(selected_time_steps[-1], selected_time_steps[-1]+time_forcast)]
+            selected_time_steps = [t for t in range(selected_time_steps[-1], min(last_time + 1, selected_time_steps[-1] + time_forecast))]
         else:
-            selected_time_steps = [t for t in range(max_time + 1, min(last_time + 1, min_time + time_forcast + 1))]
+            selected_time_steps = [t for t in range(max_time + 1, min(last_time + 1, min_time + time_forecast + 1))]
 
         ################  TODO:MOIFY  ############################
         #if len(selected_time_steps) == 1 and last_time not in selected_time_steps:

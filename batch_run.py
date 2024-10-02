@@ -1,6 +1,7 @@
 import os
 import sys
 import subprocess
+from datetime import datetime
 
 
 def run_command(cmd):
@@ -50,14 +51,22 @@ for file in file_list:
     if file.strip().split('.')[-1] == 'tif' or file.strip().split('.')[-1] == 'tiff':
         print(f"------- processing on {file} -------")
         write_config(file)
-        with open("Localization.py") as f:
-            exec(f.read())
-        with open("Tracking.py") as f:
-            exec(f.read())
-        if os.path.exists('make_image.py'):
-            proc = run_command([sys.executable.split('/')[-1], f'make_image.py', f'./outputs/{file.strip().split(".tif")[0]}_traces.trxyt'])
-            proc.wait()
-            if proc.poll() == 0:
-                print(f'diffusion map -> successfully finished')
-            else:
-                print(f'diffusion map -> failed with status:{proc.poll()}')
+        try:
+            with open("Localization.py") as f:
+                exec(f.read())
+            with open("Tracking.py") as f:
+                exec(f.read())
+            if os.path.exists('make_image.py'):
+                proc = run_command([sys.executable.split('/')[-1], f'make_image.py', f'./outputs/{file.strip().split(".tif")[0]}_traces.trxyt'])
+                proc.wait()
+                if proc.poll() == 0:
+                    print(f'diffusion map -> successfully finished')
+                else:
+                    print(f'diffusion map -> failed with status:{proc.poll()}')
+            print(f"------- {file} is succesfully finished -------")
+        except Exception as e:
+            print(f"ERROR on {file}: {e}")
+            with open('./error_log.txt', 'a') as error_log:
+                dt_string = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                input_str = f'{file} has an err[{e}]. DATE: {dt_string}\n'        
+                error_log.write(input_str)
