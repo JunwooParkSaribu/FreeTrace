@@ -750,7 +750,7 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
                                     if jump_d < threshold:
                                         #log_p = displacement_probability(np.array([jump_d]), np.array([threshold]), np.array([distribution[time_gap][1]]), np.array([distribution[time_gap][2]]))[1][0]
 
-                                        label = distribution[time_gap][6].predict([[jump_d]])[0]
+                                        label = distribution[time_gap][6].predict([[jump_d]])[0] ## before label?
                                         mean = distribution[time_gap][6].means_[label][0]
                                         log_ps = distribution[time_gap][5][label].score_samples([[jump_d], [mean]])
                                         log_p = log_ps[0] - log_ps[1]
