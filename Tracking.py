@@ -926,8 +926,10 @@ def forecast(localization: dict, distribution, blink_lag):
             break
         min_time = np.min([node[0] for node in last_nodes])
         if last_nodes == saved_last_nodes:
+            first_construction = True
             selected_time_steps = [t for t in range(selected_time_steps[-1], min(last_time + 1, selected_time_steps[-1] + time_forecast))]
         else:
+            first_construction = False
             selected_time_steps = [t for t in range(max_time + 1, min(last_time + 1, min_time + time_forecast + 1))]
 
         ################  TODO:MOIFY  ############################
@@ -945,7 +947,6 @@ def forecast(localization: dict, distribution, blink_lag):
         #for selected_time in selected_time_steps:
         #    graph.add_edges_from([((0, 0), (selected_time, index), {'cost':100.0}) for index in range(len(localization[selected_time]))])
         print('DAG:',nx.is_directed_acyclic_graph(prev_graph))
-        first_construction = False
 
 
     all_nodes_ = []
