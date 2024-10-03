@@ -899,7 +899,7 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
 
 def forecast(localization: dict, distribution, blink_lag):
     last_time = np.sort(list(localization.keys()))[-1]
-    time_forecast = 8
+    time_forecast = 1
     max_pause_time = blink_lag
     prev_graph = nx.DiGraph()
     prev_graph.add_node((0, 0))
@@ -959,10 +959,10 @@ def forecast(localization: dict, distribution, blink_lag):
         min_time = np.min([node[0] for node in last_nodes])
         if last_nodes == saved_last_nodes:
             first_construction = True
-            selected_time_steps = [t for t in range(selected_time_steps[-1], min(last_time + 1, selected_time_steps[-1] + time_forecast))]
+            selected_time_steps = [t for t in range(selected_time_steps[-1] + 1, min(last_time + 1, selected_time_steps[-1] + time_forecast + 1))]
         else:
             first_construction = False
-            selected_time_steps = [t for t in range(max_time + 1, min(last_time + 1, min_time + time_forecast + 1))]
+            selected_time_steps = [t for t in range(max_time + 1, min(last_time + 1, max_time + time_forecast + 1))]
 
         ################  TODO:MOIFY  ############################
         #if len(selected_time_steps) == 1 and last_time not in selected_time_steps:
