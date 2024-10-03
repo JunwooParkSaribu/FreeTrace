@@ -899,7 +899,7 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
 
 def forecast(localization: dict, distribution, blink_lag):
     last_time = np.sort(list(localization.keys()))[-1]
-    time_forecast = 7
+    time_forecast = 8
     max_pause_time = blink_lag
     prev_graph = nx.DiGraph()
     prev_graph.add_node((0, 0))
