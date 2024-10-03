@@ -635,7 +635,7 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
             for cur_time in next_times[index:index+1]:
                 for idx in range(len(localizations[cur_time])):
                     if (cur_time, idx) not in next_graph and len(localizations[cur_time][0]) == 3:
-                        next_graph.add_edge((0, 0), (cur_time, idx))
+                        next_graph.add_edge((0, 0), (cur_time, idx), jump_d=most_probable_jump_d)
 
             index += 1
             if index == len(next_times):
@@ -677,6 +677,7 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
                     
                     
         else:
+            new_born_next_paths = []
             for prev_path in prev_paths:
                 prev_alpha = alpha_values[tuple(prev_path)]
                 #print('prev ', prev_path, prev_alpha)
@@ -714,6 +715,24 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
                             trajectories_costs[next_path] = min(traj_cost, trajectories_costs[next_path])
                     else:
                         trajectories_costs[next_path] = min(initial_cost, trajectories_costs[next_path])
+
+            for cost_path in trajectories_costs.keys():
+                if trajectories_costs[cost_path] > initial_cost - 1:
+                    traj_cost = []
+                    for edge_index in range(2, len(cost_path)):
+                        bebefore_node = cost_path[edge_index - 2]
+                        before_node = cost_path[edge_index - 1]
+                        next_node = cost_path[edge_index]
+                        before_jump_d = next_graph.edges[bebefore_node, before_node]['jump_d']
+                        next_jump_d = next_graph.edges[before_node, next_node]['jump_d']
+                        time_gap = next_node[0] - before_node[0] - 1
+                        before_label = distribution[time_gap][6].predict([[before_jump_d]])[0]
+                        mean = distribution[time_gap][6].means_[before_label][0]
+                        log_ps = distribution[time_gap][5][before_label].score_samples([[next_jump_d], [mean]])
+                        log_p = abs(log_ps[0] - log_ps[1])
+                        traj_cost.append(log_p)
+                    traj_cost = np.mean(traj_cost)# - alpha_lambda * (-1/2. * abs(prev_alpha - next_alpha) + 1)
+                    trajectories_costs[cost_path] = min(traj_cost, trajectories_costs[cost_path])
 
         trajs = [path for path in trajectories_costs.keys()]
         costs = [trajectories_costs[path] for path in trajectories_costs.keys()]
@@ -880,7 +899,7 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
 
 def forecast(localization: dict, distribution, blink_lag):
     last_time = np.sort(list(localization.keys()))[-1]
-    time_forecast = 8
+    time_forecast = 7
     max_pause_time = blink_lag
     prev_graph = nx.DiGraph()
     prev_graph.add_node((0, 0))
