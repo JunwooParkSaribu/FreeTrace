@@ -677,7 +677,6 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
                     
                     
         else:
-            new_born_next_paths = []
             for prev_path in prev_paths:
                 prev_alpha = alpha_values[tuple(prev_path)]
                 #print('prev ', prev_path, prev_alpha)
