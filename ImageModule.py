@@ -57,6 +57,15 @@ def read_tif(filepath, andi2=False):
         return normalized_imgs, indice_image
     else:
         return normalized_imgs
+    
+
+def read_tif_unnormalized(filepath):
+    imgs = []
+    with TiffFile(filepath) as tif:
+        imgs = tif.asarray()
+        axes = tif.series[0].axes
+        imagej_metadata = tif.imagej_metadata
+    return imgs
 
 
 def read_single_tif(filepath, ch3=True):
@@ -315,6 +324,7 @@ def make_image_seqs(trajectory_list, output_dir, img_stacks, time_steps, cutoff=
                 cp_zs = xyzs[:, 2]
                 for frame in time_steps:
                     if frame in cps_set:
+                        print(f'CPs containing frame: {init_time + frame}')
                         circle_overlay = cv2.circle(result_stack[init_time + frame], center=(int(np.around(cp_xs[frame] * upscailing_factor)), int(np.around(cp_ys[frame] * upscailing_factor))),
                                                     radius=cps_rad[frame], color=(255, 0, 0))
                     
@@ -379,7 +389,23 @@ def compare_two_localization_visual(output_dir, images, localized_xys_1, localiz
             original_imgs_3ch_2[img_n-1][x][y][2] = 0
         stacked_imgs.append(np.hstack((orignal_imgs_3ch[img_n-1], original_imgs_3ch_2[img_n-1])))
     stacked_imgs = np.array(stacked_imgs)
-    tifffile.imwrite(f'{output_dir}/local_comparison.tif', data=(stacked_imgs * 255).astype(np.uint8), imagej=True)
+    tifffile.imwrite(f'{output_dir}/local_comparison.tiff', data=(stacked_imgs * 255).astype(np.uint8), imagej=True)
+
+
+def concatenate_image_stack(output_fname, org_img, concat_img):
+    org_img = read_tif(org_img)
+    org_img = (org_img * 255).astype(np.uint8)
+    concat_img = read_tif_unnormalized(concat_img)
+    if org_img.shape != concat_img.shape:
+        tmp_img = np.zeros_like(concat_img)
+        for i, o_img in enumerate(org_img):
+            o_img = cv2.resize(o_img, (concat_img.shape[2], concat_img.shape[1]), interpolation=cv2.INTER_AREA)
+            for channel in range(3):
+                tmp_img[i, :, :, channel] = o_img
+    org_img = tmp_img
+    org_img[:,:,-1,:] = 255
+    stacked_imgs = np.concatenate((org_img, concat_img), axis=2)
+    tifffile.imwrite(f'{output_fname}_hconcat.tiff', data=stacked_imgs, imagej=True)
 
 
 def load_datas(datapath):
@@ -421,9 +447,10 @@ def cps_visualization(image_save_path, video, cps_result, trace_result):
             obj.add_trajectory_position(t, x, y, z)
             time_steps.append(t)
         trajectory_list.append(obj)
-    time_steps = np.sort(np.unique(time_steps))
+    time_steps = np.arange(video.shape[0])
     make_image_seqs(trajectory_list, output_dir=image_save_path, img_stacks=video, time_steps=time_steps, cutoff=2,
                     add_index=False, local_img=None, gt_trajectory=None, cps_result=cps_trajectories)
 
-
-#cps_visualization('./result0.tiff', './inputs/sample5.tiff', './sample5_traces.txt', './outputs/sample5_traces.csv')
+#vis_cps_file_name = 'alpha_test0'
+#cps_visualization(f'./{vis_cps_file_name}_cps.tiff', f'./inputs/{vis_cps_file_name}.tiff', f'./{vis_cps_file_name}_traces.txt', f'./outputs/{vis_cps_file_name}_traces.csv')
+#concatenate_image_stack(f'{vis_cps_file_name}', f'./{vis_cps_file_name}.tiff', f'./{vis_cps_file_name}_cps.tiff')
