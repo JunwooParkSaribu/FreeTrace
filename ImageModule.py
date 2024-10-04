@@ -426,4 +426,4 @@ def cps_visualization(image_save_path, video, cps_result, trace_result):
                     add_index=False, local_img=None, gt_trajectory=None, cps_result=cps_trajectories)
 
 
-cps_visualization('./result0.tiff', './inputs/alpha_test0.tiff', './alpha_test0_traces.txt', './outputs/alpha_test0_traces.csv')
+#cps_visualization('./result0.tiff', './inputs/sample5.tiff', './sample5_traces.txt', './outputs/sample5_traces.csv')

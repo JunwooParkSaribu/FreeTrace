@@ -1,8 +1,8 @@
-    VIDEO=./inputs/alpha_test0.tiff
+    VIDEO=./inputs/sample5.tiff
     OUTPUT_DIR=./outputs
     
     # LOCALIZATION
-    WINDOW_SIZE = 7
+    WINDOW_SIZE = 9
     THRESHOLD_ALPHA = 1.0
     DEFLATION_LOOP_IN_BACKWARD = 1
     SIGMA = 4.0
@@ -20,7 +20,7 @@
     # SUPP
     LOC_PARALLEL = False
     CORE = 4
-    DIV_Q = 10
+    DIV_Q = 50
     SHIFT = 1
     
     TRACKING_PARALLEL = False
