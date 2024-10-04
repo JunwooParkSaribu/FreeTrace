@@ -1,6 +1,7 @@
 import numpy as np
 import scipy
 import sys
+sys.path.append('../')
 import matplotlib.pyplot as plt
 import concurrent.futures
 from ImageModule import read_tif, make_image_seqs, make_whole_img

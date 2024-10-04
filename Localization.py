@@ -500,8 +500,10 @@ def background(imgs, window_sizes, alpha):
         args = np.arange(len(bg_intensities[i]))
         post_mask_args = args.copy()
         for _ in range(3):
-            it_hist, bin_width = np.histogram(bg_intensities[i][post_mask_args],
-                                              bins=np.arange(0, np.max(bg_intensities[i][post_mask_args]) + bins, bins))
+            it_hist, bin_width = np.histogram(bg_intensities[i][post_mask_args], bins=np.arange(0, np.max(bg_intensities[i][post_mask_args]) + bins, bins))
+            if len(it_hist) < 1:
+                print('Possible errors on images, please check images again whethere it contains an empty black-image. If not, contact the author.')
+                break
             mask_sums_mode = (np.argmax(it_hist) * bins + (bins / 2))
             mask_std = np.std(bg_intensities[i][post_mask_args])
             post_mask_args = np.array([arg for arg, val in zip(args, bg_intensities[i]) if
