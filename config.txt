@@ -6,7 +6,7 @@
     THRESHOLD_ALPHA = 1.0
     DEFLATION_LOOP_IN_BACKWARD = 1
     SIGMA = 4.0
-    LOC_VISUALIZATION = False
+    LOC_VISUALIZATION = True
     
     
     # TRACKING
@@ -20,7 +20,7 @@
     # SUPP
     LOC_PARALLEL = False
     CORE = 4
-    DIV_Q = 50
+    DIV_Q = 10
     SHIFT = 1
     
     TRACKING_PARALLEL = False
