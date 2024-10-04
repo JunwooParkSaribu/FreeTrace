@@ -12,8 +12,8 @@
     # TRACKING
     CUTOFF = 2
     BLINK_LAG = 2
-    PIXEL_MICRONS = 0.16
-    FRAME_PER_SEC = 0.01
+    PIXEL_MICRONS = 1
+    FRAME_PER_SEC = 1
     TRACK_VISUALIZATION = True
     
     

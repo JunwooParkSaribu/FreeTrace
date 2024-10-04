@@ -5,7 +5,10 @@ import tifffile
 from tifffile import TiffFile
 from PIL import Image
 import imageio as iio
- 
+import os
+import sys
+import pandas as pd
+from TrajectoryObject import TrajectoryObj
 
 
 def read_tif(filepath, andi2=False):
@@ -184,7 +187,7 @@ def make_image_seqs2(*trajectory_lists, output_dir, time_steps, cutoff=0, origin
 
 
 def make_image_seqs(trajectory_list, output_dir, img_stacks, time_steps, cutoff=2,
-                    add_index=True, local_img=None, gt_trajectory=None):
+                    add_index=True, local_img=None, gt_trajectory=None, cps_result=None):
     if np.mean(img_stacks) < 0.35:
         bright_ = 1
     else:
@@ -294,6 +297,27 @@ def make_image_seqs(trajectory_list, output_dir, img_stacks, time_steps, cutoff=
             hstacked_img = np.hstack((hstacked_img, overlay))
         result_stack.append(hstacked_img)
     result_stack = (np.array(result_stack) * 255).astype(np.uint8)
+
+    if cps_result is not None:
+        for traj_obj in trajectory_list:
+            xyzs = traj_obj.get_positions()
+            traj_idx = traj_obj.get_index()
+            init_time = traj_obj.get_times()[0]
+            cps = cps_result[traj_idx][3][:-1].astype(int)
+            if len(cps) > 0:
+                cps_set = set(np.array([[cp-1, cp, cp+1] for cp in cps]).flatten())
+                cps_rad = {}
+                for cp in cps:
+                    for i, cpk in enumerate(range(cp-1, cp+2)):
+                        cps_rad[cpk] = int(i*1 + 3)
+                cp_xs = xyzs[:, 0]
+                cp_ys = xyzs[:, 1]
+                cp_zs = xyzs[:, 2]
+                for frame in time_steps:
+                    if frame in cps_set:
+                        circle_overlay = cv2.circle(result_stack[init_time + frame], center=(int(np.around(cp_xs[frame] * upscailing_factor)), int(np.around(cp_ys[frame] * upscailing_factor))),
+                                                    radius=cps_rad[frame], color=(255, 0, 0))
+                    
     tifffile.imwrite(output_dir, data=result_stack, imagej=True)
 
 
@@ -356,3 +380,50 @@ def compare_two_localization_visual(output_dir, images, localized_xys_1, localiz
         stacked_imgs.append(np.hstack((orignal_imgs_3ch[img_n-1], original_imgs_3ch_2[img_n-1])))
     stacked_imgs = np.array(stacked_imgs)
     tifffile.imwrite(f'{output_dir}/local_comparison.tif', data=(stacked_imgs * 255).astype(np.uint8), imagej=True)
+
+
+def load_datas(datapath):
+    if datapath.endswith(".csv"):
+        df = pd.read_csv(datapath)
+        return df
+    else:
+        None
+
+
+def cps_visualization(image_save_path, video, cps_result, trace_result):
+    cps_trajectories = {}
+    try:
+        with open(cps_result, 'r') as cp_file:
+            lines = cp_file.readlines()
+            for line in lines[:-1]:
+                line = line.strip().split(',')
+                traj_index = int(line[0])
+                cps_trajectories[traj_index] = [[], [], [], []] # diffusion_coef, alpha, traj_type, changepoint
+                for idx, data in enumerate(line[1:]):
+                    cps_trajectories[traj_index][idx % 4].append(float(data))
+                cps_trajectories[traj_index] = np.array(cps_trajectories[traj_index])
+        df = load_datas(trace_result)
+        video = read_tif(video)
+        if video.shape[0] <= 1:
+            sys.exit('Image squence length error: Cannot track on a single image.')
+    except Exception as e:
+        print(e)
+        print('File load failed.')
+
+    time_steps = []
+    trajectory_list = []
+    for traj_idx in cps_trajectories.keys():
+        frames = np.array(df[df.traj_idx == traj_idx])[:, 1].astype(int)
+        xs = np.array(df[df.traj_idx == traj_idx])[:, 2]
+        ys = np.array(df[df.traj_idx == traj_idx])[:, 3]
+        obj = TrajectoryObj(traj_idx)
+        for t, x, y, z in zip(frames, xs, ys, np.zeros_like(xs)):
+            obj.add_trajectory_position(t, x, y, z)
+            time_steps.append(t)
+        trajectory_list.append(obj)
+    time_steps = np.sort(np.unique(time_steps))
+    make_image_seqs(trajectory_list, output_dir=image_save_path, img_stacks=video, time_steps=time_steps, cutoff=2,
+                    add_index=False, local_img=None, gt_trajectory=None, cps_result=cps_trajectories)
+
+
+cps_visualization('./result0.tiff', './inputs/alpha_test0.tiff', './alpha_test0_traces.txt', './outputs/alpha_test0_traces.csv')
