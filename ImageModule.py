@@ -4,11 +4,10 @@ import cv2
 import tifffile
 from tifffile import TiffFile
 from PIL import Image
-import imageio as iio
-import os
 import sys
 import pandas as pd
 from TrajectoryObject import TrajectoryObj
+import imageio
 
 
 def read_tif(filepath, andi2=False):
@@ -451,6 +450,15 @@ def cps_visualization(image_save_path, video, cps_result, trace_result):
     make_image_seqs(trajectory_list, output_dir=image_save_path, img_stacks=video, time_steps=time_steps, cutoff=2,
                     add_index=False, local_img=None, gt_trajectory=None, cps_result=cps_trajectories)
 
-#vis_cps_file_name = 'alpha_test0'
+
+def to_gif(save_path, image, fps):
+    image = read_tif_unnormalized(image)
+    with imageio.get_writer(f'{save_path}.gif', mode='I', fps=fps) as writer:
+        for i in range(len(image)):
+            writer.append_data(np.array(image[i]))
+
+
+#vis_cps_file_name = 'sample5'
 #cps_visualization(f'./{vis_cps_file_name}_cps.tiff', f'./inputs/{vis_cps_file_name}.tiff', f'./{vis_cps_file_name}_traces.txt', f'./outputs/{vis_cps_file_name}_traces.csv')
 #concatenate_image_stack(f'{vis_cps_file_name}', f'./{vis_cps_file_name}.tiff', f'./{vis_cps_file_name}_cps.tiff')
+#to_gif(f'{vis_cps_file_name}', f'./{vis_cps_file_name}_hconcat.tiff', fps=7)
