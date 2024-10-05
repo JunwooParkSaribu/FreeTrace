@@ -595,7 +595,6 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
             if next_times[0] - path[-1][0] > max_pause_time:
                 prev_graph.remove_nodes_from(path[1:])
 
-    if not first_step:
         prev_paths = dfs_edges(prev_graph, source=source_node)
         print('after deletion: ', len(prev_paths))
         for prev_path in prev_paths:
@@ -893,26 +892,25 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
         if len(next_graph) == 1:
             break
     """
+    print(selected_graph.edges)
     return selected_graph
 
 
-def forecast(localization: dict, distribution, blink_lag):
+def forecast(localization: dict, t_avail_steps, distribution, blink_lag):
     last_time = np.sort(list(localization.keys()))[-1]
     time_forecast = 1
-    max_pause_time = blink_lag
+    max_pause_time = blink_lag + 1
     prev_graph = nx.DiGraph()
     prev_graph.add_node((0, 0))
     next_graph = nx.DiGraph()
-    time_steps = list(localization.keys())
     next_graph.add_node((0, 0))
-    saved_last_nodes = []
     initial_time_gap = 0
+    saved_last_nodes = []
     max_arg_weight = np.argmax(distribution[initial_time_gap][6].weights_)
     most_probable_jump_d = distribution[initial_time_gap][6].means_[max_arg_weight][0]
 
-
-    next_graph.add_edges_from([((0, 0), (time_steps[0], index), {'jump_d':most_probable_jump_d}) for index in range(len(localization[time_steps[0]]))])
-    selected_time_steps = np.arange(2, 2+time_forecast)
+    next_graph.add_edges_from([((0, 0), (t_avail_steps[0], index), {'jump_d':most_probable_jump_d}) for index in range(len(localization[t_avail_steps[0]]))])
+    selected_time_steps = np.arange(t_avail_steps[0] + 1, t_avail_steps[0] + 1 + time_forecast)
     #for selected_time in selected_time_steps:
     #    graph.add_edges_from([((0, 0), (selected_time, index), {'cost':100.0}) for index in range(len(localization[selected_time]))])
     #forcast_matrix = np.array([localization[time] for time in selected_time_steps], dtype=object)
@@ -923,7 +921,6 @@ def forecast(localization: dict, distribution, blink_lag):
         selected_sub_graph = set_traj_combinations(prev_graph, next_graph, localization, selected_time_steps, distribution, max_pause_time, first_construction, most_probable_jump_d)
         last_times = list(set([nodes[-1][0] for nodes in dfs_edges(selected_sub_graph, source=(0, 0))]))
         max_time = np.max(last_times)
-        min_time = np.min(last_times)
 
         last_nodes = []
         second_last_nodes = []
@@ -942,47 +939,46 @@ def forecast(localization: dict, distribution, blink_lag):
                 for edge_index in range(start_index, len(path)):
                     before_node = path[edge_index - 1]
                     next_node = path[edge_index]
-
                     if before_node in prev_graph:
                         prev_graph.add_edge(before_node, next_node)
                     else:
                         prev_graph.add_edge((0, 0), before_node)
                         prev_graph.add_edge(before_node, next_node)
-            if max_time - path[-1][0] <= max_pause_time: 
+            if selected_time_steps[0] - path[-1][0] < max_pause_time: 
                 last_nodes.append(path[-1])
                 second_last_nodes.append(path[-2])
             #######################################
 
         if last_time in selected_time_steps:
             break
-        min_time = np.min([node[0] for node in last_nodes])
-        if last_nodes == saved_last_nodes:
-            first_construction = True
-            selected_time_steps = [t for t in range(selected_time_steps[-1] + 1, min(last_time + 1, selected_time_steps[-1] + time_forecast + 1))]
-        else:
-            first_construction = False
-            selected_time_steps = [t for t in range(max_time + 1, min(last_time + 1, max_time + time_forecast + 1))]
 
-        ################  TODO:MOIFY  ############################
-        #if len(selected_time_steps) == 1 and last_time not in selected_time_steps:
-        #    tmp = selected_time_steps[-1] + 1
-        #    if tmp <= last_time:
-        #        selected_time_steps.append(tmp)
-        ###########################################
-
-        saved_last_nodes = last_nodes.copy()
         next_graph = nx.DiGraph()
         next_graph.add_node((0, 0))
-        for last_node, second_last_node in zip(last_nodes, second_last_nodes):
-            if second_last_node == (0, 0):
-                next_graph.add_edge((0, 0), last_node, jump_d=most_probable_jump_d)
+        if len(last_nodes) == 0:
+            first_construction = True
+            next_first_time = selected_time_steps[-1] + 1
+            while True:
+                if next_first_time in t_avail_steps:
+                    break
+                next_first_time += 1
+            selected_time_steps = [t for t in range(next_first_time, min(last_time + 1, next_first_time + time_forecast))]
+            next_graph.add_edges_from([((0, 0), (next_first_time, index), {'jump_d':most_probable_jump_d}) for index in range(len(localization[next_first_time]))])
+        else:
+            first_construction = False
+            if saved_last_nodes == last_nodes:
+                selected_time_steps = [t for t in range(selected_time_steps[-1] + 1, min(last_time + 1, selected_time_steps[-1] + time_forecast + 1))]
             else:
-                last_xyz = localization[last_node[0]][last_node[1]]
-                second_last_xyz = localization[second_last_node[0]][second_last_node[1]]
-                next_graph.add_edge((0, 0), last_node, jump_d=np.sqrt((last_xyz[0] - second_last_xyz[0])**2 + (last_xyz[1] - second_last_xyz[1])**2))
+                selected_time_steps = [t for t in range(max_time + 1, min(last_time + 1, max_time + time_forecast + 1))]
+            for last_node, second_last_node in zip(last_nodes, second_last_nodes):
+                if second_last_node == (0, 0):
+                    next_graph.add_edge((0, 0), last_node, jump_d=most_probable_jump_d)
+                else:
+                    last_xyz = localization[last_node[0]][last_node[1]]
+                    second_last_xyz = localization[second_last_node[0]][second_last_node[1]]
+                    next_graph.add_edge((0, 0), last_node, jump_d=np.sqrt((last_xyz[0] - second_last_xyz[0])**2 + (last_xyz[1] - second_last_xyz[1])**2))
 
+        saved_last_nodes = last_nodes.copy()
         print('DAG:',nx.is_directed_acyclic_graph(prev_graph))
-
 
     all_nodes_ = []
     for t in list(localization.keys()):
@@ -1006,8 +1002,11 @@ def forecast(localization: dict, distribution, blink_lag):
 
 def simple_connect(localization: dict, localization_infos: dict,
                    time_steps: np.ndarray, distrib: dict, blink_lag=1):
-
-    trajectory_list = forecast(localization, distrib, blink_lag)
+    t_avail_steps = []
+    for time in np.sort(time_steps):
+        if len(localization[time][0]) == 3:
+            t_avail_steps.append(time)
+    trajectory_list = forecast(localization, t_avail_steps, distrib, blink_lag)
     return trajectory_list
     exit(1)
     if on is None:
@@ -1513,19 +1512,27 @@ if __name__ == '__main__':
 
     time_steps, mean_nb_per_time, xyz_min, xyz_max = count_localizations(loc)
     print(f'Mean nb of molecules per frame: {mean_nb_per_time:.2f} molecules/frame')
-
+    
     start_time = timer()
-
-    #images2 = read_tif('./inputs/alpha_test0.tiff') ######
-    #loc2, loc_infos2 = read_localization(f'{OUTPUT_DIR}/alpha_test0_loc.csv', images2) ######
-    #time_steps2, mean_nb_per_time2, xyz_min2, xyz_max2 = count_localizations(loc2) ######
-
-    raw_segment_distribution = distribution_segments(loc, time_steps=time_steps, lag=blink_lag, ######
+    raw_segment_distribution = distribution_segments(loc, time_steps=time_steps, lag=blink_lag,
                                                      parallel=False)
     print(f'Segmentation duration: {timer() - start_time:.2f}s')
-    bin_size = np.mean(xyz_max - xyz_min) / 5000. ######
+    bin_size = np.mean(xyz_max - xyz_min) / 5000. 
+
+
+    """
+    images2 = read_tif('./inputs/sample5.tiff') ######
+    loc2, loc_infos2 = read_localization(f'{OUTPUT_DIR}/sample5_loc.csv', images2) ######
+    time_steps2, mean_nb_per_time2, xyz_min2, xyz_max2 = count_localizations(loc2) ######
+
+    raw_segment_distribution = distribution_segments(loc2, time_steps=time_steps2, lag=blink_lag, ######
+                                                     parallel=False)
+    bin_size = np.mean(xyz_max2 - xyz_min2) / 5000. ######
+    """
+
+
     for repeat in range(1):
-        segment_distribution = mcmc_parallel(raw_segment_distribution, confidence, bin_size, amp, n_iter=1e3, burn=0, ######
+        segment_distribution = mcmc_parallel(raw_segment_distribution, confidence, bin_size, amp, n_iter=1e3, burn=0, 
                                              approx=None, parallel=var_parallel, thresholds=THRESHOLDS)
         for lag in segment_distribution.keys():
             print(f'{lag}_limit_length: {segment_distribution[lag][0]}')
@@ -1536,7 +1543,7 @@ if __name__ == '__main__':
         show_x_max = 20
         show_y_max = 0.30
         for lag in segment_distribution.keys():
-            raw_segs_hist, bin_edges = np.histogram(raw_segment_distribution[lag], ######
+            raw_segs_hist, bin_edges = np.histogram(raw_segment_distribution[lag], 
                                                     bins=np.arange(0, show_x_max, bin_size * 2))
             mcmc_segs_hist, _ = np.histogram(segment_distribution[lag][4], bins=bin_edges)
             axs[lag][1].hist(bin_edges[:-1], bin_edges, weights=raw_segs_hist / np.sum(raw_segs_hist), alpha=0.5)

@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tifffile
 import concurrent.futures
-import image_pad
-import regression
+import image_pad  # type: ignore
+import regression  # type: ignore
 from FileIO import write_localization, read_parameters, check_video_ext
 from ImageModule import draw_cross
 from timeit import default_timer as timer
