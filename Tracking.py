@@ -892,7 +892,6 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
         if len(next_graph) == 1:
             break
     """
-    print(selected_graph.edges)
     return selected_graph
 
 
