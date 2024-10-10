@@ -3033,6 +3033,7 @@ static const char __pyx_k_array[] = "array";
 static const char __pyx_k_class[] = "__class__";
 static const char __pyx_k_count[] = "count";
 static const char __pyx_k_dtype[] = "dtype";
+static const char __pyx_k_empty[] = "empty";
 static const char __pyx_k_error[] = "error";
 static const char __pyx_k_flags[] = "flags";
 static const char __pyx_k_index[] = "index";
@@ -3312,6 +3313,7 @@ typedef struct {
   PyObject *__pyx_n_s_double;
   PyObject *__pyx_n_s_dtype;
   PyObject *__pyx_n_s_dtype_is_object;
+  PyObject *__pyx_n_s_empty;
   PyObject *__pyx_kp_u_enable;
   PyObject *__pyx_n_s_encode;
   PyObject *__pyx_n_s_enumerate;
@@ -3557,6 +3559,7 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_n_s_double);
   Py_CLEAR(clear_module_state->__pyx_n_s_dtype);
   Py_CLEAR(clear_module_state->__pyx_n_s_dtype_is_object);
+  Py_CLEAR(clear_module_state->__pyx_n_s_empty);
   Py_CLEAR(clear_module_state->__pyx_kp_u_enable);
   Py_CLEAR(clear_module_state->__pyx_n_s_encode);
   Py_CLEAR(clear_module_state->__pyx_n_s_enumerate);
@@ -3780,6 +3783,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_n_s_double);
   Py_VISIT(traverse_module_state->__pyx_n_s_dtype);
   Py_VISIT(traverse_module_state->__pyx_n_s_dtype_is_object);
+  Py_VISIT(traverse_module_state->__pyx_n_s_empty);
   Py_VISIT(traverse_module_state->__pyx_kp_u_enable);
   Py_VISIT(traverse_module_state->__pyx_n_s_encode);
   Py_VISIT(traverse_module_state->__pyx_n_s_enumerate);
@@ -4023,6 +4027,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_n_s_double __pyx_mstate_global->__pyx_n_s_double
 #define __pyx_n_s_dtype __pyx_mstate_global->__pyx_n_s_dtype
 #define __pyx_n_s_dtype_is_object __pyx_mstate_global->__pyx_n_s_dtype_is_object
+#define __pyx_n_s_empty __pyx_mstate_global->__pyx_n_s_empty
 #define __pyx_kp_u_enable __pyx_mstate_global->__pyx_kp_u_enable
 #define __pyx_n_s_encode __pyx_mstate_global->__pyx_n_s_encode
 #define __pyx_n_s_enumerate __pyx_mstate_global->__pyx_n_s_enumerate
@@ -25478,7 +25483,7 @@ static __Pyx_memviewslice __pyx_f_9image_pad_image_cropping(PyObject *__pyx_v_ex
  *     row_indice = np.arange(start_row, end_row, shift, dtype=np.intc)
  *     col_indice = np.arange(start_col, end_col, shift, dtype=np.intc)             # <<<<<<<<<<<<<<
  * 
- *     cropped_imgs = np.zeros([nb_imgs, len(row_indice) * len(col_indice), window_size0* window_size1], dtype=np.double)
+ *     cropped_imgs = np.empty([nb_imgs, len(row_indice) * len(col_indice), window_size0 * window_size1], dtype=np.double)
  */
   __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 347, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
@@ -25525,13 +25530,13 @@ static __Pyx_memviewslice __pyx_f_9image_pad_image_cropping(PyObject *__pyx_v_ex
   /* "image_pad.pyx":349
  *     col_indice = np.arange(start_col, end_col, shift, dtype=np.intc)
  * 
- *     cropped_imgs = np.zeros([nb_imgs, len(row_indice) * len(col_indice), window_size0* window_size1], dtype=np.double)             # <<<<<<<<<<<<<<
+ *     cropped_imgs = np.empty([nb_imgs, len(row_indice) * len(col_indice), window_size0 * window_size1], dtype=np.double)             # <<<<<<<<<<<<<<
  *     index = 0
  *     for r in row_indice:
  */
   __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_np); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 349, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_zeros); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 349, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_2, __pyx_n_s_empty); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 349, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_t_2 = __Pyx_PyInt_From_int(__pyx_v_nb_imgs); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 349, __pyx_L1_error)
@@ -25577,7 +25582,7 @@ static __Pyx_memviewslice __pyx_f_9image_pad_image_cropping(PyObject *__pyx_v_ex
 
   /* "image_pad.pyx":350
  * 
- *     cropped_imgs = np.zeros([nb_imgs, len(row_indice) * len(col_indice), window_size0* window_size1], dtype=np.double)
+ *     cropped_imgs = np.empty([nb_imgs, len(row_indice) * len(col_indice), window_size0 * window_size1], dtype=np.double)
  *     index = 0             # <<<<<<<<<<<<<<
  *     for r in row_indice:
  *         for c in col_indice:
@@ -25585,11 +25590,11 @@ static __Pyx_memviewslice __pyx_f_9image_pad_image_cropping(PyObject *__pyx_v_ex
   __pyx_v_index = 0;
 
   /* "image_pad.pyx":351
- *     cropped_imgs = np.zeros([nb_imgs, len(row_indice) * len(col_indice), window_size0* window_size1], dtype=np.double)
+ *     cropped_imgs = np.empty([nb_imgs, len(row_indice) * len(col_indice), window_size0 * window_size1], dtype=np.double)
  *     index = 0
  *     for r in row_indice:             # <<<<<<<<<<<<<<
  *         for c in col_indice:
- *             cropped_imgs[:, index] = extended_imgs[:, r:r + window_size1, c:c + window_size0].reshape(-1, window_size0*window_size1)
+ *             cropped_imgs[:, index] = extended_imgs[:, r:r + window_size1, c:c + window_size0].reshape(-1, window_size0 * window_size1)
  */
   if (unlikely(((PyObject *) __pyx_v_row_indice.memview) == Py_None)) {
     PyErr_SetString(PyExc_TypeError, "'NoneType' is not iterable");
@@ -25607,7 +25612,7 @@ static __Pyx_memviewslice __pyx_f_9image_pad_image_cropping(PyObject *__pyx_v_ex
  *     index = 0
  *     for r in row_indice:
  *         for c in col_indice:             # <<<<<<<<<<<<<<
- *             cropped_imgs[:, index] = extended_imgs[:, r:r + window_size1, c:c + window_size0].reshape(-1, window_size0*window_size1)
+ *             cropped_imgs[:, index] = extended_imgs[:, r:r + window_size1, c:c + window_size0].reshape(-1, window_size0 * window_size1)
  *             index += 1
  */
     if (unlikely(((PyObject *) __pyx_v_col_indice.memview) == Py_None)) {
@@ -25625,7 +25630,7 @@ static __Pyx_memviewslice __pyx_f_9image_pad_image_cropping(PyObject *__pyx_v_ex
       /* "image_pad.pyx":353
  *     for r in row_indice:
  *         for c in col_indice:
- *             cropped_imgs[:, index] = extended_imgs[:, r:r + window_size1, c:c + window_size0].reshape(-1, window_size0*window_size1)             # <<<<<<<<<<<<<<
+ *             cropped_imgs[:, index] = extended_imgs[:, r:r + window_size1, c:c + window_size0].reshape(-1, window_size0 * window_size1)             # <<<<<<<<<<<<<<
  *             index += 1
  *     return cropped_imgs
  */
@@ -25703,7 +25708,7 @@ static __Pyx_memviewslice __pyx_f_9image_pad_image_cropping(PyObject *__pyx_v_ex
 
       /* "image_pad.pyx":354
  *         for c in col_indice:
- *             cropped_imgs[:, index] = extended_imgs[:, r:r + window_size1, c:c + window_size0].reshape(-1, window_size0*window_size1)
+ *             cropped_imgs[:, index] = extended_imgs[:, r:r + window_size1, c:c + window_size0].reshape(-1, window_size0 * window_size1)
  *             index += 1             # <<<<<<<<<<<<<<
  *     return cropped_imgs
  */
@@ -25716,7 +25721,7 @@ static __Pyx_memviewslice __pyx_f_9image_pad_image_cropping(PyObject *__pyx_v_ex
   __pyx_t_7.memview = NULL; __pyx_t_7.data = NULL;
 
   /* "image_pad.pyx":355
- *             cropped_imgs[:, index] = extended_imgs[:, r:r + window_size1, c:c + window_size0].reshape(-1, window_size0*window_size1)
+ *             cropped_imgs[:, index] = extended_imgs[:, r:r + window_size1, c:c + window_size0].reshape(-1, window_size0 * window_size1)
  *             index += 1
  *     return cropped_imgs             # <<<<<<<<<<<<<<
  */
@@ -26988,6 +26993,7 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_n_s_double, __pyx_k_double, sizeof(__pyx_k_double), 0, 0, 1, 1},
     {&__pyx_n_s_dtype, __pyx_k_dtype, sizeof(__pyx_k_dtype), 0, 0, 1, 1},
     {&__pyx_n_s_dtype_is_object, __pyx_k_dtype_is_object, sizeof(__pyx_k_dtype_is_object), 0, 0, 1, 1},
+    {&__pyx_n_s_empty, __pyx_k_empty, sizeof(__pyx_k_empty), 0, 0, 1, 1},
     {&__pyx_kp_u_enable, __pyx_k_enable, sizeof(__pyx_k_enable), 0, 1, 0, 0},
     {&__pyx_n_s_encode, __pyx_k_encode, sizeof(__pyx_k_encode), 0, 0, 1, 1},
     {&__pyx_n_s_enumerate, __pyx_k_enumerate, sizeof(__pyx_k_enumerate), 0, 0, 1, 1},

@@ -346,10 +346,10 @@ cpdef double[:,:,::1] image_cropping(extended_imgs, int extend, int window_size0
     row_indice = np.arange(start_row, end_row, shift, dtype=np.intc)
     col_indice = np.arange(start_col, end_col, shift, dtype=np.intc)
 
-    cropped_imgs = np.zeros([nb_imgs, len(row_indice) * len(col_indice), window_size0* window_size1], dtype=np.double)
+    cropped_imgs = np.empty([nb_imgs, len(row_indice) * len(col_indice), window_size0 * window_size1], dtype=np.double)
     index = 0
     for r in row_indice:
         for c in col_indice:
-            cropped_imgs[:, index] = extended_imgs[:, r:r + window_size1, c:c + window_size0].reshape(-1, window_size0*window_size1)
+            cropped_imgs[:, index] = extended_imgs[:, r:r + window_size1, c:c + window_size0].reshape(-1, window_size0 * window_size1)
             index += 1
     return cropped_imgs
