@@ -187,10 +187,7 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
     extended_imgs = np.zeros((imgs.shape[0], imgs.shape[1] + extend, imgs.shape[2] + extend))
     extended_imgs[:, int(extend/2):int(extend/2) + imgs.shape[1], int(extend/2):int(extend/2) + imgs.shape[2]] += imgs
     extended_imgs_copy = extended_imgs.copy()
-    
-    before_time = timer()
     extended_imgs = image_pad.add_block_noise(extended_imgs, extend)
-    print(f'{"Py_block_noise":<35}:{(timer() - before_time):.2f}s')
 
     while True:
         all_crop_imgs = {ws[0]: None for ws in single_winsizes}
@@ -508,7 +505,7 @@ def background(imgs, window_sizes, alpha):
         for _ in range(3):
             it_hist, bin_width = np.histogram(bg_intensities[i][post_mask_args], bins=np.arange(0, np.max(bg_intensities[i][post_mask_args]) + bins, bins))
             if len(it_hist) < 1:
-                print('Possible errors on images, please check images again whethere it contains an empty black-image. If not, contact the author.')
+                print('Errors on images, please check images again whether it contains an empty black-image. If not, contact the author.')
                 break
             mask_sums_mode = (np.argmax(it_hist) * bins + (bins / 2))
             mask_std = np.std(bg_intensities[i][post_mask_args])
@@ -576,7 +573,9 @@ def params_gen(win_s):
 
 def main_process(imgs, forward_gauss_grids, backward_gauss_grids, *args):
     args = list(args)
+    before_time = timer()
     bgs, thresholds = background(imgs, window_sizes=args[3], alpha=args[9])
+    print(f'{"background calcul":<35}:{(timer() - before_time):.2f}s')
     if args[2] is None:
         args[2] = np.array([thresholds for _ in range(len(args[0]))]).T
     else:
