@@ -1,4 +1,4 @@
-    VIDEO=./inputs/err_test9.tif
+    VIDEO=./inputs/err_test4.tif
     OUTPUT_DIR=./outputs
     
     # LOCALIZATION
