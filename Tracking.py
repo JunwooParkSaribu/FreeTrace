@@ -49,10 +49,16 @@ def greedy_shortest(srcs, dests, lag):
     # eliminate the speed bigger than diffraction ligth limit.
     diffraction_light_limit = 15.0 * np.power(lag + 1, (1/4))
     filtered_distrib = []
-    for jump_d in distribution[:-1]:
-        if jump_d < diffraction_light_limit:
-            filtered_distrib.append(jump_d)
+    if len(distribution) > 2:
+        for jump_d in distribution[:-1]:
+            if jump_d < diffraction_light_limit:
+                filtered_distrib.append(jump_d)
+    else:
+        for jump_d in distribution:
+            if jump_d < diffraction_light_limit:
+                filtered_distrib.append(jump_d)
     return filtered_distrib
+
 
 def parallel_shortest(srcs, dests):
     distribution = []

@@ -1,7 +1,8 @@
 import numpy as np
 import scipy
 import sys
-sys.path.append('../')
+import os
+sys.path.append(os.getcwd())
 import matplotlib.pyplot as plt
 import concurrent.futures
 from ImageModule import read_tif, make_image_seqs, make_whole_img
@@ -43,9 +44,14 @@ def greedy_shortest(srcs, dests, lag):
     # eliminate the speed bigger than diffraction ligth limit.
     diffraction_light_limit = 15.0 * np.power(lag + 1, (1/4))
     filtered_distrib = []
-    for jump_d in distribution[:-1]:
-        if jump_d < diffraction_light_limit:
-            filtered_distrib.append(jump_d)
+    if len(distribution) > 2:
+        for jump_d in distribution[:-1]:
+            if jump_d < diffraction_light_limit:
+                filtered_distrib.append(jump_d)
+    else:
+        for jump_d in distribution:
+            if jump_d < diffraction_light_limit:
+                filtered_distrib.append(jump_d)
     return filtered_distrib
 
 def parallel_shortest(srcs, dests):
@@ -159,7 +165,6 @@ def euclidian_displacement(pos1, pos2):
 
 def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
     bin_size *= 2  ## added
-
     length_max_val = np.max(distribution)
     bins = np.arange(0, length_max_val + bin_size, bin_size)
     hist = np.histogram(distribution, bins=bins)
@@ -666,7 +671,7 @@ def set_traj_combinations(sub_graph:nx.graph, localizations, next_times, distrib
 
 def forecast(localization: dict, distribution, blink_lag):
     last_time = np.sort(list(localization.keys()))[-1]
-    time_forcast = 10
+    time_forcast = 5
     max_pause_time = blink_lag
     final_graph = nx.DiGraph()
     final_graph.add_node((0, 0))
