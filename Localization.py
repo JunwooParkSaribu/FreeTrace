@@ -7,6 +7,7 @@ import regression  # type: ignore
 from FileIO import write_localization, read_parameters, check_video_ext
 from ImageModule import draw_cross
 from timeit import default_timer as timer
+from module import gpu_module
 
 
 def region_max_filter2(maps, window_size, thresholds, detect_range=0):
@@ -203,7 +204,10 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                 for g_grid, window_size in zip(b_gauss_grids, multi_winsizes):
                     crop_imgs = image_pad.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
                     bg_squared_sums = window_size[0] * window_size[1] * bg_means ** 2
-                    c = np.array(image_pad.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1]))
+
+                    #c = np.array(image_pad.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1]))
+                    c = gpu_module.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
+
                     h_maps.append(c.reshape(imgs.shape[0], imgs.shape[1], imgs.shape[2]) * (multi_winsizes[0][0]**2 / window_size[0]**2))
                 h_maps = np.array(h_maps)
 
@@ -314,12 +318,15 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                 crop_imgs = image_pad.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
                 all_crop_imgs[window_size[0]] = crop_imgs
                 bg_squared_sums = window_size[0] * window_size[1] * bg_means**2
-                c = image_pad.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
+
+                #c = image_pad.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
+                c = gpu_module.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
+                
                 h_map = mapping(c, imgs.shape, shift)
                 h_map = h_map * (single_winsizes[0][0]**2 / window_size[0]**2)
                 h_maps.append(h_map)
             h_maps = np.array(h_maps)
-        
+
             """
             plt.figure()
             plt.imshow(extended_imgs[0])
@@ -372,6 +379,7 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                         ns.append(i3)
                         rs.append(i4)
                         cs.append(i5)
+                    
                     pdfs, xs, ys, x_vars, y_vars, amps, rhos = image_regression(regress_imgs, bg_regress,
                                                                                 (ws, ws), p0=p0, decomp_n=decomp_n)
                     for err_i, (x_var, y_var, rho) in enumerate(zip(x_vars, y_vars, rhos)):
@@ -402,7 +410,6 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
 
                         extended_imgs_copy = extended_imgs.copy()
                         extended_imgs = subtract_pdf(extended_imgs, pdfs, del_indices, (ws, ws), bg_means, extend)
-
             if np.allclose(extended_imgs_copy, extended_imgs, atol=1e-2) or len(indices) == 0 or single_winsizes[0][0] not in indices[:, 3]:
                 pass_to_multi = True
 
@@ -445,12 +452,11 @@ def image_regression(imgs, bgs, window_size, p0, decomp_n, amp=0, repeat=5):
               .reshape(-1, window_size[0] * window_size[1]))
     y_grid = (np.array([[y] * window_size[0] for y in range(-int(window_size[1]/2), int((window_size[1]/2) + 1), 1)])
               .reshape(-1, window_size[0] * window_size[1]))
-    grid = quantification(window_size)
-
     coefs = regression.guo_algorithm(imgs, bgs, p0=p0, xgrid=x_grid, ygrid=y_grid, 
                                      window_size=window_size, repeat=repeat, decomp_n=decomp_n)
-    variables, err_indices = regression.unpack_coefs(coefs, window_size)
 
+    grid = quantification(window_size)
+    variables, err_indices = regression.unpack_coefs(coefs, window_size)
     if len(err_indices) > 0:
         coefs = regression.guo_algorithm(imgs, bgs, p0=p0, xgrid=x_grid, ygrid=y_grid,
                                          window_size=window_size, repeat=repeat+1, decomp_n=decomp_n)

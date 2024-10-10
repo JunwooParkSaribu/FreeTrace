@@ -3,7 +3,17 @@
 from libc.math cimport sqrt, M_PI, log
 import numpy as np
 cimport cython
+from scipy.linalg import lstsq as sp_lstsq
+from scipy.linalg import solve
 
+
+def ord_lu(X, y):
+    A = X.T @ X
+    b = X.T @ y
+    beta = solve(A, b, overwrite_a=True, overwrite_b=True,
+                 check_finite=False)
+    return beta
+    
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -151,7 +161,7 @@ cpdef guo_algorithm(imgs:np.ndarray, bgs, double[::1] p0,
             for x, vals in zip(range(0, a_mat.shape[0], 6), a_mats):
                 a_mat[x:x+6, x:x+6] = vals
             b_mat = b_mats.flatten().reshape(-1, 1)
-            x_matrix.extend(np.linalg.lstsq(a_mat, b_mat, rcond=None)[0])
+            x_matrix.extend(sp_lstsq(a_mat, b_mat, lapack_driver='gelsy', check_finite=False)[0])
         x_matrix = np.array(x_matrix).reshape(-1, 6)
         if np.allclose(coef_vals, x_matrix, rtol=1e-7):
             break
