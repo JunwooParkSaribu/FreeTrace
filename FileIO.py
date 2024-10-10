@@ -209,7 +209,6 @@ def read_localization(input_file, video=None):
             numba_locals_info[t] = np.array(locals_info[t])
     except Exception as e:
         print(f'Err msg: {e}')
-        print('here')
         exit(1)
     return numba_locals, numba_locals_info
 
