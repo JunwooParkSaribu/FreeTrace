@@ -8,6 +8,7 @@ from FileIO import write_localization, read_parameters, check_video_ext
 from ImageModule import draw_cross
 from timeit import default_timer as timer
 from module import gpu_module
+from functools import lru_cache
 
 
 def region_max_filter2(maps, window_size, thresholds, detect_range=0):
@@ -424,6 +425,22 @@ def mapping(c_likelihood, imgs_shape, shift):
         return h_map
 
 
+@lru_cache(maxsize=8)
+def initial_pdf(shape_0, shape_1, shape_2):
+    return np.ones((shape_0, shape_1, shape_2), dtype=np.longdouble)
+
+
+def bi_variate_normal_pdf(xy, cov, mu, normalization=True):
+    init_pdf = initial_pdf(cov.shape[0], xy.shape[0] ,xy.shape[1])
+    init_pdf *= (xy - mu)
+    if normalization:
+        return (np.exp((-1./2) * np.sum(init_pdf @ np.linalg.inv(cov) * init_pdf, axis=2))
+                / (2 * np.pi * np.sqrt(np.linalg.det(cov).reshape(-1, 1))))
+    else:
+        return (np.exp((-1./2) * np.sum(init_pdf @ np.linalg.inv(cov) * init_pdf, axis=2)))
+
+
+@lru_cache(maxsize=8)
 def quantification(window_size):
     x = np.arange(-(window_size[0]-1)/2, (window_size[0]+1)/2)
     y = np.arange(-(window_size[1]-1)/2, (window_size[1]+1)/2)
@@ -432,27 +449,26 @@ def quantification(window_size):
     return grid
 
 
-def bi_variate_normal_pdf(xy, cov, mu, normalization=True):
-    a = np.ones((cov.shape[0], xy.shape[0], xy.shape[1]), dtype=np.longdouble) * (xy - mu)
-    if normalization:
-        return (np.exp((-1./2) * np.sum(a @ np.linalg.inv(cov) * a, axis=2))
-                / (2 * np.pi * np.sqrt(np.linalg.det(cov).reshape(-1, 1))))
-    else:
-        return (np.exp((-1./2) * np.sum(a @ np.linalg.inv(cov) * a, axis=2)))
+@lru_cache(maxsize=8)
+def make_x_grid(win_sizes):
+    return (np.array([list(np.arange(-int(win_sizes[0]/2), int((win_sizes[0]/2) + 1), 1))] * win_sizes[1]).reshape(-1, win_sizes[0] * win_sizes[1]))
+
+
+@lru_cache(maxsize=8)
+def make_y_grid(win_sizes):
+    return (np.array([[y] * win_sizes[0] for y in range(-int(win_sizes[1]/2), int((win_sizes[1]/2) + 1), 1)]).reshape(-1, win_sizes[0] * win_sizes[1]))
 
 
 def image_regression(imgs, bgs, window_size, p0, decomp_n, amp=0, repeat=5):
     imgs = np.array(imgs).reshape([-1, window_size[0] * window_size[1]])
     bgs = np.array(bgs).reshape([-1, window_size[0] * window_size[1]])
     p0 = np.array(p0)
-    x_grid = (np.array([list(np.arange(-int(window_size[0]/2), int((window_size[0]/2) + 1), 1))] * window_size[1])
-              .reshape(-1, window_size[0] * window_size[1]))
-    y_grid = (np.array([[y] * window_size[0] for y in range(-int(window_size[1]/2), int((window_size[1]/2) + 1), 1)])
-              .reshape(-1, window_size[0] * window_size[1]))
+    x_grid = make_x_grid(window_size)
+    y_grid = make_y_grid(window_size)
+    grid = quantification(window_size)
+
     coefs = regression.guo_algorithm(imgs, bgs, p0=p0, xgrid=x_grid, ygrid=y_grid, 
                                      window_size=window_size, repeat=repeat, decomp_n=decomp_n)
-
-    grid = quantification(window_size)
     variables, err_indices = regression.unpack_coefs(coefs, window_size)
     if len(err_indices) > 0:
         coefs = regression.guo_algorithm(imgs, bgs, p0=p0, xgrid=x_grid, ygrid=y_grid,
@@ -617,7 +633,7 @@ if __name__ == '__main__':
     reg_pdfs = []
     reg_infos = []
     SINGLE_WINSIZES, SINGLE_RADIUS, MULTI_WINSIZES, MULTI_RADIUS = params_gen(WINSIZE)
-    forward_gauss_grids = gauss_psf(SINGLE_WINSIZES, SINGLE_RADIUS)
+    forward_gauss_grids = gauss_psf(SINGLE_WINSIZES,SINGLE_RADIUS)
     backward_gauss_grids = gauss_psf(MULTI_WINSIZES, MULTI_RADIUS)
 
     start_time = timer()
