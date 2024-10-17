@@ -6,6 +6,14 @@ import math
 import image_pad  # type: ignore
 import cupy as cp
 
+#from joblib import Memory
+#location = './cachedir'
+#memory = Memory(location, verbose=0)
+#costly_compute_cached = memory.cache(costly_compute_cached)
+#start = time.time()
+#data_trans = costly_compute_cached(data)
+#end = time.time()
+
 TPB = 16
 
 @cuda.jit

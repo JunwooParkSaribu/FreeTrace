@@ -26,6 +26,7 @@
 *.sql
 *.sqlite
 *.pyc
+cachedir
 
 # ML Models #
 ######################
