@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<root>
+<TrackContestISBI2012 SNR="7" density="low" generationDateTime="Mon Nov 20 09:00:00 CET 2023" info="http://bioimageanalysis.org/track/" scenario="Vesicle">
+<particle>
+<detection t="0" x="16.2151345" y="2.2449164" z="0.0"/>
+<detection t="1" x="13.9876245" y="6.1774207" z="0.0"/>
+<detection t="2" x="10.6576275" y="7.11546" z="0.0"/>
+<detection t="3" x="12.8435159" y="12.8097709" z="0.0"/>
+<detection t="4" x="12.1561054" y="12.7485933" z="0.0"/>
+<detection t="5" x="12.3633714" y="12.3993397" z="0.0"/>
+<detection t="6" x="12.3317161" y="12.8359492" z="0.0"/>
+<detection t="7" x="12.3232144" y="13.4782675" z="0.0"/>
+</particle>
+<particle>
+<detection t="8" x="6.8902006" y="4.319202" z="0.0"/>
+<detection t="9" x="7.0706993" y="4.7013984" z="0.0"/>
+<detection t="10" x="7.4243161" y="4.4143799" z="0.0"/>
+<detection t="11" x="6.9977056" y="4.2356666" z="0.0"/>
+<detection t="12" x="7.1608375" y="4.8458904" z="0.0"/>
+<detection t="13" x="7.4694308" y="4.7022288" z="0.0"/>
+<detection t="14" x="7.1662978" y="4.9775181" z="0.0"/>
+</particle>
+</TrackContestISBI2012>
+</root>
