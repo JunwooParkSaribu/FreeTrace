@@ -21,6 +21,7 @@ from scipy.stats import multivariate_normal
 REG_LEGNTHS = [5, 8, 12]
 REG_MIN_LEN = REG_LEGNTHS[0]
 POLY_FIT_DATA = np.load('polyfit.npz')
+REG_MODEL = RegModel(REG_LEGNTHS)
 
 
 @lru_cache
@@ -35,13 +36,9 @@ def pdf_std_measure(alpha):
     return POLY_FIT_DATA['std'][idx]
 
 
-MULTI_NORMAL = [multivariate_normal(mean=[0, 0, 0], cov=[[pdf_std_measure(alpha), 0, 0], [0,pdf_std_measure(alpha), 0], [0, 0, pdf_std_measure(alpha)]], allow_singular=False) for alpha in POLY_FIT_DATA['alpha']]
-REG_MODEL = RegModel(REG_LEGNTHS)
-
-
-def log_p_multi(relativ_coord, alpha):
+def log_p_multi(relativ_coord, alpha, lag):
     idx = int((alpha / POLY_FIT_DATA['alpha'][-1]) * (len(POLY_FIT_DATA['alpha']) - 1))
-    return MULTI_NORMAL[idx].logpdf(relativ_coord)
+    return MULTI_NORMALS[lag][idx].logpdf(relativ_coord)
 
 
 def greedy_shortest(srcs, dests, lag):
@@ -624,11 +621,10 @@ def predict_long_seq(next_graph, next_path, localizations, prev_alpha):
         cur_coord = localizations[before_node[0]][before_node[1]]
         before_coord = localizations[bebefore_node[0]][bebefore_node[1]]
         dir_vec_before = cur_coord - before_coord
-        estim_mu = pdf_mu_measure(prev_alpha)*dir_vec_before + cur_coord
+        estim_mu = (time_gap + 1) * pdf_mu_measure(prev_alpha) * dir_vec_before + cur_coord
         input_mu = next_coord - estim_mu
-        log_p = log_p_multi(input_mu, alpha=prev_alpha)
+        log_p = log_p_multi(input_mu, prev_alpha, time_gap)
         traj_cost.append(abs(log_p))
-    print(next_path, log_p, prev_alpha)
     traj_cost = np.mean(traj_cost)
     return traj_cost
 
@@ -1555,6 +1551,11 @@ if __name__ == '__main__':
     output_imgstack = f'{OUTPUT_DIR}/{input_tif.split("/")[-1].split(".tif")[0]}_traces.tiff'
     output_img = f'{OUTPUT_DIR}/{input_tif.split("/")[-1].split(".tif")[0]}_traces.png'
 
+    MULTI_NORMALS = {}
+    for lag in range(blink_lag+1):
+        MULTI_NORMALS[lag] = [multivariate_normal(mean=[0, 0, 0], cov=[[pdf_std_measure(alpha)*(lag+1), 0, 0],
+                                                                       [0, pdf_std_measure(alpha)*(lag+1), 0],
+                                                                       [0, 0, pdf_std_measure(alpha)*(lag+1)]], allow_singular=False) for alpha in POLY_FIT_DATA['alpha']]
     final_trajectories = []
     confidence = 0.95
     THRESHOLDS = None #[8 + 2 * thr for thr in range(blink_lag + 1)]
