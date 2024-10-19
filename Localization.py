@@ -7,7 +7,7 @@ import regression  # type: ignore
 from FileIO import write_localization, read_parameters, check_video_ext
 from ImageModule import draw_cross
 from timeit import default_timer as timer
-from module import gpu_module
+#from module import gpu_module
 from functools import lru_cache
 
 
@@ -203,8 +203,8 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                     crop_imgs = image_pad.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
                     bg_squared_sums = window_size[0] * window_size[1] * bg_means ** 2
 
-                    #c = np.array(image_pad.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1]))
-                    c = gpu_module.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
+                    c = np.array(image_pad.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1]))
+                    #c = gpu_module.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
 
                     h_maps.append(c.reshape(imgs.shape[0], imgs.shape[1], imgs.shape[2]) * (multi_winsizes[0][0]**2 / window_size[0]**2))
                 h_maps = np.array(h_maps)
@@ -317,8 +317,8 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                 all_crop_imgs[window_size[0]] = crop_imgs
                 bg_squared_sums = window_size[0] * window_size[1] * bg_means**2
 
-                #c = image_pad.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
-                c = gpu_module.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
+                c = image_pad.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
+                #c = gpu_module.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
                 
                 h_map = mapping(c, imgs.shape, shift)
                 h_map = h_map * (single_winsizes[0][0]**2 / window_size[0]**2)
