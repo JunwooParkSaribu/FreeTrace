@@ -14,9 +14,34 @@ from sklearn.neighbors import KernelDensity
 from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
 from sklearn.model_selection import GridSearchCV
 from models.load_models import RegModel
+from functools import lru_cache
+from scipy.stats import multivariate_normal
 
 
-reg_model = RegModel([5, 8, 12])
+REG_LEGNTHS = [5, 8, 12]
+REG_MIN_LEN = REG_LEGNTHS[0]
+POLY_FIT_DATA = np.load('polyfit.npz')
+
+
+@lru_cache
+def pdf_mu_measure(alpha):
+    idx = int((alpha / POLY_FIT_DATA['alpha'][-1]) * (len(POLY_FIT_DATA['alpha']) - 1))
+    return POLY_FIT_DATA['mu'][idx]
+
+
+@lru_cache
+def pdf_std_measure(alpha):
+    idx = int((alpha / POLY_FIT_DATA['alpha'][-1]) * (len(POLY_FIT_DATA['alpha']) - 1))
+    return POLY_FIT_DATA['std'][idx]
+
+
+MULTI_NORMAL = [multivariate_normal(mean=[0, 0, 0], cov=[[pdf_std_measure(alpha), 0, 0], [0,pdf_std_measure(alpha), 0], [0, 0, pdf_std_measure(alpha)]], allow_singular=False) for alpha in POLY_FIT_DATA['alpha']]
+REG_MODEL = RegModel(REG_LEGNTHS)
+
+
+def log_p_multi(relativ_coord, alpha):
+    idx = int((alpha / POLY_FIT_DATA['alpha'][-1]) * (len(POLY_FIT_DATA['alpha']) - 1))
+    return MULTI_NORMAL[idx].logpdf(relativ_coord)
 
 
 def greedy_shortest(srcs, dests, lag):
@@ -581,13 +606,34 @@ def dfs_edges(G, source=None, depth_limit=None, *, sort_neighbors=None):
     return paths
 
 
-def predict_alphas(x, y, reg_model):
-    pred_alpha = reg_model.alpha_predict(np.array([x, y]))
+def predict_alphas(x, y):
+    pred_alpha = REG_MODEL.alpha_predict(np.array([x, y]))
     return pred_alpha
 
 
+def predict_long_seq(next_graph, next_path, localizations, prev_alpha):
+    traj_cost = []
+    for edge_index in range(3, len(next_path)):
+        bebefore_node = next_path[edge_index - 2]
+        before_node = next_path[edge_index - 1]
+        next_node = next_path[edge_index]
+        before_jump_d = next_graph.edges[bebefore_node, before_node]['jump_d']
+        next_jump_d = next_graph.edges[before_node, next_node]['jump_d']
+        time_gap = next_node[0] - before_node[0] - 1
+        next_coord = localizations[next_node[0]][next_node[1]]
+        cur_coord = localizations[before_node[0]][before_node[1]]
+        before_coord = localizations[bebefore_node[0]][bebefore_node[1]]
+        dir_vec_before = cur_coord - before_coord
+        estim_mu = pdf_mu_measure(prev_alpha)*dir_vec_before + cur_coord
+        input_mu = next_coord - estim_mu
+        log_p = log_p_multi(input_mu, alpha=prev_alpha)
+        traj_cost.append(abs(log_p))
+    print(next_path, log_p, prev_alpha)
+    traj_cost = np.mean(traj_cost)
+    return traj_cost
+
+
 def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizations, next_times, distribution, max_pause_time, first_step, most_probable_jump_d):
-    alpha_lambda = 0.25
     initial_cost = 1000
     selected_graph = nx.DiGraph()
     prev_graph = saved_graph.copy()
@@ -607,7 +653,7 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
             prev_xys = np.array([localizations[txy[0]][txy[1]][:2] for txy in prev_path[1:]])[-9:]
             prev_x_pos = prev_xys[:, 0]
             prev_y_pos = prev_xys[:, 1]
-            prev_alpha = predict_alphas(prev_x_pos, prev_y_pos, reg_model)
+            prev_alpha = predict_alphas(prev_x_pos, prev_y_pos)
             alpha_values[tuple(prev_path)] = prev_alpha
 
     while True:
@@ -660,11 +706,11 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
         if first_step:
             for traj in next_trajectories:
                 traj = tuple(traj)
-                if len(traj) == 2:
+                if len(traj) == 3:
                     trajectories_costs[traj] = initial_cost
                 else:
                     traj_cost = []
-                    for edge_index in range(2, len(traj)):
+                    for edge_index in range(3, len(traj)):
                         bebefore_node = traj[edge_index - 2]
                         before_node = traj[edge_index - 1]
                         next_node = traj[edge_index]
@@ -677,45 +723,46 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
                         log_p = abs(log_ps[0] - log_ps[1])
                         traj_cost.append(log_p)
 
-                    traj_cost = np.mean(traj_cost)# - alpha_lambda * (-1/2. * abs(prev_alpha - next_alpha) + 1)
+                    traj_cost = np.mean(traj_cost)
                     trajectories_costs[traj] = min(traj_cost, trajectories_costs[traj])
                     
                     
         else:
             for prev_path in prev_paths:
                 prev_alpha = alpha_values[tuple(prev_path)]
-                #print('prev ', prev_path, prev_alpha)
                 for next_path in next_paths:
                     next_path = tuple(next_path)
-                    if prev_path[-1] == next_path[1]:
+                    if prev_path[-1] in next_path:
                         if tuple(next_path) not in alpha_values:
                             next_xys = np.array([localizations[txy[0]][txy[1]][:2] for txy in next_path[1:]])
                             next_x_pos = next_xys[:, 0]
                             next_y_pos = next_xys[:, 1]
-                            next_alpha = predict_alphas(next_x_pos, next_y_pos, reg_model)
+                            next_alpha = predict_alphas(next_x_pos, next_y_pos)
                             alpha_values[tuple(next_path)] = next_alpha
-                            #print(len(next_path), len(next_xys), next_alpha)
                         else:
                             next_alpha = alpha_values[tuple(next_path)]
-                        #print('next ', next_path, next_alpha)
-                        if len(next_path) == 2:
+
+                        if len(next_path) == 3:
                             trajectories_costs[next_path] = min(initial_cost, trajectories_costs[next_path])
                         else:
                             traj_cost = []
-                            for edge_index in range(2, len(next_path)):
-                                bebefore_node = next_path[edge_index - 2]
-                                before_node = next_path[edge_index - 1]
-                                next_node = next_path[edge_index]
-                                before_jump_d = next_graph.edges[bebefore_node, before_node]['jump_d']
-                                next_jump_d = next_graph.edges[before_node, next_node]['jump_d']
-                                time_gap = next_node[0] - before_node[0] - 1
-                                before_label = distribution[time_gap][6].predict([[before_jump_d]])[0]
-                                mean = distribution[time_gap][6].means_[before_label][0]
-                                log_ps = distribution[time_gap][5][before_label].score_samples([[next_jump_d], [mean]])
-                                log_p = abs(log_ps[0] - log_ps[1])
-                                traj_cost.append(log_p)
+                            if len(prev_path) <= REG_MIN_LEN + 1:
+                                for edge_index in range(3, len(next_path)):
+                                    bebefore_node = next_path[edge_index - 2]
+                                    before_node = next_path[edge_index - 1]
+                                    next_node = next_path[edge_index]
+                                    before_jump_d = next_graph.edges[bebefore_node, before_node]['jump_d']
+                                    next_jump_d = next_graph.edges[before_node, next_node]['jump_d']
+                                    time_gap = next_node[0] - before_node[0] - 1
+                                    before_label = distribution[time_gap][6].predict([[before_jump_d]])[0]
+                                    mean = distribution[time_gap][6].means_[before_label][0]
+                                    log_ps = distribution[time_gap][5][before_label].score_samples([[next_jump_d], [mean]])
+                                    log_p = abs(log_ps[0] - log_ps[1])
+                                    traj_cost.append(log_p)
+                                traj_cost = np.mean(traj_cost)
+                            else:
+                                traj_cost = predict_long_seq(next_graph, next_path, localizations, prev_alpha)
 
-                            traj_cost = np.mean(traj_cost) - alpha_lambda * (-1/2. * abs(prev_alpha - next_alpha) + 1)
                             trajectories_costs[next_path] = min(traj_cost, trajectories_costs[next_path])
                     else:
                         trajectories_costs[next_path] = min(initial_cost, trajectories_costs[next_path])
@@ -723,7 +770,7 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
             for cost_path in trajectories_costs.keys():
                 if trajectories_costs[cost_path] > initial_cost - 1:
                     traj_cost = []
-                    for edge_index in range(2, len(cost_path)):
+                    for edge_index in range(3, len(cost_path)):
                         bebefore_node = cost_path[edge_index - 2]
                         before_node = cost_path[edge_index - 1]
                         next_node = cost_path[edge_index]
@@ -735,22 +782,22 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
                         log_ps = distribution[time_gap][5][before_label].score_samples([[next_jump_d], [mean]])
                         log_p = abs(log_ps[0] - log_ps[1])
                         traj_cost.append(log_p)
-                    traj_cost = np.mean(traj_cost)# - alpha_lambda * (-1/2. * abs(prev_alpha - next_alpha) + 1)
+                    traj_cost = np.mean(traj_cost)
                     trajectories_costs[cost_path] = min(traj_cost, trajectories_costs[cost_path])
 
         trajs = [path for path in trajectories_costs.keys()]
         costs = [trajectories_costs[path] for path in trajectories_costs.keys()]
         
-        
+        """
         for path, cost in zip(trajs, costs):
             xxx = []
-            for i in range(2, len(path)):
+            for i in range(3, len(path)):
                 xxx.append(next_graph.edges[path[i-1], path[i]]['jump_d'])
             if tuple(path) in alpha_values:
                 print(path, cost, alpha_values[tuple(path)], xxx)
             else:
                 print(path, cost, 'No alpha', xxx)
-        
+        """
         
         low_cost_args = np.argsort(costs)
         next_trajectories = np.array(trajs, dtype=object)[low_cost_args]
@@ -932,14 +979,15 @@ def forecast(localization: dict, t_avail_steps, distribution, blink_lag):
         if first_construction:
             start_index = 1
         else:
-            start_index = 2
+            start_index = 3
         for path in dfs_edges(selected_sub_graph, source=(0, 0)):
             ######################################
-            if len(path) == 2: ### MAYBE MODIFY
-                before_node = path[0]
-                next_node = path[1]
-                if next_node not in prev_graph.nodes:
-                    prev_graph.add_edge(before_node, next_node)
+            if len(path) <= 3: ### MAYBE MODIFY
+                for i in range(1, len(path)):
+                    before_node = path[i-1]
+                    next_node = path[i]
+                    if next_node not in prev_graph.nodes:
+                        prev_graph.add_edge(before_node, next_node)
             else:
                 for edge_index in range(start_index, len(path)):
                     before_node = path[edge_index - 1]
@@ -949,7 +997,7 @@ def forecast(localization: dict, t_avail_steps, distribution, blink_lag):
                     else:
                         prev_graph.add_edge((0, 0), before_node)
                         prev_graph.add_edge(before_node, next_node)
-            if selected_time_steps[0] - path[-1][0] < max_pause_time: 
+            if selected_time_steps[-1] - path[-1][0] < max_pause_time: 
                 last_nodes.append(path[-1])
                 second_last_nodes.append(path[-2])
             #######################################
@@ -980,7 +1028,8 @@ def forecast(localization: dict, t_avail_steps, distribution, blink_lag):
                 else:
                     last_xyz = localization[last_node[0]][last_node[1]]
                     second_last_xyz = localization[second_last_node[0]][second_last_node[1]]
-                    next_graph.add_edge((0, 0), last_node, jump_d=np.sqrt((last_xyz[0] - second_last_xyz[0])**2 + (last_xyz[1] - second_last_xyz[1])**2))
+                    next_graph.add_edge((0, 0), second_last_node, jump_d=most_probable_jump_d)
+                    next_graph.add_edge(second_last_node, last_node, jump_d=np.sqrt((last_xyz[0] - second_last_xyz[0])**2 + (last_xyz[1] - second_last_xyz[1])**2))
 
         saved_last_nodes = last_nodes.copy()
         print('DAG:',nx.is_directed_acyclic_graph(prev_graph))
