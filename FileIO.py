@@ -1,8 +1,9 @@
+import sys
 import numpy as np
-from TrajectoryObject import TrajectoryObj
+from module.TrajectoryObject import TrajectoryObj
 from numba.typed import Dict
 from numba.core import types
-from ImageModule import read_tif
+from module.ImageModule import read_tif
 
 
 def read_trajectory(file: str, andi_gt=False) -> dict | list:
@@ -308,25 +309,22 @@ def read_parameters(param_file):
                 params['localization']['THRES_ALPHA'] = float(eval(line.strip().split('=')[1]))
             if 'deflation_loop_in_backward' in line.lower():
                 params['localization']['DEFLATION_LOOP_IN_BACKWARD'] = int(eval(line.strip().split('=')[1]))
-            if 'loc_parallel' in line.lower():
-                if 'true' in line.lower().strip().split('=')[1]:
-                    params['localization']['PARALLEL'] = True
-                else:
-                    params['localization']['PARALLEL'] = False
-
             if 'core' in line.lower():
                 params['localization']['CORE'] = int(eval(line.strip().split('=')[1]))
             if 'div_q' in line.lower():
                 params['localization']['DIV_Q'] = int(eval(line.strip().split('=')[1]))
             if 'shift' in line.lower():
                 params['localization']['SHIFT'] = int(eval(line.strip().split('=')[1]))
-            if 'gauss_seidel_decomp' in line.lower():
-                params['localization']['GAUSS_SEIDEL_DECOMP'] = int(eval(line.strip().split('=')[1]))
             if 'loc_visualization' in line.lower():
                 if 'true' in line.lower().strip().split('=')[1]:
                     params['localization']['LOC_VISUALIZATION'] = True
                 else:
                     params['localization']['LOC_VISUALIZATION'] = False
+            if 'gpu' in line.lower():
+                if 'true' in line.lower().strip().split('=')[1]:
+                    params['localization']['GPU'] = True
+                else:
+                    params['localization']['GPU'] = False
 
             if 'video' in line.lower():
                 params['tracking']['VIDEO'] = line.strip().split('=')[1]
@@ -340,24 +338,21 @@ def read_parameters(param_file):
                 params['tracking']['BLINK_LAG'] = int(eval(line.strip().split('=')[1]))
             if 'cutoff' in line.lower():
                 params['tracking']['CUTOFF'] = int(eval(line.strip().split('=')[1]))
-            if 'amp_max_len' in line.lower():
-                params['tracking']['AMP_MAX_LEN'] = float(eval(line.strip().split('=')[1]))
-            if 'tracking_parallel' in line.lower():
-                if 'true' in line.lower().strip().split('=')[1]:
-                    params['tracking']['VAR_PARALLEL'] = True
-                else:
-                    params['tracking']['VAR_PARALLEL'] = False
             if 'track_visualization' in line.lower():
                 if 'true' in line.lower().strip().split('=')[1]:
                     params['tracking']['TRACK_VISUALIZATION'] = True
                 else:
                     params['tracking']['TRACK_VISUALIZATION'] = False
-
-        return params
+            if 'gpu' in line.lower():
+                if 'true' in line.lower().strip().split('=')[1]:
+                    params['tracking']['GPU'] = True
+                else:
+                    params['tracking']['GPU'] = False
     except Exception as e:
         print(f"Unexpected error, check the config file")
-        print(f'ERR msg: {e}')
-        exit(1)
+        sys.exit(f'ERR msg: {e}')
+    finally:
+        return params
 
 
 def check_video_ext(args, andi2=False):

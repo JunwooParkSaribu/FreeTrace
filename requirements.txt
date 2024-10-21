@@ -1,0 +1,14 @@
+numpy
+numba
+network
+pandas
+cupy
+Cython
+scikit-learn
+scipy
+tensorflow[and-cuda]==2.14.1
+cv2
+matplotlib
+imageio
+tifffile
+pillow
