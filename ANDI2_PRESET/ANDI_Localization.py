@@ -5,8 +5,8 @@ import tifffile
 import concurrent.futures
 import image_pad
 import regression
-from FileIO import write_localization, read_parameters, check_video_ext
-from ImageModule import draw_cross
+from module.FileIO import write_localization, read_parameters, check_video_ext
+from module.ImageModule import draw_cross
 from timeit import default_timer as timer
 
 

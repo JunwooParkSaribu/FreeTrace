@@ -4,11 +4,11 @@ import sys
 sys.path.append('../')
 import concurrent.futures
 from numba.typed import List
-from ImageModule import make_image_seqs, make_whole_img
-from TrajectoryObject import TrajectoryObj
-from FileIO import write_trajectory, read_localization, read_parameters, write_trxyt, check_video_ext
+from module.ImageModule import make_image_seqs, make_whole_img
+from module.TrajectoryObject import TrajectoryObj
+from module.FileIO import write_trajectory, read_localization, read_parameters, write_trxyt, check_video_ext
 from timeit import default_timer as timer
-from Bipartite_searching import hungarian_algo_max
+from module.Bipartite_searching import hungarian_algo_max
 
 
 def greedy_shortest(srcs, dests):
