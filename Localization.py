@@ -1,14 +1,14 @@
-import matplotlib.pyplot as plt
 import numpy as np
+import cupy as cp
 import tifffile
+import matplotlib.pyplot as plt
 import concurrent.futures
+from timeit import default_timer as timer
+from functools import lru_cache
 import image_pad  # type: ignore
 import regression  # type: ignore
-from FileIO import write_localization, read_parameters, check_video_ext
-from ImageModule import draw_cross
-from timeit import default_timer as timer
-#from module import gpu_module
-from functools import lru_cache
+from module.FileIO import write_localization, read_parameters, check_video_ext
+from module.ImageModule import draw_cross
 
 
 def region_max_filter2(maps, window_size, thresholds, detect_range=0):
@@ -203,8 +203,10 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                     crop_imgs = image_pad.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
                     bg_squared_sums = window_size[0] * window_size[1] * bg_means ** 2
 
-                    c = np.array(image_pad.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1]))
-                    #c = gpu_module.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
+                    if GPU_AVAIL:
+                        c = gpu_module.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
+                    else:
+                        c = np.array(image_pad.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1]))
 
                     h_maps.append(c.reshape(imgs.shape[0], imgs.shape[1], imgs.shape[2]) * (multi_winsizes[0][0]**2 / window_size[0]**2))
                 h_maps = np.array(h_maps)
@@ -317,8 +319,10 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                 all_crop_imgs[window_size[0]] = crop_imgs
                 bg_squared_sums = window_size[0] * window_size[1] * bg_means**2
 
-                c = image_pad.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
-                #c = gpu_module.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
+                if GPU_AVAIL:
+                    c = gpu_module.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
+                else:
+                    c = image_pad.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
                 
                 h_map = mapping(c, imgs.shape, shift)
                 h_map = h_map * (single_winsizes[0][0]**2 / window_size[0]**2)
@@ -610,24 +614,35 @@ def main_process(imgs, forward_gauss_grids, backward_gauss_grids, *args):
 if __name__ == '__main__':
     params = read_parameters('./config.txt')
     images = check_video_ext(params['localization']['VIDEO'], andi2=False)
-    
     OUTPUT_DIR = params['localization']['OUTPUT_DIR']
     OUTPUT_LOC = f'{OUTPUT_DIR}/{params["localization"]["VIDEO"].split("/")[-1].split(".tif")[0]}'
-
     SIGMA = params['localization']['SIGMA']
     WINSIZE = params['localization']['WINSIZE']
     THRES_ALPHA = params['localization']['THRES_ALPHA']
     DEFLATION_LOOP_IN_BACKWARD = params['localization']['DEFLATION_LOOP_IN_BACKWARD']
-    BINARY_THRESHOLDS = None
-    MULTI_THRESHOLDS = None
 
-    PARALLEL = params['localization']['PARALLEL']
     CORE = params['localization']['CORE']
     DIV_Q = params['localization']['DIV_Q']
     SHIFT = params['localization']['SHIFT']
-    GAUSS_SEIDEL_DECOMP = 1
-    visualization = params['localization']['LOC_VISUALIZATION']
+    VISUALIZATION = params['localization']['LOC_VISUALIZATION']
+    GPU_AVAIL = params['tracking']['GPU']
     P0 = [1.5, 0., 1.5, 0., 0., 0.5]
+    GAUSS_SEIDEL_DECOMP = 1
+    PARALLEL = False
+    BINARY_THRESHOLDS = None
+    MULTI_THRESHOLDS = None
+
+    if GPU_AVAIL:
+        try:
+            if cp.cuda.is_available():
+                print(f'***** GPU/Cuda detected, The program runs with GPU. *****')
+                from module import gpu_module
+            else:
+                print(f'***** No GPU/Cuda detected, The program runs without GPU. *****')
+                GPU_AVAIL = False
+        except:
+            print(f'***** No GPU/Cuda detected, The program runs without GPU. *****')
+            GPU_AVAIL = False
 
     xy_coords = []
     reg_pdfs = []
@@ -670,7 +685,7 @@ if __name__ == '__main__':
     #reg_pdfs, xy_coords, reg_infos = intensity_distribution(images, reg_pdfs, xy_coords, reg_infos, sigma=SIGMA)
     write_localization(OUTPUT_LOC, xy_coords, reg_pdfs, reg_infos)
 
-    if visualization:
+    if VISUALIZATION:
         print(f'Visualizing localizations...')
         visualilzation(OUTPUT_LOC, images, xy_coords)
-    print(f'{"Total time":<35}:{(timer() - start_time):.2f}s')
+    print(f'{"Total localization time":<35}:{(timer() - start_time):.2f}s')

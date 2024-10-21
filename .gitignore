@@ -27,6 +27,7 @@
 *.sqlite
 *.pyc
 cachedir
+build
 
 # ML Models #
 ######################
