@@ -585,9 +585,9 @@ if __name__ == '__main__':
     FRAME_RATE = params['tracking']['FRAME_PER_SEC']
     GPU_AVAIL = params['tracking']['GPU']
     try:
-        POLY_FIT_DATA = np.load('polyfit.npz')
+        POLY_FIT_DATA = np.load('./models/polyfit.npz')
     except:
-        sys.exit(f'***** polyfit data [ployfit.npz] is not found for trajectory inference, contact author for the pretrained model. *****')
+        sys.exit(f'***** polyfit data [ployfit.npz] is not found for trajectory inference, contact author for the pretrained models. *****')
 
     output_xml = f'{OUTPUT_DIR}/{INPUT_TIFF.split("/")[-1].split(".tif")[0]}_traces.xml'
     output_trj = f'{OUTPUT_DIR}/{INPUT_TIFF.split("/")[-1].split(".tif")[0]}_traces.csv'
