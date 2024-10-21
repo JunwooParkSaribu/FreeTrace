@@ -5,7 +5,7 @@
 > Requirements </br>
 > - C compiler</br>
 > - Python 3.10 or higher</br>
-> - GPU & Cuda(recommended)</br>
+> - GPU & Cuda (recommended)</br>
 
 ------------------------------------------------------------------------------------------------------------------</br>
 <b>*** For the video prediction of [AnDi2 Challenge](http://andi-challenge.org/challenge-2024/#andi2seminar) final-phase datasets, please check [ANDI2_PRESET](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/ANDI2_PRESET). ***</b></br>
