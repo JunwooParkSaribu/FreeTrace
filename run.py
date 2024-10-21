@@ -1,4 +1,4 @@
-from FileIO import read_parameters
+from module.FileIO import read_parameters
 import subprocess
 import os
 import sys
@@ -11,6 +11,7 @@ def run_command(cmd):
 
 params = read_parameters('./config.txt')
 video_name = params['localization']['VIDEO']
+
 
 with open("Localization.py") as f:
     exec(f.read())

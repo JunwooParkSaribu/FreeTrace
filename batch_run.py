@@ -16,7 +16,7 @@ def write_config(filename):
     OUTPUT_DIR=./outputs\n\
     \n\
     # LOCALIZATION\n\
-    WINDOW_SIZE = 7\n\
+    WINDOW_SIZE = 9\n\
     THRESHOLD_ALPHA = 1.0\n\
     DEFLATION_LOOP_IN_BACKWARD = 1\n\
     SIGMA = 4.0\n\
@@ -32,17 +32,14 @@ def write_config(filename):
     \n\
     \n\
     # SUPP\n\
-    LOC_PARALLEL = False\n\
+    GPU = True\n\
     CORE = 4\n\
     DIV_Q = 50\n\
     SHIFT = 1\n\
-    \n\
-    TRACKING_PARALLEL = False\n\
-    AMP_MAX_LEN = 1.3\n\
     "
-
     with open("./config.txt", 'w') as config:
         config.write(content)
+
 
 if not os.path.exists('./outputs'):
     os.makedirs('./outputs')
