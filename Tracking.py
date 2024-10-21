@@ -1,7 +1,6 @@
 import sys
 import math
 import numpy as np
-import cupy as cp
 import pandas as pd
 from functools import lru_cache
 import networkx as nx
@@ -612,6 +611,7 @@ if __name__ == '__main__':
 
     if GPU_AVAIL:
         try:
+            import cupy as cp
             if cp.cuda.is_available():
                 print(f'***** GPU/Cuda detected, The program runs with GPU. *****')
                 from models.load_models import RegModel

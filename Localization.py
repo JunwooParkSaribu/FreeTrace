@@ -1,5 +1,4 @@
 import numpy as np
-import cupy as cp
 import tifffile
 import matplotlib.pyplot as plt
 import concurrent.futures
@@ -634,6 +633,7 @@ if __name__ == '__main__':
 
     if GPU_AVAIL:
         try:
+            import cupy as cp
             if cp.cuda.is_available():
                 print(f'***** GPU/Cuda detected, The program runs with GPU. *****')
                 from module import gpu_module
