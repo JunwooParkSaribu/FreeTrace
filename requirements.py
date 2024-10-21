@@ -15,9 +15,14 @@ with open('./requirements.txt', 'r') as f:
         except:
             pass
 
-print('')
-for non_installed_pacakge in non_installed_packages.keys():
-    print(f'***** Package [{non_installed_pacakge}] installation failed due to subprocess exit code:{non_installed_packages[non_installed_pacakge]}, please install it manually. *****')
-print('')
+if len(list(non_installed_packages.keys())) == 0:
+    print('')
+    print(f'***** Pacakge installations finished succesfully. *****')
+    print('')
+else:
+    print('')
+    for non_installed_pacakge in non_installed_packages.keys():
+        print(f'***** Package [{non_installed_pacakge}] installation failed due to subprocess exit code:{non_installed_packages[non_installed_pacakge]}, please install it manually. *****')
+    print('')
 
 #subprocess.run([sys.executable, '-m', 'pip', 'install', '-r', 'requirements.txt'])
