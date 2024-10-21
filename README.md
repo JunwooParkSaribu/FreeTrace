@@ -7,9 +7,12 @@
 > - Python 3.10 or higher</br>
 > - GPU & Cuda on Linux/WSL2 (recommended)</br>
 
+> [!NOTE]  
+> PRE-REQUISITE: package installation by running requirements.py</br>
+> Without GPU, FreeTrace does inference of trajectories only with an assumption of brownian motion.</br>
+
 ------------------------------------------------------------------------------------------------------------------</br>
 <b>*** For the video prediction of [AnDi2 Challenge](http://andi-challenge.org/challenge-2024/#andi2seminar) final-phase datasets, please check [ANDI2_PRESET](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/ANDI2_PRESET). ***</b></br>
-PRE-REQUISITE: Build C object files by running setup.py on your platform (check setup.py file).</br>
 ------------------------------------------------------------------------------------------------------------------</br>
 
 &nbsp;&nbsp;<b>FreeTrace</b> infers individual trajectories from time-series images. To detect the particles and their positions at sub-pixel level, FreeTrace first extends the image sequences by sampling noises at the edges of images. These extensions of images allow detecting the particles at the edges of images since FreeTrace utilises sliding windows to calculate the particle's position at sub-pixel level. Next, FreeTrace estimates the existence of particles at a pixel with a given PSF function for each sliding window and makes a hypothesis map to determine whether a particle exists at a given sliding window or not. FreeTrace then finds local maxima from the constructed hypothesis maps. To find the precise centre-position of particles at sub-pixel level, FreeTrace performs 2D Gaussian regression by transforming it into a linear system. Finally, FreeTrace reconnects the detected particles by constructing a network and infer the most probable trajectories by calculating the reconnection-likelihoods on paths.</br>
