@@ -7,7 +7,7 @@ Cython
 scikit-learn
 scipy
 tensorflow[and-cuda]==2.14.1
-cv2
+opencv-python
 matplotlib
 imageio
 tifffile
