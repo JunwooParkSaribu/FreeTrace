@@ -10,8 +10,8 @@
 
 > [!NOTE]  
 > PRE-REQUISITE: package installation by running requirements.py</br>
-> With GPU off on tracking, FreeTrace only considers std. brownian motions for the inferences.</br>
-> On MacOS, FreeTrace can infereces with tensorflow-metal, however the speed is slower without Cuda.</br>
+> with GPU off on tracking, FreeTrace only considers std. brownian motions for the inferences.</br>
+> on MacOS, FreeTrace can infereces with tensorflow-metal, however the speed is slower without Cuda.</br>
 
 ------------------------------------------------------------------------------------------------------------------</br>
 <b>*** For the video prediction of [AnDi2 Challenge](http://andi-challenge.org/challenge-2024/#andi2seminar) final-phase datasets, please check [ANDI2_PRESET](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/ANDI2_PRESET). ***</b></br>
