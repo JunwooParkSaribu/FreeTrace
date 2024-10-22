@@ -35,6 +35,7 @@ build
 
 # Result Files #
 ######################
+outputs
 *.html
 alpha_test*.tiff
 err_test*.tiff

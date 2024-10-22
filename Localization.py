@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import tifffile
 import matplotlib.pyplot as plt
@@ -6,8 +7,9 @@ from timeit import default_timer as timer
 from functools import lru_cache
 import image_pad  # type: ignore
 import regression  # type: ignore
-from module.FileIO import write_localization, read_parameters, check_video_ext
+from module.FileIO import write_localization, read_parameters, check_video_ext, initialization
 from module.ImageModule import draw_cross
+from tqdm import trange
 
 
 def region_max_filter2(maps, window_size, thresholds, detect_range=0):
@@ -388,7 +390,7 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                             err_indice.append(err_i)
 
                     if len(err_indice) == len(pdfs):
-                        print(f'IMPOSSIBLE REGRESSION(MINUS VAR): {err_indice}\nWindow_size:{ws}')
+                        #print(f'IMPOSSIBLE REGRESSION(MINUS VAR): {err_indice}\nWindow_size:{ws}')
                         pass_to_multi = True
                     else:
                         pdfs = np.delete(pdfs, err_indice, 0)
@@ -594,7 +596,7 @@ def main_process(imgs, forward_gauss_grids, backward_gauss_grids, *args):
     args = list(args)
     before_time = timer()
     bgs, thresholds = background(imgs, window_sizes=args[3], alpha=args[9])
-    print(f'{"background calcul":<35}:{(timer() - before_time):.2f}s')
+    #print(f'{"background calcul":<35}:{(timer() - before_time):.2f}s')
     if args[2] is None:
         args[2] = np.array([thresholds for _ in range(len(args[0]))]).T
     else:
@@ -606,11 +608,12 @@ def main_process(imgs, forward_gauss_grids, backward_gauss_grids, *args):
 
     before_time = timer()
     xy_coord, pdf, info = localization(imgs, bgs, forward_gauss_grids, backward_gauss_grids, *args)
-    print(f'{"localization calcul":<35}:{(timer() - before_time):.2f}s')
+    #print(f'{"localization calcul":<35}:{(timer() - before_time):.2f}s')
     return xy_coord, pdf, info
 
 
 if __name__ == '__main__':
+    VERBOSE = eval(f'{eval(sys.argv[1])} == 1') if len(sys.argv) > 1 else False
     params = read_parameters('./config.txt')
     images = check_video_ext(params['localization']['VIDEO'], andi2=False)
     OUTPUT_DIR = params['localization']['OUTPUT_DIR']
@@ -630,19 +633,9 @@ if __name__ == '__main__':
     PARALLEL = False
     BINARY_THRESHOLDS = None
     MULTI_THRESHOLDS = None
-
+    GPU_AVAIL = initialization(GPU_AVAIL, ptype=0, verbose=VERBOSE)
     if GPU_AVAIL:
-        try:
-            import cupy as cp
-            if cp.cuda.is_available():
-                print(f'***** GPU/Cuda detected, The program runs with GPU. *****')
-                from module import gpu_module
-            else:
-                print(f'***** No GPU/Cuda detected, The program runs without GPU. *****')
-                GPU_AVAIL = False
-        except:
-            print(f'***** No GPU/Cuda detected, The program runs without GPU. *****')
-            GPU_AVAIL = False
+        from module import gpu_module
 
     xy_coords = []
     reg_pdfs = []
@@ -654,7 +647,7 @@ if __name__ == '__main__':
     start_time = timer()
     if PARALLEL:
         for div_q in range(0, len(images), CORE * DIV_Q):
-            print(f'{div_q}/{len(images)} frame (parallelized)')
+            #print(f'{div_q}/{len(images)} frame (parallelized)')
             with concurrent.futures.ProcessPoolExecutor() as executor:
                 executors = {i: None for i in range(CORE)}
                 for cc in range(CORE):
@@ -672,8 +665,13 @@ if __name__ == '__main__':
                         reg_pdfs.extend(pdf)
                         reg_infos.extend(info)
     else:
-        for div_q in range(0, len(images), DIV_Q):
-            print(f'{div_q}/{len(images)} frame (non parallelized)')
+        if VERBOSE:
+            range_ = trange(0, len(images), DIV_Q, desc="Localization", unit=f"{DIV_Q}frames", ncols=120)
+        else:
+            range_ = range(0, len(images), DIV_Q)
+
+        for div_q in range_:
+            #print(f'{div_q}/{len(images)} frame (non parallelized)')
             xy_coord, pdf, info = main_process(images[div_q:div_q+DIV_Q], forward_gauss_grids, backward_gauss_grids,
                                                SINGLE_WINSIZES, SINGLE_RADIUS, BINARY_THRESHOLDS,
                                                MULTI_WINSIZES, MULTI_RADIUS, MULTI_THRESHOLDS,
@@ -688,4 +686,4 @@ if __name__ == '__main__':
     if VISUALIZATION:
         print(f'Visualizing localizations...')
         visualilzation(OUTPUT_LOC, images, xy_coords)
-    print(f'{"Total localization time":<35}:{(timer() - start_time):.2f}s')
+    #print(f'{"Total localization time":<35}:{(timer() - start_time):.2f}s')

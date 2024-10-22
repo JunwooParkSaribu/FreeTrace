@@ -1,7 +1,9 @@
+import os
 import sys
 import math
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 from functools import lru_cache
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -13,7 +15,8 @@ from scipy.stats import rv_histogram
 from module.TrajectoryObject import TrajectoryObj
 from module.ImageModule import read_tif, make_image_seqs, make_whole_img
 from module.XmlModule import write_xml
-from module.FileIO import write_trajectory, read_localization, read_parameters, write_trxyt
+from module.FileIO import write_trajectory, read_localization, read_parameters, write_trxyt, initialization
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'  
 
 
 @lru_cache
@@ -155,12 +158,12 @@ def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
         }
     )
     opt_nb_component = np.argmin(cluster_df["BIC score"]) + param_grid['n_components'][0]
-    print("Optimal number of components: ",opt_nb_component)
+    #print("Optimal number of components: ",opt_nb_component)
     cluster = BayesianGaussianMixture(n_components=opt_nb_component, max_iter=1000, n_init=10,
                                       mean_precision_prior=1e-7,
                                       covariance_type='diag').fit(distribution.reshape(-1, 1))
-    print('MEANS: ', cluster.means_)
-    print('COVS: ', cluster.covariances_)
+    #print('MEANS: ', cluster.means_)
+    #print('COVS: ', cluster.covariances_)
 
     for mean, cov, weight in zip(cluster.means_.flatten(), cluster.covariances_.flatten(), cluster.weights_.flatten()):
         sample = np.random.normal(loc=mean, scale=cov, size=10000)
@@ -333,13 +336,13 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
     
     if not first_step:
         prev_paths = dfs_edges(prev_graph, source=source_node)
-        print('Len prev graph:', len(prev_paths), end=' ')
+        #print('Len prev graph:', len(prev_paths), end=' ')
         for path in prev_paths:
             if next_times[0] - path[-1][0] > max_pause_time:
                 prev_graph.remove_nodes_from(path[1:])
 
         prev_paths = dfs_edges(prev_graph, source=source_node)
-        print('after deletion: ', len(prev_paths))
+        #print('after deletion: ', len(prev_paths))
         if GPU_AVAIL:
             for path_idx in range(len(prev_paths)):
                 prev_xys = np.array([localizations[txy[0]][txy[1]][:2] for txy in prev_paths[path_idx][1:]])[-ALPHA_MAX_LENGTH:]
@@ -479,16 +482,21 @@ def forecast(localization: dict, t_avail_steps, distribution, blink_lag):
     prev_graph.add_node(source_node)
     next_graph.add_node(source_node)
     initial_time_gap = 0
-    saved_last_nodes = []
     most_probable_jump_d = distribution[initial_time_gap][6].means_[np.argmax(distribution[initial_time_gap][6].weights_)][0]
     next_graph.add_edges_from([((0, 0), (t_avail_steps[0], index), {'jump_d':most_probable_jump_d}) for index in range(len(localization[t_avail_steps[0]]))])
     selected_time_steps = np.arange(t_avail_steps[0] + 1, t_avail_steps[0] + 1 + time_forecast)
+    saved_time_steps = 1
+    mysum = 0
 
     while True:
-        print('processing frames: ', selected_time_steps)
+        if VERBOSE:
+            pbar_update = selected_time_steps[0] - saved_time_steps -1 + len(selected_time_steps)
+            mysum += pbar_update
+            PBAR.update(pbar_update)
+
         selected_sub_graph = set_traj_combinations(prev_graph, next_graph, localization, selected_time_steps, distribution, max_pause_time, first_construction, most_probable_jump_d)
-        last_times = list(set([nodes[-1][0] for nodes in dfs_edges(selected_sub_graph, source=source_node)]))
-        max_time = np.max(last_times)
+        #last_times = list(set([nodes[-1][0] for nodes in dfs_edges(selected_sub_graph, source=source_node)]))
+        #max_time = np.max(last_times)
 
         last_nodes = []
         second_last_nodes = []
@@ -515,14 +523,18 @@ def forecast(localization: dict, t_avail_steps, distribution, blink_lag):
             if selected_time_steps[-1] - path[-1][0] < max_pause_time: 
                 last_nodes.append(path[-1])
                 second_last_nodes.append(path[-2])
+
         if last_time in selected_time_steps:
+            if VERBOSE:
+                PBAR.update(TIME_STEPS[-1] - mysum)
             break
 
+        saved_time_steps = selected_time_steps[-1]
+        next_first_time = selected_time_steps[-1] + 1
         next_graph = nx.DiGraph()
         next_graph.add_node(source_node)
         if len(last_nodes) == 0:
             first_construction = True
-            next_first_time = selected_time_steps[-1] + 1
             while True:
                 if next_first_time in t_avail_steps:
                     break
@@ -531,10 +543,7 @@ def forecast(localization: dict, t_avail_steps, distribution, blink_lag):
             next_graph.add_edges_from([(source_node, (next_first_time, index), {'jump_d':most_probable_jump_d}) for index in range(len(localization[next_first_time]))])
         else:
             first_construction = False
-            if saved_last_nodes == last_nodes:
-                selected_time_steps = [t for t in range(selected_time_steps[-1] + 1, min(last_time + 1, selected_time_steps[-1] + time_forecast + 1))]
-            else:
-                selected_time_steps = [t for t in range(max_time + 1, min(last_time + 1, max_time + time_forecast + 1))]
+            selected_time_steps = [t for t in range(next_first_time, min(last_time + 1, next_first_time + time_forecast))]
             for last_node, second_last_node in zip(last_nodes, second_last_nodes):
                 if second_last_node == source_node:
                     next_graph.add_edge(source_node, last_node, jump_d=most_probable_jump_d)
@@ -543,7 +552,7 @@ def forecast(localization: dict, t_avail_steps, distribution, blink_lag):
                     second_last_xyz = localization[second_last_node[0]][second_last_node[1]]
                     next_graph.add_edge(source_node, second_last_node, jump_d=most_probable_jump_d)
                     next_graph.add_edge(second_last_node, last_node, jump_d=math.sqrt((last_xyz[0] - second_last_xyz[0])**2 + (last_xyz[1] - second_last_xyz[1])**2))
-        saved_last_nodes = last_nodes.copy()
+        #saved_last_nodes = last_nodes.copy()
 
     all_nodes_ = []
     for t in list(localization.keys()):
@@ -574,6 +583,7 @@ def trajectory_inference(localization: dict, time_steps: np.ndarray, distributio
 
 
 if __name__ == '__main__':
+    VERBOSE = eval(f'{eval(sys.argv[1])} == 1') if len(sys.argv) > 1 else False
     params = read_parameters('./config.txt')
     INPUT_TIFF = params['tracking']['VIDEO']
     OUTPUT_DIR = params['tracking']['OUTPUT_DIR']
@@ -583,10 +593,10 @@ if __name__ == '__main__':
     PIXEL_MICRONS = params['tracking']['PIXEL_MICRONS']
     FRAME_RATE = params['tracking']['FRAME_PER_SEC']
     GPU_AVAIL = params['tracking']['GPU']
-    try:
-        POLY_FIT_DATA = np.load('./models/theta_hat.npz')
-    except:
-        sys.exit(f'***** polyfit data [ployfit.npz] is not found for trajectory inference, contact author for the pretrained models. *****')
+    REG_LEGNTHS = [5, 8, 12]
+    ALPHA_MAX_LENGTH = 8
+    GPU_AVAIL = initialization(GPU_AVAIL, REG_LEGNTHS, ptype=1, verbose=VERBOSE)
+    POLY_FIT_DATA = np.load('./models/theta_hat.npz')
 
     output_xml = f'{OUTPUT_DIR}/{INPUT_TIFF.split("/")[-1].split(".tif")[0]}_traces.xml'
     output_trj = f'{OUTPUT_DIR}/{INPUT_TIFF.split("/")[-1].split(".tif")[0]}_traces.csv'
@@ -610,31 +620,21 @@ if __name__ == '__main__':
     loc, loc_infos = read_localization(f'{OUTPUT_DIR}/{INPUT_TIFF.split("/")[-1].split(".tif")[0]}_loc.csv', images)
 
     if GPU_AVAIL:
-        try:
-            import cupy as cp
-            if cp.cuda.is_available():
-                print(f'***** GPU/Cuda detected, The program runs with GPU. *****')
-                from models.load_models import RegModel
-                REG_LEGNTHS = [5, 8, 12]
-                ALPHA_MAX_LENGTH = 8
-                REG_MODEL = RegModel(REG_LEGNTHS)
-            else:
-                print(f'***** No GPU/Cuda detected, The program runs without GPU. *****')
-                GPU_AVAIL = False
-        except:
-            print(f'***** No GPU/Cuda detected, The program runs without GPU. *****')
-            GPU_AVAIL = False
+        from models.load_models import RegModel
+        REG_MODEL = RegModel(REG_LEGNTHS)
 
-    time_steps, mean_nb_per_time, xyz_min, xyz_max = count_localizations(loc)
-    print(f'Mean nb of molecules per frame: {mean_nb_per_time:.2f} molecules/frame')
-    raw_jump_distribution = segmentation(loc, time_steps=time_steps, lag=BLINK_LAG)
+    TIME_STEPS, mean_nb_per_time, xyz_min, xyz_max = count_localizations(loc)
+    raw_jump_distribution = segmentation(loc, time_steps=TIME_STEPS, lag=BLINK_LAG)
     bin_size = np.mean(xyz_max - xyz_min) / 5000. 
-
     jump_distribution = mcmc(raw_jump_distribution, confidence, bin_size, n_iter=1e3, burn=0, approx=None, thresholds=THRESHOLDS)
-    for lag in jump_distribution.keys():
-        print(f'{lag}_limit_length: {jump_distribution[lag][0]}')
 
-    
+    if VERBOSE:
+        print(f'Mean nb of molecules per frame: {mean_nb_per_time:.2f} molecules/frame')
+        for lag in jump_distribution.keys():
+            print(f'{lag}_limit_length: {jump_distribution[lag][0]}')
+        PBAR = tqdm(total=TIME_STEPS[-1], desc="Tracking", unit="frames", ncols=120)
+
+    """
     fig, axs = plt.subplots((BLINK_LAG + 1), 2, figsize=(20, 10))
     show_x_max = 20
     show_y_max = 0.30
@@ -653,13 +653,16 @@ if __name__ == '__main__':
         axs[lag][0].set_ylim([0, show_y_max])
         axs[lag][1].set_ylim([0, show_y_max])
     plt.show()
-    
+    """
 
-    trajectory_list = trajectory_inference(localization=loc, time_steps=time_steps,
+    trajectory_list = trajectory_inference(localization=loc, time_steps=TIME_STEPS,
                                            distribution=jump_distribution, blink_lag=BLINK_LAG)
     for trajectory in trajectory_list:
         if not trajectory.delete(cutoff=CUTOFF):
             final_trajectories.append(trajectory)
+
+    if VERBOSE:
+        PBAR.close()
 
     write_xml(output_file=output_xml, trajectory_list=final_trajectories,
               snr='7', density='low', scenario='Vesicle', cutoff=CUTOFF)
@@ -668,5 +671,5 @@ if __name__ == '__main__':
     make_whole_img(final_trajectories, output_dir=output_img, img_stacks=images)
     if VISUALIZATION:
         print(f'Visualizing trajectories...')
-        make_image_seqs(final_trajectories, output_dir=output_imgstack, img_stacks=images, time_steps=time_steps, cutoff=CUTOFF,
+        make_image_seqs(final_trajectories, output_dir=output_imgstack, img_stacks=images, time_steps=TIME_STEPS, cutoff=CUTOFF,
                         add_index=False, local_img=None, gt_trajectory=None)

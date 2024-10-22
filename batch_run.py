@@ -2,6 +2,7 @@ import os
 import sys
 import subprocess
 from datetime import datetime
+from tqdm import trange
 
 
 def run_command(cmd):
@@ -44,23 +45,22 @@ def write_config(filename):
 if not os.path.exists('./outputs'):
     os.makedirs('./outputs')
 file_list = os.listdir('./inputs')
-for file in file_list:
+print(f'***** Batch processing on {len(file_list)} files. *****')
+for file in trange(file_list, desc=f"Batch", unit="files", ncols=120):
     if file.strip().split('.')[-1] == 'tif' or file.strip().split('.')[-1] == 'tiff':
-        print(f"------- processing on {file} -------")
         write_config(file)
         try:
-            with open("Localization.py") as f:
-                exec(f.read())
-            with open("Tracking.py") as f:
-                exec(f.read())
-            if os.path.exists('diffusion_image.py'):
+            pid = subprocess.run([sys.executable, 'Localization.py', '0'])
+            if pid.returncode != 0:
+                raise Exception(pid)
+            pid = subprocess.run([sys.executable, 'Tracking.py', '0'])
+            if pid.returncode != 0:
+                raise Exception(pid)
+            if os.path.exists('diffusion_image.py') and pid==0:
                 proc = run_command([sys.executable.split('/')[-1], f'diffusion_image.py', f'./outputs/{file.strip().split(".tif")[0]}_traces.trxyt'])
                 proc.wait()
-                if proc.poll() == 0:
-                    print(f'diffusion map -> successfully finished')
-                else:
+                if not proc.poll() == 0:
                     print(f'diffusion map -> failed with status:{proc.poll()}')
-            print(f"------- {file} is succesfully finished -------")
         except Exception as e:
             print(f"ERROR on {file}: {e}")
             with open('./error_log.txt', 'a') as error_log:
