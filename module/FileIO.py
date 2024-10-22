@@ -333,10 +333,12 @@ def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False):
                 if verbose:
                     print(f'***** GPU/Cuda detected, FreeTrace runs with GPU. *****')
             else:
-                print(f'***** No GPU/Cuda detected, FreeTrace runs without GPU. *****')
+                if verbose:
+                    print(f'***** No GPU/Cuda detected, FreeTrace runs without GPU. *****')
                 gpu = False
         except:
-            print(f'***** No GPU/Cuda detected, FreeTrace runs without GPU. *****')
+            if verbose:
+                print(f'***** No GPU/Cuda detected, FreeTrace runs without GPU. *****')
             gpu = False
 
     if gpu and ptype==1:
