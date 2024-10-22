@@ -28,6 +28,7 @@
 *.pyc
 cachedir
 build
+error_log.txt
 
 # ML Models #
 ######################
