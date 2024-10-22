@@ -1,6 +1,0 @@
-sample0.tiff has an err[CompletedProcess(args=['/Library/Frameworks/Python.framework/Versions/3.10/bin/python3', 'Localization.py', '0'], returncode=1)]. DATE: 22/10/2024 21:11:49
-err_test6.tiff has an err[CompletedProcess(args=['/Library/Frameworks/Python.framework/Versions/3.10/bin/python3', 'Localization.py', '0'], returncode=1)]. DATE: 22/10/2024 21:11:50
-err_test11.tiff has an err[CompletedProcess(args=['/Library/Frameworks/Python.framework/Versions/3.10/bin/python3', 'Localization.py', '0'], returncode=1)]. DATE: 22/10/2024 21:11:51
-err_test10.tiff has an err[CompletedProcess(args=['/Library/Frameworks/Python.framework/Versions/3.10/bin/python3', 'Localization.py', '0'], returncode=1)]. DATE: 22/10/2024 21:11:51
-sample6.tiff has an err[CompletedProcess(args=['/Library/Frameworks/Python.framework/Versions/3.10/bin/python3', 'Tracking.py', '0'], returncode=1)]. DATE: 22/10/2024 21:21:22
-sample3.tiff has an err[CompletedProcess(args=['/Library/Frameworks/Python.framework/Versions/3.10/bin/python3', 'Tracking.py', '0'], returncode=1)]. DATE: 22/10/2024 21:26:37
