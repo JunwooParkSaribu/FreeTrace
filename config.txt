@@ -1,4 +1,4 @@
-    VIDEO=./inputs/sample6.tiff
+    VIDEO=./inputs/sample3.tiff
     OUTPUT_DIR=./outputs
     
     # LOCALIZATION
