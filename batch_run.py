@@ -3,6 +3,7 @@ import sys
 import subprocess
 from datetime import datetime
 from tqdm import tqdm
+from module.FileIO import initialization
 
 
 def run_command(cmd):
@@ -44,7 +45,8 @@ def write_config(filename):
 if not os.path.exists('./outputs'):
     os.makedirs('./outputs')
 file_list = os.listdir('./inputs')
-print(f'***** Batch processing on {len(file_list)} files. ({len(file_list)*2} tasks: Localizations + Trackings) *****')
+print(f'\n*****  Batch processing on {len(file_list)} files. ({len(file_list)*2} tasks: Localizations + Trackings)  *****')
+initialization(True, verbose=True, batch=False)
 PBAR = tqdm(total=len(file_list)*2, desc="Batch", unit="task", ncols=120, miniters=1)
 for idx in range(len(file_list)):
     file = file_list[idx]
@@ -52,11 +54,11 @@ for idx in range(len(file_list)):
         write_config(file)
         PBAR.set_postfix(File=file, refresh=True)
         try:
-            pid = subprocess.run([sys.executable, 'Localization.py', '0'])
+            pid = subprocess.run([sys.executable, 'Localization.py', '0' ,'1'])
             if pid.returncode != 0:
                 raise Exception(pid)
             PBAR.update(1)
-            pid = subprocess.run([sys.executable, 'Tracking.py', '0'])
+            pid = subprocess.run([sys.executable, 'Tracking.py', '0', '1'])
             if pid.returncode != 0:
                 raise Exception(pid)
             PBAR.update(1)

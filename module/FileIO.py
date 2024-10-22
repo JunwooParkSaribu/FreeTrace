@@ -320,7 +320,9 @@ def check_video_ext(args, andi2=False):
         return read_tif(args, andi2)
     
 
-def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False):
+def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False, batch=False):
+    TF = False
+    cuda = False
     if not os.path.exists('./outputs'):
         os.mkdir('./outputs')
     if not os.path.exists(f'./models/theta_hat.npz'):
@@ -330,19 +332,35 @@ def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False):
         try:
             import cupy as cp
             if cp.cuda.is_available():
-                if verbose:
-                    print(f'***** GPU/Cuda detected, FreeTrace runs with GPU. *****')
+                cuda = True
             else:
-                if verbose:
-                    print(f'***** No GPU/Cuda detected, FreeTrace runs without GPU. *****')
-                gpu = False
+                cuda = False
         except:
-            if verbose:
-                print(f'***** No GPU/Cuda detected, FreeTrace runs without GPU. *****')
-            gpu = False
+            cuda = False
+        try:
+            import tensorflow as tf
+            gpus = tf.config.list_physical_devices('GPU')
+            if len(gpus) > 0:
+                TF = True
+            else:
+                TF = False
+        except:
+            TF = False
 
-    if gpu and ptype==1:
+    if TF and ptype==1:
         for reg_model_num in reg_model_nums:
             if not os.path.exists(f'./models/reg_model_{reg_model_num}.keras'):
                 sys.exit(f'***** reg_model_{reg_model_num}.keras is not found, contact author for the pretrained models. *****')
-    return gpu
+    
+    if not batch and verbose:
+        print(f'\n******************************* OPTIONS *****************************************')
+        if cuda and TF:
+            print(f'***** Cuda: Ok, Tensorflow: Ok, FreeTrace performs fast/complete inferences. *****')
+        elif cuda and not TF:
+            print(f'***** Cuda: Ok, Tensorflow: X, FreeTrace performs fast/incomplete inferences. *****') 
+        elif not cuda and TF:
+            print(f'***** Cuda: X, Tensorflow: Ok, FreeTrace performs slow/complete inferences. *****')
+        else:
+            print(f'***** Cuda: X, Tensorflow: X, FreeTrace performs slow/incomlete inferences. *****') 
+        print(f'*********************************************************************************\n')   
+    return cuda, TF
