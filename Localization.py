@@ -688,7 +688,7 @@ if __name__ == '__main__':
 
             if VERBOSE and len(images[div_q:div_q+DIV_Q]) == DIV_Q:
                 PBAR.update(DIV_Q)
-            else:
+            elif VERBOSE:
                 PBAR.update(len(images) % DIV_Q)
     if VERBOSE:
         PBAR.close()
