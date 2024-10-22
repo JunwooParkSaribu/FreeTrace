@@ -633,7 +633,7 @@ if __name__ == '__main__':
 
     SHIFT = params['localization']['SHIFT']
     VISUALIZATION = params['localization']['LOC_VISUALIZATION']
-    GPU_AVAIL = params['tracking']['GPU']
+    GPU_AVAIL = params['localization']['GPU']
     P0 = [1.5, 0., 1.5, 0., 0., 0.5]
     GAUSS_SEIDEL_DECOMP = 1
     CORE = 4
@@ -644,6 +644,8 @@ if __name__ == '__main__':
     DIV_Q = int(2.7 * 4194304 / images.shape[1] / images.shape[2])
     if GPU_AVAIL:
         from module import gpu_module
+    else:
+        DIV_Q = min(50, DIV_Q)
 
     xy_coords = []
     reg_pdfs = []

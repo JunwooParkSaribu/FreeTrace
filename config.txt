@@ -7,6 +7,7 @@
     DEFLATION_LOOP_IN_BACKWARD = 1
     SIGMA = 4.0
     LOC_VISUALIZATION = False
+    GPU_LOC = True
     
     
     # TRACKING
@@ -15,11 +16,9 @@
     PIXEL_MICRONS = 0.16
     FRAME_PER_SEC = 0.01
     TRACK_VISUALIZATION = False
+    GPU_TRACK = True
     
-    
+     
     # SUPP
-    GPU = True
-    CORE = 4
-    DIV_Q = 50
     SHIFT = 1
     
