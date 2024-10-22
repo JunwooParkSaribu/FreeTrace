@@ -274,7 +274,7 @@ def read_parameters(param_file):
                     params['localization']['LOC_VISUALIZATION'] = True
                 else:
                     params['localization']['LOC_VISUALIZATION'] = False
-            if 'gpu' in line.lower():
+            if 'gpu_loc' in line.lower():
                 if 'true' in line.lower().strip().split('=')[1]:
                     params['localization']['GPU'] = True
                 else:
@@ -297,7 +297,7 @@ def read_parameters(param_file):
                     params['tracking']['TRACK_VISUALIZATION'] = True
                 else:
                     params['tracking']['TRACK_VISUALIZATION'] = False
-            if 'gpu' in line.lower():
+            if 'gpu_track' in line.lower():
                 if 'true' in line.lower().strip().split('=')[1]:
                     params['tracking']['GPU'] = True
                 else:

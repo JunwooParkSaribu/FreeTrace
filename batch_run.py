@@ -22,6 +22,7 @@ def write_config(filename):
     DEFLATION_LOOP_IN_BACKWARD = 1\n\
     SIGMA = 4.0\n\
     LOC_VISUALIZATION = False\n\
+    GPU = True\n\
     \n\
     \n\
     # TRACKING\n\
@@ -30,12 +31,10 @@ def write_config(filename):
     PIXEL_MICRONS = 0.16\n\
     FRAME_PER_SEC = 0.01\n\
     TRACK_VISUALIZATION = False\n\
+    GPU = True\n\
     \n\
     \n\
     # SUPP\n\
-    GPU = True\n\
-    CORE = 4\n\
-    DIV_Q = 50\n\
     SHIFT = 1\n\
     "
     with open("./config.txt", 'w') as config:
