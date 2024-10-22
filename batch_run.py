@@ -54,11 +54,11 @@ for idx in range(len(file_list)):
         write_config(file)
         PBAR.set_postfix(File=file, refresh=True)
         try:
-            pid = subprocess.run([sys.executable, 'Localization.py', '0' ,'1'])
+            pid = subprocess.run([sys.executable, 'Localization.py', '0' ,'1'], capture_output=True)
             if pid.returncode != 0:
                 raise Exception(pid)
             PBAR.update(1)
-            pid = subprocess.run([sys.executable, 'Tracking.py', '0', '1'])
+            pid = subprocess.run([sys.executable, 'Tracking.py', '0', '1'], capture_output=True)
             if pid.returncode != 0:
                 raise Exception(pid)
             PBAR.update(1)
@@ -67,10 +67,10 @@ for idx in range(len(file_list)):
                 proc.wait()
                 if not proc.poll() == 0:
                     print(f'diffusion map -> failed with status:{proc.poll()}')
-        except Exception as e:
-            print(f"ERROR on {file}: {e}")
+        except:
+            print(f"ERROR on {file}, code:{pid.returncode}")
             with open('./error_log.txt', 'a') as error_log:
                 dt_string = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-                input_str = f'{file} has an err[{e}]. DATE: {dt_string}\n'        
+                input_str = f'{file} has an err[{pid.stderr.decode("utf-8")}]. DATE: {dt_string}\n'        
                 error_log.write(input_str)
 PBAR.close()
