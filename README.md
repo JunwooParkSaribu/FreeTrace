@@ -10,7 +10,8 @@
 
 > [!NOTE]  
 > PRE-REQUISITE: package installation by running requirements.py</br>
-> Without GPU, FreeTrace does inference of trajectories only with an assumption of brownian motion.</br>
+> With GPU off on tracking, FreeTrace does trajectory-inference, assuming there is only standard brownian motion for diffusive type.</br>
+> On MacOS, FreeTrace can infereces with tensorflow-metal, however the speed is slower without Cuda.</br>
 
 ------------------------------------------------------------------------------------------------------------------</br>
 <b>*** For the video prediction of [AnDi2 Challenge](http://andi-challenge.org/challenge-2024/#andi2seminar) final-phase datasets, please check [ANDI2_PRESET](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/ANDI2_PRESET). ***</b></br>
