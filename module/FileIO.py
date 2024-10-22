@@ -267,10 +267,6 @@ def read_parameters(param_file):
                 params['localization']['THRES_ALPHA'] = float(eval(line.strip().split('=')[1]))
             if 'deflation_loop_in_backward' in line.lower():
                 params['localization']['DEFLATION_LOOP_IN_BACKWARD'] = int(eval(line.strip().split('=')[1]))
-            if 'core' in line.lower():
-                params['localization']['CORE'] = int(eval(line.strip().split('=')[1]))
-            if 'div_q' in line.lower():
-                params['localization']['DIV_Q'] = int(eval(line.strip().split('=')[1]))
             if 'shift' in line.lower():
                 params['localization']['SHIFT'] = int(eval(line.strip().split('=')[1]))
             if 'loc_visualization' in line.lower():
@@ -347,6 +343,4 @@ def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False):
         for reg_model_num in reg_model_nums:
             if not os.path.exists(f'./models/reg_model_{reg_model_num}.keras'):
                 sys.exit(f'***** reg_model_{reg_model_num}.keras is not found, contact author for the pretrained models. *****')
-
     return gpu
-

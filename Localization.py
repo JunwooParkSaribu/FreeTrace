@@ -9,7 +9,7 @@ import image_pad  # type: ignore
 import regression  # type: ignore
 from module.FileIO import write_localization, read_parameters, check_video_ext, initialization
 from module.ImageModule import draw_cross
-from tqdm import trange
+from tqdm import tqdm
 
 
 def region_max_filter2(maps, window_size, thresholds, detect_range=0):
@@ -201,15 +201,19 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
             for df_loop in range(deflation_loop_backward):
                 h_maps = []
                 for g_grid, window_size in zip(b_gauss_grids, multi_winsizes):
-                    crop_imgs = image_pad.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
-                    bg_squared_sums = window_size[0] * window_size[1] * bg_means ** 2
-
                     if GPU_AVAIL:
-                        c = gpu_module.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
+                        crop_imgs = gpu_module.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
+                        bg_squared_sums = window_size[0] * window_size[1] * bg_means**2
+                        c, crop_imgs = gpu_module.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
                     else:
-                        c = np.array(image_pad.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1]))
+                        crop_imgs = image_pad.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
+                        bg_squared_sums = window_size[0] * window_size[1] * bg_means**2
+                        c = image_pad.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
 
-                    h_maps.append(c.reshape(imgs.shape[0], imgs.shape[1], imgs.shape[2]) * (multi_winsizes[0][0]**2 / window_size[0]**2))
+                    h_map = mapping(c, imgs.shape, shift)
+                    h_map = h_map * (multi_winsizes[0][0]**2 / window_size[0]**2)
+                    h_maps.append(h_map)
+                    #h_maps.append(c.reshape(imgs.shape[0], imgs.shape[1], imgs.shape[2]) * (multi_winsizes[0][0]**2 / window_size[0]**2))
                 h_maps = np.array(h_maps)
 
                 """
@@ -316,15 +320,17 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
         else:
             h_maps = []
             for g_grid, window_size in zip(f_gauss_grids, single_winsizes):
-                crop_imgs = image_pad.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
-                all_crop_imgs[window_size[0]] = crop_imgs
-                bg_squared_sums = window_size[0] * window_size[1] * bg_means**2
-
                 if GPU_AVAIL:
-                    c = gpu_module.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
+                    crop_imgs = gpu_module.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
+                    bg_squared_sums = window_size[0] * window_size[1] * bg_means**2
+                    c, crop_imgs = gpu_module.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
+
                 else:
+                    crop_imgs = image_pad.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
+                    bg_squared_sums = window_size[0] * window_size[1] * bg_means**2
                     c = image_pad.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
-                
+
+                all_crop_imgs[window_size[0]] = crop_imgs
                 h_map = mapping(c, imgs.shape, shift)
                 h_map = h_map * (single_winsizes[0][0]**2 / window_size[0]**2)
                 h_maps.append(h_map)
@@ -594,9 +600,11 @@ def params_gen(win_s):
 
 def main_process(imgs, forward_gauss_grids, backward_gauss_grids, *args):
     args = list(args)
-    before_time = timer()
-    bgs, thresholds = background(imgs, window_sizes=args[3], alpha=args[9])
-    #print(f'{"background calcul":<35}:{(timer() - before_time):.2f}s')
+    if GPU_AVAIL:
+        bgs, thresholds = gpu_module.background(imgs, window_sizes=args[3], alpha=args[9])
+    else:
+        bgs, thresholds = background(imgs, window_sizes=args[3], alpha=args[9])
+
     if args[2] is None:
         args[2] = np.array([thresholds for _ in range(len(args[0]))]).T
     else:
@@ -623,17 +631,17 @@ if __name__ == '__main__':
     THRES_ALPHA = params['localization']['THRES_ALPHA']
     DEFLATION_LOOP_IN_BACKWARD = params['localization']['DEFLATION_LOOP_IN_BACKWARD']
 
-    CORE = params['localization']['CORE']
-    DIV_Q = params['localization']['DIV_Q']
     SHIFT = params['localization']['SHIFT']
     VISUALIZATION = params['localization']['LOC_VISUALIZATION']
     GPU_AVAIL = params['tracking']['GPU']
     P0 = [1.5, 0., 1.5, 0., 0., 0.5]
     GAUSS_SEIDEL_DECOMP = 1
+    CORE = 4
     PARALLEL = False
     BINARY_THRESHOLDS = None
     MULTI_THRESHOLDS = None
     GPU_AVAIL = initialization(GPU_AVAIL, ptype=0, verbose=VERBOSE)
+    DIV_Q = int(2.7 * 4194304 / images.shape[1] / images.shape[2])
     if GPU_AVAIL:
         from module import gpu_module
 
@@ -644,7 +652,8 @@ if __name__ == '__main__':
     forward_gauss_grids = gauss_psf(SINGLE_WINSIZES,SINGLE_RADIUS)
     backward_gauss_grids = gauss_psf(MULTI_WINSIZES, MULTI_RADIUS)
 
-    start_time = timer()
+    if VERBOSE:
+        PBAR = tqdm(total=len(images), desc="Localization", unit=f"frame", ncols=120)
     if PARALLEL:
         for div_q in range(0, len(images), CORE * DIV_Q):
             #print(f'{div_q}/{len(images)} frame (parallelized)')
@@ -665,12 +674,7 @@ if __name__ == '__main__':
                         reg_pdfs.extend(pdf)
                         reg_infos.extend(info)
     else:
-        if VERBOSE:
-            range_ = trange(0, len(images), DIV_Q, desc="Localization", unit=f"{DIV_Q}frames", ncols=120)
-        else:
-            range_ = range(0, len(images), DIV_Q)
-
-        for div_q in range_:
+        for div_q in range(0, len(images), DIV_Q):
             #print(f'{div_q}/{len(images)} frame (non parallelized)')
             xy_coord, pdf, info = main_process(images[div_q:div_q+DIV_Q], forward_gauss_grids, backward_gauss_grids,
                                                SINGLE_WINSIZES, SINGLE_RADIUS, BINARY_THRESHOLDS,
@@ -680,10 +684,15 @@ if __name__ == '__main__':
             reg_pdfs.extend(pdf)
             reg_infos.extend(info)
 
+            if VERBOSE and len(images[div_q:div_q+DIV_Q]) == DIV_Q:
+                PBAR.update(DIV_Q)
+            else:
+                PBAR.update(len(images) % DIV_Q)
+    if VERBOSE:
+        PBAR.close()
+
     #reg_pdfs, xy_coords, reg_infos = intensity_distribution(images, reg_pdfs, xy_coords, reg_infos, sigma=SIGMA)
     write_localization(OUTPUT_LOC, xy_coords, reg_pdfs, reg_infos)
-
     if VISUALIZATION:
         print(f'Visualizing localizations...')
         visualilzation(OUTPUT_LOC, images, xy_coords)
-    #print(f'{"Total localization time":<35}:{(timer() - start_time):.2f}s')
