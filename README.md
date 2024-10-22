@@ -10,7 +10,7 @@
 
 > [!NOTE]  
 > PRE-REQUISITE: package installation by running requirements.py</br>
-> <small>With GPU off on tracking, FreeTrace does trajectory-inference, assuming there is only standard brownian motion for diffusive type.</small></br>
+> With GPU off on tracking, FreeTrace assumes there is only standard brownian motion for diffusive type.</br>
 > On MacOS, FreeTrace can infereces with tensorflow-metal, however the speed is slower without Cuda.</br>
 
 ------------------------------------------------------------------------------------------------------------------</br>
