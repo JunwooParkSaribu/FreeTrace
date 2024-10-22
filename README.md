@@ -10,7 +10,7 @@
 
 > [!NOTE]  
 > PRE-REQUISITE: package installation by running requirements.py</br>
-> With GPU off on tracking, FreeTrace only considers standard brownian motions for trajecectory reconstructions.</br>
+> With GPU off on tracking, FreeTrace only considers std. brownian motions for the inferences.</br>
 > On MacOS, FreeTrace can infereces with tensorflow-metal, however the speed is slower without Cuda.</br>
 
 ------------------------------------------------------------------------------------------------------------------</br>
