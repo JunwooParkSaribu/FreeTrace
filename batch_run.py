@@ -46,7 +46,8 @@ if not os.path.exists('./outputs'):
     os.makedirs('./outputs')
 file_list = os.listdir('./inputs')
 print(f'***** Batch processing on {len(file_list)} files. *****')
-for file in trange(file_list, desc=f"Batch", unit="files", ncols=120):
+for idx in trange(len(file_list), desc=f"Batch", unit="files", ncols=120):
+    file = file_list[idx]
     if file.strip().split('.')[-1] == 'tif' or file.strip().split('.')[-1] == 'tiff':
         write_config(file)
         try:
