@@ -16,7 +16,6 @@ from module.TrajectoryObject import TrajectoryObj
 from module.ImageModule import read_tif, make_image_seqs, make_whole_img
 from module.XmlModule import write_xml
 from module.FileIO import write_trajectory, read_localization, read_parameters, write_trxyt, initialization
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'  
 
 
 @lru_cache
@@ -620,6 +619,10 @@ if __name__ == '__main__':
     loc, loc_infos = read_localization(f'{OUTPUT_DIR}/{INPUT_TIFF.split("/")[-1].split(".tif")[0]}_loc.csv', images)
 
     if GPU_AVAIL:
+        if VERBOSE:
+            os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+        else:
+            os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  
         from models.load_models import RegModel
         REG_MODEL = RegModel(REG_LEGNTHS)
 
@@ -632,7 +635,7 @@ if __name__ == '__main__':
         print(f'Mean nb of molecules per frame: {mean_nb_per_time:.2f} molecules/frame')
         for lag in jump_distribution.keys():
             print(f'{lag}_limit_length: {jump_distribution[lag][0]}')
-        PBAR = tqdm(total=TIME_STEPS[-1], desc="Tracking", unit="frames", ncols=120)
+        PBAR = tqdm(total=TIME_STEPS[-1], desc="Tracking", unit="frame", ncols=120)
 
     """
     fig, axs = plt.subplots((BLINK_LAG + 1), 2, figsize=(20, 10))
