@@ -22,7 +22,7 @@ def write_config(filename):
     DEFLATION_LOOP_IN_BACKWARD = 1\n\
     SIGMA = 4.0\n\
     LOC_VISUALIZATION = False\n\
-    GPU = True\n\
+    GPU_LOC = True\n\
     \n\
     \n\
     # TRACKING\n\
@@ -31,7 +31,7 @@ def write_config(filename):
     PIXEL_MICRONS = 0.16\n\
     FRAME_PER_SEC = 0.01\n\
     TRACK_VISUALIZATION = False\n\
-    GPU = True\n\
+    GPU_TRACK = True\n\
     \n\
     \n\
     # SUPP\n\
