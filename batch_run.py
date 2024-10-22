@@ -42,6 +42,7 @@ def write_config(filename):
         config.write(content)
 
 
+failed_tasks = []
 if not os.path.exists('./outputs'):
     os.makedirs('./outputs')
 file_list = os.listdir('./inputs')
@@ -68,9 +69,14 @@ for idx in range(len(file_list)):
                 if not proc.poll() == 0:
                     print(f'diffusion map -> failed with status:{proc.poll()}')
         except:
+            failed_tasks.append(file)
             print(f"ERROR on {file}, code:{pid.returncode}")
             with open('./error_log.txt', 'a') as error_log:
                 dt_string = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
                 input_str = f'{file} has an err[{pid.stderr.decode("utf-8")}]. DATE: {dt_string}\n'        
                 error_log.write(input_str)
 PBAR.close()
+if len(failed_tasks) > 0:
+    print(f'Prediction failed on {failed_tasks}, please check error_log file.')
+else:
+    print('Batch prediction finished succesfully.')
