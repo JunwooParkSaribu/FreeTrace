@@ -201,7 +201,7 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
             for df_loop in range(deflation_loop_backward):
                 h_maps = []
                 for g_grid, window_size in zip(b_gauss_grids, multi_winsizes):
-                    if GPU_AVAIL:
+                    if CUDA:
                         crop_imgs = gpu_module.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
                         bg_squared_sums = window_size[0] * window_size[1] * bg_means**2
                         c, crop_imgs = gpu_module.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
@@ -320,7 +320,7 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
         else:
             h_maps = []
             for g_grid, window_size in zip(f_gauss_grids, single_winsizes):
-                if GPU_AVAIL:
+                if CUDA:
                     crop_imgs = gpu_module.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
                     bg_squared_sums = window_size[0] * window_size[1] * bg_means**2
                     c, crop_imgs = gpu_module.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
@@ -600,7 +600,7 @@ def params_gen(win_s):
 
 def main_process(imgs, forward_gauss_grids, backward_gauss_grids, *args):
     args = list(args)
-    if GPU_AVAIL:
+    if CUDA:
         bgs, thresholds = gpu_module.background(imgs, window_sizes=args[3], alpha=args[9])
     else:
         bgs, thresholds = background(imgs, window_sizes=args[3], alpha=args[9])
@@ -622,6 +622,7 @@ def main_process(imgs, forward_gauss_grids, backward_gauss_grids, *args):
 
 if __name__ == '__main__':
     VERBOSE = eval(f'{eval(sys.argv[1])} == 1') if len(sys.argv) > 1 else False
+    BATCH = eval(f'{eval(sys.argv[2])} == 1') if len(sys.argv) > 2 else False
     params = read_parameters('./config.txt')
     images = check_video_ext(params['localization']['VIDEO'], andi2=False)
     OUTPUT_DIR = params['localization']['OUTPUT_DIR']
@@ -640,9 +641,9 @@ if __name__ == '__main__':
     PARALLEL = False
     BINARY_THRESHOLDS = None
     MULTI_THRESHOLDS = None
-    GPU_AVAIL = initialization(GPU_AVAIL, ptype=0, verbose=VERBOSE)
+    CUDA, _ = initialization(GPU_AVAIL, ptype=0, verbose=VERBOSE, batch=BATCH)
     DIV_Q = int(2.7 * 4194304 / images.shape[1] / images.shape[2])
-    if GPU_AVAIL:
+    if CUDA:
         from module import gpu_module
     else:
         DIV_Q = min(50, DIV_Q)

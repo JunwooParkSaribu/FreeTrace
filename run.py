@@ -1,4 +1,4 @@
-from module.FileIO import read_parameters
+from module.FileIO import read_parameters, initialization
 import subprocess
 import os
 import sys
@@ -12,11 +12,11 @@ def run_command(cmd):
 params = read_parameters('./config.txt')
 video_name = params['localization']['VIDEO']
 
-
-pid = subprocess.run([sys.executable, 'Localization.py', '1'])
+initialization(True, verbose=True, batch=False)
+pid = subprocess.run([sys.executable, 'Localization.py', '1', '1'])
 if pid.returncode != 0:
     raise Exception(pid)
-pid = subprocess.run([sys.executable, 'Tracking.py', '1'])
+pid = subprocess.run([sys.executable, 'Tracking.py', '1', '1'])
 if pid.returncode != 0:
     raise Exception(pid)
 if os.path.exists('diffusion_image.py') and pid==0:

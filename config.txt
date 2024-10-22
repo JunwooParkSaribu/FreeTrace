@@ -1,8 +1,8 @@
-    VIDEO=./inputs/alpha_test0.tiff
+    VIDEO=./inputs/sample0.tiff
     OUTPUT_DIR=./outputs
     
     # LOCALIZATION
-    WINDOW_SIZE = 7
+    WINDOW_SIZE = 9
     THRESHOLD_ALPHA = 1.0
     DEFLATION_LOOP_IN_BACKWARD = 1
     SIGMA = 4.0
@@ -18,7 +18,7 @@
     TRACK_VISUALIZATION = False
     GPU_TRACK = True
     
-     
+    
     # SUPP
     SHIFT = 1
     

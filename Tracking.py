@@ -342,7 +342,7 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
 
         prev_paths = dfs_edges(prev_graph, source=source_node)
         #print('after deletion: ', len(prev_paths))
-        if GPU_AVAIL:
+        if TF:
             for path_idx in range(len(prev_paths)):
                 prev_xys = np.array([localizations[txy[0]][txy[1]][:2] for txy in prev_paths[path_idx][1:]])[-ALPHA_MAX_LENGTH:]
                 prev_x_pos = prev_xys[:, 0]
@@ -583,6 +583,7 @@ def trajectory_inference(localization: dict, time_steps: np.ndarray, distributio
 
 if __name__ == '__main__':
     VERBOSE = eval(f'{eval(sys.argv[1])} == 1') if len(sys.argv) > 1 else False
+    BATCH = eval(f'{eval(sys.argv[2])} == 1') if len(sys.argv) > 2 else False
     params = read_parameters('./config.txt')
     INPUT_TIFF = params['tracking']['VIDEO']
     OUTPUT_DIR = params['tracking']['OUTPUT_DIR']
@@ -594,7 +595,7 @@ if __name__ == '__main__':
     GPU_AVAIL = params['tracking']['GPU']
     REG_LEGNTHS = [5, 8, 12]
     ALPHA_MAX_LENGTH = 8
-    GPU_AVAIL = initialization(GPU_AVAIL, REG_LEGNTHS, ptype=1, verbose=VERBOSE)
+    CUDA, TF = initialization(GPU_AVAIL, REG_LEGNTHS, ptype=1, verbose=VERBOSE, batch=BATCH)
     POLY_FIT_DATA = np.load('./models/theta_hat.npz')
 
     output_xml = f'{OUTPUT_DIR}/{INPUT_TIFF.split("/")[-1].split(".tif")[0]}_traces.xml'
@@ -618,7 +619,7 @@ if __name__ == '__main__':
         sys.exit('Image squence length error: Cannot track on a single image.')
     loc, loc_infos = read_localization(f'{OUTPUT_DIR}/{INPUT_TIFF.split("/")[-1].split(".tif")[0]}_loc.csv', images)
 
-    if GPU_AVAIL:
+    if TF:
         if VERBOSE:
             os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
         else:
