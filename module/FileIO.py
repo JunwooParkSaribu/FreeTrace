@@ -1,8 +1,7 @@
+import os
 import sys
 import numpy as np
 from module.TrajectoryObject import TrajectoryObj
-from numba.typed import Dict
-from numba.core import types
 from module.ImageModule import read_tif
 
 
@@ -161,22 +160,16 @@ def read_localization(input_file, video=None):
                 locals[t] = [[]]
                 locals_info[t] = [[]]
 
-        numba_locals = Dict.empty(
-            key_type=types.int64,
-            value_type=types.float64[:, :],
-        )
-        numba_locals_info = Dict.empty(
-            key_type=types.int64,
-            value_type=types.float64[:, :],
-        )
+        ret_locals = {}
+        ret_locals_info = {}
 
         for t in locals.keys():
-            numba_locals[t] = np.array(locals[t])
-            numba_locals_info[t] = np.array(locals_info[t])
+            ret_locals[t] = np.array(locals[t])
+            ret_locals_info[t] = np.array(locals_info[t])
     except Exception as e:
-        print(f'Err msg: {e}')
-        exit(1)
-    return numba_locals, numba_locals_info
+        sys.exit(f'Err msg: {e}')
+    finally:    
+        return ret_locals, ret_locals_info
 
 
 def read_andi2_trajectory_label(input_file, index=None):
@@ -329,3 +322,31 @@ def check_video_ext(args, andi2=False):
         exit(1)
     else:
         return read_tif(args, andi2)
+    
+
+def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False):
+    if not os.path.exists('./outputs'):
+        os.mkdir('./outputs')
+    if not os.path.exists(f'./models/theta_hat.npz'):
+        sys.exit(f'***** Parmeters[theta_hat.npz] are not found for trajectory inference, contact author for the pretrained models. *****')
+
+    if gpu:
+        try:
+            import cupy as cp
+            if cp.cuda.is_available():
+                if verbose:
+                    print(f'***** GPU/Cuda detected, FreeTrace runs with GPU. *****')
+            else:
+                print(f'***** No GPU/Cuda detected, FreeTrace runs without GPU. *****')
+                gpu = False
+        except:
+            print(f'***** No GPU/Cuda detected, FreeTrace runs without GPU. *****')
+            gpu = False
+
+    if gpu and ptype==1:
+        for reg_model_num in reg_model_nums:
+            if not os.path.exists(f'./models/reg_model_{reg_model_num}.keras'):
+                sys.exit(f'***** reg_model_{reg_model_num}.keras is not found, contact author for the pretrained models. *****')
+
+    return gpu
+

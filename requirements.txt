@@ -12,3 +12,4 @@ matplotlib
 imageio
 tifffile
 pillow
+tqdm
