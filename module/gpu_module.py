@@ -77,10 +77,38 @@ def image_cropping(extended_imgs, extend, window_size0, window_size1, shift):
     col_indice = cp.arange(start_col, end_col, shift, dtype=int)
     cropped_imgs = cp.empty([nb_imgs, len(row_indice) * len(col_indice), window_size0, window_size1], dtype=cp.double)
     index = 0
+    from timeit import default_timer as timer
+    befoer_time = timer()
     for r in row_indice:
         for c in col_indice:
             r = int(r)
             c = int(c)
             cropped_imgs[:, index] = extended_imgs[:, r:r + window_size1, c:c + window_size0]
             index += 1
+    print(f'{"original loop calcul":<35}:{(timer() - befoer_time):.2f}s')
+    return cropped_imgs.reshape(nb_imgs, -1, window_size0 * window_size1)
+
+
+def image_cropping2(extended_imgs, extend, window_size0, window_size1, shift):
+    extended_imgs = cp.asfortranarray(extended_imgs)
+    nb_imgs = extended_imgs.shape[0]
+    row_size = extended_imgs.shape[1]
+    col_size = extended_imgs.shape[2]
+    start_row = int(extend/2 - (window_size1-1)/2)
+    end_row = row_size - window_size1 - start_row + 1
+    start_col = int(extend/2 - (window_size0-1)/2)
+    end_col = col_size - window_size0 - start_col + 1
+    row_indice = cp.arange(start_row, end_row, shift, dtype=int)
+    col_indice = cp.arange(start_col, end_col, shift, dtype=int)
+    cropped_imgs = cp.empty([nb_imgs, len(row_indice) * len(col_indice), window_size0, window_size1], dtype=cp.double, order='F')
+    index = 0
+    from timeit import default_timer as timer
+    befoer_time = timer()
+    for r in row_indice:
+        for c in col_indice:
+            r = int(r)
+            c = int(c)
+            cropped_imgs[:, index] = extended_imgs[:, r:r + window_size1, c:c + window_size0]
+            index += 1
+    print(f'{"modified loop calcul":<35}:{(timer() - befoer_time):.2f}s')
     return cropped_imgs.reshape(nb_imgs, -1, window_size0 * window_size1)
