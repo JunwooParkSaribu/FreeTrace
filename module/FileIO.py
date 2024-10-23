@@ -353,7 +353,7 @@ def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False, batch=False)
                 sys.exit(f'***** reg_model_{reg_model_num}.keras is not found, contact author for the pretrained models. *****')
     
     if not batch and verbose:
-        print(f'\n******************************* OPTIONS *****************************************')
+        print(f'\n******************************** OPTIONS *****************************************')
         if cuda and TF:
             print(f'***** Cuda: Ok, Tensorflow: Ok, FreeTrace performs fast/complete inferences. *****')
         elif cuda and not TF:
@@ -362,5 +362,5 @@ def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False, batch=False)
             print(f'***** Cuda: X, Tensorflow: Ok, FreeTrace performs slow/complete inferences. *****')
         else:
             print(f'***** Cuda: X, Tensorflow: X, FreeTrace performs slow/incomlete inferences. *****') 
-        print(f'*********************************************************************************\n')   
+        print(f'**********************************************************************************\n')   
     return cuda, TF

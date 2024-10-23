@@ -319,22 +319,36 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
 
         else:
             h_maps = []
+            total_before_time = timer()
+            print('CUDA?', CUDA)
+            print(single_winsizes)
             for g_grid, window_size in zip(f_gauss_grids, single_winsizes):
+                
                 if CUDA:
+                    before_time = timer()
                     crop_imgs = gpu_module.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
+                    print(f'{"cropping original calcul":<35}:{(timer() - before_time):.2f}s')
+                    before_time = timer()
+                    crop_imgs = gpu_module.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
+                    print(f'{"cropping modified calcul":<35}:{(timer() - before_time):.2f}s')
                     bg_squared_sums = window_size[0] * window_size[1] * bg_means**2
+                    before_time = timer()
                     c, crop_imgs = gpu_module.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
+                    print(f'{"likelihood calcul":<35}:{(timer() - before_time):.2f}s')
 
                 else:
                     crop_imgs = image_pad.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
                     bg_squared_sums = window_size[0] * window_size[1] * bg_means**2
                     c = image_pad.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
-
+                
+                before_time = timer()
                 all_crop_imgs[window_size[0]] = crop_imgs
                 h_map = mapping(c, imgs.shape, shift)
                 h_map = h_map * (single_winsizes[0][0]**2 / window_size[0]**2)
                 h_maps.append(h_map)
+                print(f'{"mapping calcul":<35}:{(timer() - before_time):.2f}s')
             h_maps = np.array(h_maps)
+            print(f'{"h_map calcul":<35}:{(timer() - total_before_time):.2f}s')
 
             """
             plt.figure()
@@ -358,8 +372,11 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
             plt.show()
             """
             
+            before_time = timer()
 
             indices = region_max_filter(h_maps, single_winsizes, single_thresholds, detect_range=1)
+            
+            print(f'{"filtering calcul":<35}:{(timer() - before_time):.2f}s')
             if len(indices) != 0:
                 for n, r, c, ws in indices:
                     win_s_dict[ws].append([all_crop_imgs[ws][n]
@@ -391,6 +408,7 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                     
                     pdfs, xs, ys, x_vars, y_vars, amps, rhos = image_regression(regress_imgs, bg_regress,
                                                                                 (ws, ws), p0=p0, decomp_n=decomp_n)
+                    before_time = timer()
                     for err_i, (x_var, y_var, rho) in enumerate(zip(x_vars, y_vars, rhos)):
                         if x_var < 0 or y_var < 0 or x_var > 3*ws or y_var > 3*ws or rho > 1 or rho < -1:
                             err_indice.append(err_i)
@@ -419,6 +437,7 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
 
                         extended_imgs_copy = extended_imgs.copy()
                         extended_imgs = subtract_pdf(extended_imgs, pdfs, del_indices, (ws, ws), bg_means, extend)
+                    print(f'{"subtraction calcul":<35}:{(timer() - before_time):.2f}s')
             if np.allclose(extended_imgs_copy, extended_imgs, atol=1e-2) or len(indices) == 0 or single_winsizes[0][0] not in indices[:, 3]:
                 pass_to_multi = True
 
@@ -478,8 +497,12 @@ def image_regression(imgs, bgs, window_size, p0, decomp_n, amp=0, repeat=5):
     y_grid = make_y_grid(window_size)
     grid = quantification(window_size)
 
+    before_time = timer()
     coefs = regression.guo_algorithm(imgs, bgs, p0=p0, xgrid=x_grid, ygrid=y_grid, 
                                      window_size=window_size, repeat=repeat, decomp_n=decomp_n)
+    print(f'{"Regression calcul":<35}:{(timer() - before_time):.2f}s')
+    
+    before_time = timer()
     variables, err_indices = regression.unpack_coefs(coefs, window_size)
     if len(err_indices) > 0:
         coefs = regression.guo_algorithm(imgs, bgs, p0=p0, xgrid=x_grid, ygrid=y_grid,
@@ -494,6 +517,7 @@ def image_regression(imgs, bgs, window_size, p0, decomp_n, amp=0, repeat=5):
     for err_i in err_indices:
         variables[err_i][0] = -100
         variables[err_i][2] = -100
+    print(f'{"Other regression calcul":<35}:{(timer() - before_time):.2f}s')
     return pdfs, variables[:, 1], variables[:, 3], variables[:, 0], variables[:, 2], variables[:, 5], variables[:, 4]
 
 
