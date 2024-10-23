@@ -329,7 +329,7 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                     crop_imgs = gpu_module.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
                     print(f'{"cropping original calcul":<35}:{(timer() - before_time):.2f}s')
                     before_time = timer()
-                    crop_imgs = gpu_module.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
+                    crop_imgs = gpu_module.image_cropping2(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
                     print(f'{"cropping modified calcul":<35}:{(timer() - before_time):.2f}s')
                     bg_squared_sums = window_size[0] * window_size[1] * bg_means**2
                     before_time = timer()
