@@ -2,7 +2,6 @@ numpy
 numba
 network
 pandas
-cupy
 Cython
 scikit-learn
 scipy
@@ -13,3 +12,4 @@ imageio
 tifffile
 pillow
 tqdm
+cupy-cuda12x
