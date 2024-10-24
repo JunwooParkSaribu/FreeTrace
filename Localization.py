@@ -204,7 +204,7 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                     if CUDA:
                         crop_imgs = gpu_module.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
                         bg_squared_sums = window_size[0] * window_size[1] * bg_means**2
-                        c, crop_imgs = gpu_module.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
+                        c = gpu_module.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
                     else:
                         crop_imgs = image_pad.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
                         bg_squared_sums = window_size[0] * window_size[1] * bg_means**2
@@ -327,15 +327,10 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                 if CUDA:
                     before_time = timer()
                     crop_imgs = gpu_module.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
-                    print(f'{"cropping original calcul":<35}:{(timer() - before_time):.2f}s')
-                    before_time = timer()
-                    crop_imgs = gpu_module.image_cropping2(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
-                    print(f'{"cropping modified calcul":<35}:{(timer() - before_time):.2f}s')
                     bg_squared_sums = window_size[0] * window_size[1] * bg_means**2
-                    before_time = timer()
-                    c, crop_imgs = gpu_module.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
-                    print(f'{"likelihood calcul":<35}:{(timer() - before_time):.2f}s')
-
+                    c = gpu_module.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
+                    crop_imgs = crop_imgs.get()
+                    print(f'{"cropping original calcul":<35}:{(timer() - before_time):.2f}s')
                 else:
                     crop_imgs = image_pad.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
                     bg_squared_sums = window_size[0] * window_size[1] * bg_means**2
@@ -666,12 +661,12 @@ if __name__ == '__main__':
     BINARY_THRESHOLDS = None
     MULTI_THRESHOLDS = None
     CUDA, _ = initialization(GPU_AVAIL, ptype=0, verbose=VERBOSE, batch=BATCH)
-    DIV_Q = int(2.7 * 4194304 / images.shape[1] / images.shape[2])
+    DIV_Q = int(2.7 * 4194304 / images.shape[1] / images.shape[2] / (7 / WINSIZE))
     if CUDA:
         from module import gpu_module
     else:
         DIV_Q = min(50, DIV_Q)
-
+    print('DIVQ: ', DIV_Q)
     xy_coords = []
     reg_pdfs = []
     reg_infos = []
