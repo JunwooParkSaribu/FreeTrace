@@ -1,7 +1,17 @@
 import cupy as cp
+import time
+import threading
+import numpy as np
+from timeit import default_timer as timer
+from itertools import product
+import concurrent.futures
+from concurrent.futures import ProcessPoolExecutor, as_completed
+
+from itertools import islice
 
 
 def likelihood(crop_imgs, gauss_grid, bg_squared_sums, bg_means, window_size1, window_size2):
+    crop_imgs = cp.asarray(crop_imgs)
     gauss_grid = cp.asarray(gauss_grid)
     bg_squared_sums = cp.asarray(bg_squared_sums)
     bg_means = cp.asarray(bg_means)
@@ -19,7 +29,7 @@ def likelihood(crop_imgs, gauss_grid, bg_squared_sums, bg_means, window_size1, w
     i_hat = cp.maximum(cp.zeros(i_hat.shape), i_hat)
     L = ((surface_window / 2.) * cp.log(1 - (i_hat ** 2 * g_squared_sum).T /
                                         (bg_squared_sums - (surface_window * bg_means)))).T
-    return cp.asnumpy(L.reshape(crop_imgs.shape[0], crop_imgs.shape[1], 1)), cp.asnumpy(crop_imgs)
+    return cp.asnumpy(L.reshape(crop_imgs.shape[0], crop_imgs.shape[1], 1))
 
 
 def background(imgs, window_sizes, alpha):
@@ -64,6 +74,28 @@ def background(imgs, window_sizes, alpha):
     return bgs, cp.asnumpy(bg_stds / bg_means / alpha)
 
 
+def image_cropping2(extended_imgs, extend, window_size0, window_size1, shift):
+    extended_imgs = cp.asarray(extended_imgs)
+    nb_imgs = extended_imgs.shape[0]
+    row_size = extended_imgs.shape[1]
+    col_size = extended_imgs.shape[2]
+    start_row = int(extend/2 - (window_size1-1)/2)
+    end_row = row_size - window_size1 - start_row + 1
+    start_col = int(extend/2 - (window_size0-1)/2)
+    end_col = col_size - window_size0 - start_col + 1
+    row_indice = np.arange(start_row, end_row, shift, dtype=int)
+    col_indice = np.arange(start_col, end_col, shift, dtype=int)
+    cropped_imgs = cp.empty([nb_imgs, len(row_indice) * len(col_indice), window_size0, window_size1], dtype=cp.double)
+    index = 0
+    for r in row_indice:
+        for c in col_indice:
+            r = int(r)
+            c = int(c)
+            cropped_imgs[:, index] = extended_imgs[:, r:r + window_size1, c:c + window_size0]
+            index += 1
+    return cropped_imgs.reshape(nb_imgs, -1, window_size0 * window_size1)
+
+
 def image_cropping(extended_imgs, extend, window_size0, window_size1, shift):
     extended_imgs = cp.asarray(extended_imgs)
     nb_imgs = extended_imgs.shape[0]
@@ -73,42 +105,47 @@ def image_cropping(extended_imgs, extend, window_size0, window_size1, shift):
     end_row = row_size - window_size1 - start_row + 1
     start_col = int(extend/2 - (window_size0-1)/2)
     end_col = col_size - window_size0 - start_col + 1
-    row_indice = cp.arange(start_row, end_row, shift, dtype=int)
-    col_indice = cp.arange(start_col, end_col, shift, dtype=int)
-    cropped_imgs = cp.empty([nb_imgs, len(row_indice) * len(col_indice), window_size0, window_size1], dtype=cp.double)
+    row_col_comb = list(product(range(start_row, end_row, shift), range(start_col, end_col, shift)))
+    cropped_imgs = cp.empty([nb_imgs, len(row_col_comb), window_size0, window_size1], dtype=np.double)
     index = 0
-    from timeit import default_timer as timer
-    befoer_time = timer()
-    for r in row_indice:
-        for c in col_indice:
-            r = int(r)
-            c = int(c)
-            cropped_imgs[:, index] = extended_imgs[:, r:r + window_size1, c:c + window_size0]
-            index += 1
-    print(f'{"original loop calcul":<35}:{(timer() - befoer_time):.2f}s')
+    """
+    before_time = timer()
+    my_imgs = []
+    with ProcessPoolExecutor(max_workers=8) as executor:
+        # submit tasks and collect futures
+        chunk_row_col_comb = chunk(row_col_comb, len(row_col_comb)//2)
+        index_chunk = chunk(list(range(len(row_col_comb))), len(row_col_comb)//2)
+        futures = []
+        #print(list(chunk_row_col_comb), list(index_chunk))
+        #print(list(chunk_row_col_comb)[0], list(index_chunk)[0])
+        for rc_chunk, idx_chunk in zip(chunk_row_col_comb, index_chunk):
+            print("@@@@")
+            futures.append(executor.submit(ref_cp_kernel, cropped_imgs, extended_imgs, rc_chunk, window_size0, idx_chunk))
+        # process task results as they are available
+        for future in as_completed(futures):
+            # retrieve the result
+            my_imgs.append(future.result())
+    print(f'{"copying calcul1":<35}:{(timer() - before_time):.2f}s')
+    """
+    before_time = timer()
+    for r, c in row_col_comb:
+        r = int(r)
+        c = int(c)
+        #print(cropped_imgs[0, index], extended_imgs[0, r:r + window_size1, c:c + window_size0])
+        cropped_imgs[:, index] = extended_imgs[:, r:r + window_size1, c:c + window_size0]
+        #print(cropped_imgs[0, index], extended_imgs[0, r:r + window_size1, c:c + window_size0])
+        index += 1
+    print(f'{"copying calcul2":<35}:{(timer() - before_time):.2f}s')
     return cropped_imgs.reshape(nb_imgs, -1, window_size0 * window_size1)
 
 
-def image_cropping2(extended_imgs, extend, window_size0, window_size1, shift):
-    extended_imgs = cp.asfortranarray(extended_imgs)
-    nb_imgs = extended_imgs.shape[0]
-    row_size = extended_imgs.shape[1]
-    col_size = extended_imgs.shape[2]
-    start_row = int(extend/2 - (window_size1-1)/2)
-    end_row = row_size - window_size1 - start_row + 1
-    start_col = int(extend/2 - (window_size0-1)/2)
-    end_col = col_size - window_size0 - start_col + 1
-    row_indice = cp.arange(start_row, end_row, shift, dtype=int)
-    col_indice = cp.arange(start_col, end_col, shift, dtype=int)
-    cropped_imgs = cp.empty([nb_imgs, len(row_indice) * len(col_indice), window_size0, window_size1], dtype=cp.double, order='F')
-    index = 0
-    from timeit import default_timer as timer
-    befoer_time = timer()
-    for r in row_indice:
-        for c in col_indice:
-            r = int(r)
-            c = int(c)
-            cropped_imgs[:, index] = extended_imgs[:, r:r + window_size1, c:c + window_size0]
-            index += 1
-    print(f'{"modified loop calcul":<35}:{(timer() - befoer_time):.2f}s')
-    return cropped_imgs.reshape(nb_imgs, -1, window_size0 * window_size1)
+def ref_cp_kernel(x, y, rc_chunk, w, index_chunk):
+    for (r, c), idx in zip(rc_chunk, index_chunk):
+        print(r, c, idx, w)
+        x[:, idx] = y[:, r:r + w, c:c + w]
+
+
+
+def chunk(arr_range, arr_size):
+    arr_range = iter(arr_range)
+    return iter(lambda: tuple(islice(arr_range, arr_size)), ())
