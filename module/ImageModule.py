@@ -7,7 +7,7 @@ from PIL import Image
 import tifffile
 from tifffile import TiffFile
 import matplotlib.pyplot as plt
-from module.TrajectoryObject import TrajectoryObj
+from TrajectoryObject import TrajectoryObj
 
 
 def read_tif(filepath, andi2=False):
@@ -453,12 +453,12 @@ def cps_visualization(image_save_path, video, cps_result, trace_result):
 
 def to_gif(save_path, image, fps):
     image = read_tif_unnormalized(image)
-    with imageio.get_writer(f'{save_path}.gif', mode='I', fps=fps) as writer:
+    with imageio.get_writer(f'{save_path}.gif', mode='I', fps=fps, loop=30) as writer:
         for i in range(len(image)):
             writer.append_data(np.array(image[i]))
 
 
-#vis_cps_file_name = 'sample5'
+#vis_cps_file_name = ''
 #cps_visualization(f'./{vis_cps_file_name}_cps.tiff', f'./inputs/{vis_cps_file_name}.tiff', f'./{vis_cps_file_name}_traces.txt', f'./outputs/{vis_cps_file_name}_traces.csv')
 #concatenate_image_stack(f'{vis_cps_file_name}', f'./{vis_cps_file_name}.tiff', f'./{vis_cps_file_name}_cps.tiff')
-#to_gif(f'{vis_cps_file_name}', f'./{vis_cps_file_name}_hconcat.tiff', fps=7)
+#to_gif(f'{vis_cps_file_name}', f'./outputs/{vis_cps_file_name}.tiff', fps=10)
