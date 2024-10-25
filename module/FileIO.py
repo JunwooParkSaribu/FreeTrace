@@ -353,14 +353,30 @@ def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False, batch=False)
                 sys.exit(f'***** reg_model_{reg_model_num}.keras is not found, contact author for the pretrained models. *****')
     
     if not batch and verbose:
+        track_ = True if ptype==1 else False
         print(f'\n******************************** OPTIONS *****************************************')
         if cuda and TF:
-            print(f'***** Cuda: Ok, Tensorflow: Ok, FreeTrace performs fast/complete inferences. *****')
+            if track_:
+                print(f'***** Cuda: Ok, Tensorflow: Ok, Tracking performs slow/complete inferences. ******')
+            else:
+                print(f'***** Cuda: Ok, Tensorflow: Ok, Localization performs fast/complete inferences. *****')
+
         elif cuda and not TF:
-            print(f'***** Cuda: Ok, Tensorflow: X, FreeTrace performs fast/incomplete inferences. *****') 
+            if track_:
+                print(f'***** Cuda: Ok, Tensorflow: X, Tracking performs fast/incomplete inferences. ******')
+            else:
+                print(f'*** Cuda: Ok, Tensorflow: X, Localization performs fast/complete inferences. ****')
+
         elif not cuda and TF:
-            print(f'***** Cuda: X, Tensorflow: Ok, FreeTrace performs slow/complete inferences. *****')
+            if track_:
+                print(f'***** Cuda: X, Tensorflow: Ok, Tracking performs slow/complete inferences. ******')
+            else:
+                print(f'*** Cuda: X, Tensorflow: Ok, Localization performs slow/complete inferences. ****')
+                
         else:
-            print(f'***** Cuda: X, Tensorflow: X, FreeTrace performs slow/incomlete inferences. *****') 
+            if track_:
+                print(f'***** Cuda: X, Tensorflow: X, Tracking performs fast/incomplete inferences. ******') 
+            else:
+                print(f'*** Cuda: X, Tensorflow: X, Localization performs slow/complete inferences. ****') 
         print(f'**********************************************************************************\n')   
     return cuda, TF
