@@ -36,6 +36,7 @@ error_log.txt
 
 # Result Files #
 ######################
+old
 outputs
 *.html
 alpha_test*.tiff

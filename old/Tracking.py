@@ -5,10 +5,10 @@ import os
 sys.path.append(os.getcwd())
 import matplotlib.pyplot as plt
 import concurrent.futures
-from ImageModule import read_tif, make_image_seqs, make_whole_img
-from TrajectoryObject import TrajectoryObj
-from XmlModule import write_xml
-from FileIO import write_trajectory, read_localization, read_parameters, write_trxyt, check_video_ext
+from module.ImageModule import read_tif, make_image_seqs, make_whole_img
+from module.TrajectoryObject import TrajectoryObj
+from module.XmlModule import write_xml
+from module.FileIO import write_trajectory, read_localization, read_parameters, write_trxyt, check_video_ext
 from timeit import default_timer as timer
 import networkx as nx
 from sklearn.neighbors import KernelDensity

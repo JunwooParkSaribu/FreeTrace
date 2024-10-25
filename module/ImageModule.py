@@ -1,13 +1,13 @@
-import matplotlib.pyplot as plt
-import numpy as np
-import cv2
-import tifffile
-from tifffile import TiffFile
-from PIL import Image
 import sys
 import pandas as pd
-from module.TrajectoryObject import TrajectoryObj
+import numpy as np
+import cv2
 import imageio
+from PIL import Image
+import tifffile
+from tifffile import TiffFile
+import matplotlib.pyplot as plt
+from module.TrajectoryObject import TrajectoryObj
 
 
 def read_tif(filepath, andi2=False):
