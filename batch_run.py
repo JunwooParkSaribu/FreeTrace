@@ -36,7 +36,7 @@ def write_config(filename):
     \n\
     \n\
     # SUPP\n\
-    SHIFT = 2\n\
+    SHIFT = 1\n\
     "
     with open("./config.txt", 'w') as config:
         config.write(content)
