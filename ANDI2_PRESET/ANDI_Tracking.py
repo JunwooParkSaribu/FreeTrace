@@ -8,7 +8,14 @@ from module.ImageModule import make_image_seqs, make_whole_img
 from module.TrajectoryObject import TrajectoryObj
 from module.FileIO import write_trajectory, read_localization, read_parameters, write_trxyt, check_video_ext
 from timeit import default_timer as timer
-from module.Bipartite_searching import hungarian_algo_max
+from scipy.optimize import linear_sum_assignment
+
+
+def hungarian_algo_max(cost):
+    cost = -np.array(cost)
+    row_ind, col_ind = linear_sum_assignment(cost)
+    val = -cost[row_ind, col_ind].sum()
+    return row_ind, col_ind, val
 
 
 def greedy_shortest(srcs, dests):

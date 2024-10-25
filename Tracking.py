@@ -668,8 +668,7 @@ if __name__ == '__main__':
     if VERBOSE:
         PBAR.close()
 
-    write_xml(output_file=output_xml, trajectory_list=final_trajectories,
-              snr='7', density='low', scenario='Vesicle', cutoff=CUTOFF)
+    write_xml(output_file=output_xml, trajectory_list=final_trajectories, snr='7', density='low', scenario='Vesicle', cutoff=CUTOFF)
     write_trajectory(output_trj, final_trajectories)
     write_trxyt(output_trxyt, final_trajectories, PIXEL_MICRONS, FRAME_RATE)
     make_whole_img(final_trajectories, output_dir=output_img, img_stacks=images)
