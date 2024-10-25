@@ -20,7 +20,7 @@ def write_config(filename):
     # LOCALIZATION\n\
     WINDOW_SIZE = 9\n\
     THRESHOLD_ALPHA = 1.0\n\
-    DEFLATION_LOOP_IN_BACKWARD = 1\n\
+    DEFLATION_LOOP_IN_BACKWARD = 0\n\
     SIGMA = 4.0\n\
     LOC_VISUALIZATION = False\n\
     GPU_LOC = True\n\
@@ -36,7 +36,7 @@ def write_config(filename):
     \n\
     \n\
     # SUPP\n\
-    SHIFT = 1\n\
+    SHIFT = 2\n\
     "
     with open("./config.txt", 'w') as config:
         config.write(content)

@@ -1,7 +1,6 @@
 import sys
 import numpy as np
 import tifffile
-import matplotlib.pyplot as plt
 import concurrent.futures
 from timeit import default_timer as timer
 from functools import lru_cache
@@ -10,6 +9,9 @@ import regression  # type: ignore
 from module.FileIO import write_localization, read_parameters, check_video_ext, initialization
 from module.ImageModule import draw_cross
 from tqdm import tqdm
+from module import gpu_module
+from timeit import default_timer as timer
+import matplotlib.pyplot as plt
 
 
 def region_max_filter2(maps, window_size, thresholds, detect_range=0):
@@ -18,16 +20,16 @@ def region_max_filter2(maps, window_size, thresholds, detect_range=0):
         r_start_index = window_size[1] // 2
         col_start_index = window_size[0] // 2
     else:
-        r_start_index = 1
-        col_start_index = 1
+        r_start_index = detect_range
+        col_start_index = detect_range
 
     for _ in range(2):
         args_map = maps > thresholds.reshape(-1, 1, 1)
         maps = maps * args_map
         img_n, row, col = np.where(args_map == True)
         for n, r, c in zip(img_n, row, col):
-            if maps[n][r][c] == np.max(maps[n, max(0, r-r_start_index):min(maps.shape[1]+1, r+r_start_index+1),
-                                       max(0, c-col_start_index):min(maps.shape[2]+1, c+col_start_index+1)]) and maps[n][r][c] != 0:
+            if maps[n, r, c] == np.max(maps[n, max(0, r-r_start_index):min(maps.shape[1]+1, r+r_start_index+1),
+                                       max(0, c-col_start_index):min(maps.shape[2]+1, c+col_start_index+1)]) and maps[n, r, c] != 0:
                 indices.append([n, r, c])
                 maps[n, max(0, r - r_start_index):min(maps.shape[1] + 1, r + r_start_index + 1),
                 max(0, c - col_start_index):min(maps.shape[2] + 1, c + col_start_index + 1)] = 0
@@ -49,7 +51,7 @@ def region_max_filter(maps, window_sizes, thresholds, detect_range=0):
             col_start_index = detect_range
         img_n, row, col = np.where(args_map == True)
         for n, r, c in zip(img_n, row, col):
-            if maps[i][n][r][c] == np.max(
+            if maps[i, n, r, c] == np.max(
                     maps[i, n, max(0, r - r_start_index):min(maps[i].shape[1] + 1, r + r_start_index + 1),
                     max(0, c - col_start_index):min(maps[i].shape[2] + 1, c + col_start_index + 1)]):
                 infos[n].append([i, r, c, hmap[n][r][c]])
@@ -80,9 +82,9 @@ def subtract_pdf(ext_imgs, pdfs, indices, window_size, bg_means, extend):
         pdf = np.ascontiguousarray(pdf).reshape(window_size)
         row_indice = np.array([r - int((window_size[1]-1)/2), r + int((window_size[1]-1)/2)], dtype=np.intc) + int(extend/2)
         col_indice = np.array([c - int((window_size[0]-1)/2), c + int((window_size[0]-1)/2)], dtype=np.intc) + int(extend/2)
-        ext_imgs[n][row_indice[0]:row_indice[1]+1, col_indice[0]:col_indice[1]+1] -= pdf
-        ext_imgs[n][row_indice[0]:row_indice[1] + 1, col_indice[0]:col_indice[1] + 1] = (
-            np.maximum(ext_imgs[n][row_indice[0]:row_indice[1]+1, col_indice[0]:col_indice[1]+1], bg))
+        ext_imgs[n, row_indice[0]:row_indice[1] + 1, col_indice[0]:col_indice[1] + 1] -= pdf
+        ext_imgs[n, row_indice[0]:row_indice[1] + 1, col_indice[0]:col_indice[1] + 1] = (
+            np.maximum(ext_imgs[n, row_indice[0]:row_indice[1]+1, col_indice[0]:col_indice[1]+1], bg))
         ext_imgs[n] = image_pad.boundary_smoothing(ext_imgs[n], row_indice, col_indice)
     return np.array(ext_imgs)
 
@@ -202,18 +204,19 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                 h_maps = []
                 for g_grid, window_size in zip(b_gauss_grids, multi_winsizes):
                     if CUDA:
-                        crop_imgs = gpu_module.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
+                        crop_imgs, cp_type = gpu_module.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
                         bg_squared_sums = window_size[0] * window_size[1] * bg_means**2
                         c = gpu_module.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
+                        if cp_type:
+                            crop_imgs = crop_imgs.get()
                     else:
                         crop_imgs = image_pad.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
                         bg_squared_sums = window_size[0] * window_size[1] * bg_means**2
                         c = image_pad.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
 
-                    h_map = mapping(c, imgs.shape, shift)
+                    h_map = np.array(image_pad.mapping(c, imgs.shape[0], imgs.shape[1], imgs.shape[2], shift))
                     h_map = h_map * (multi_winsizes[0][0]**2 / window_size[0]**2)
                     h_maps.append(h_map)
-                    #h_maps.append(c.reshape(imgs.shape[0], imgs.shape[1], imgs.shape[2]) * (multi_winsizes[0][0]**2 / window_size[0]**2))
                 h_maps = np.array(h_maps)
 
                 """
@@ -232,7 +235,7 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                 back_indices = [[] for _ in range(multi_thresholds.shape[1])]
                 for backward_index in range(multi_thresholds.shape[1]-1, -1, -1):
                     back_indices[backward_index] = region_max_filter2(h_maps[backward_index], multi_winsizes[backward_index],
-                                                                      multi_thresholds[:, backward_index], detect_range=1)
+                                                                      multi_thresholds[:, backward_index], detect_range=shift)
                 reregress_indice = indice_filtering(back_indices, multi_winsizes, imgs.shape, int(extend/2))
                 regress_imgs_copy = extended_imgs.copy()
                 for regress_comp_set in reregress_indice:
@@ -319,31 +322,25 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
 
         else:
             h_maps = []
-            total_before_time = timer()
-            print('CUDA?', CUDA)
-            print(single_winsizes)
-            for g_grid, window_size in zip(f_gauss_grids, single_winsizes):
-                
+            #total_before_time = timer()
+            for g_grid, window_size in zip(f_gauss_grids, single_winsizes):      
                 if CUDA:
-                    before_time = timer()
-                    crop_imgs = gpu_module.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
+                    crop_imgs, cp_type = gpu_module.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
                     bg_squared_sums = window_size[0] * window_size[1] * bg_means**2
                     c = gpu_module.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
-                    crop_imgs = crop_imgs.get()
-                    print(f'{"cropping original calcul":<35}:{(timer() - before_time):.2f}s')
+                    if cp_type:
+                        crop_imgs = crop_imgs.get()
                 else:
                     crop_imgs = image_pad.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
                     bg_squared_sums = window_size[0] * window_size[1] * bg_means**2
                     c = image_pad.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
-                
-                before_time = timer()
+
                 all_crop_imgs[window_size[0]] = crop_imgs
-                h_map = mapping(c, imgs.shape, shift)
+                h_map = np.array(image_pad.mapping(c, imgs.shape[0], imgs.shape[1], imgs.shape[2], shift))
                 h_map = h_map * (single_winsizes[0][0]**2 / window_size[0]**2)
                 h_maps.append(h_map)
-                print(f'{"mapping calcul":<35}:{(timer() - before_time):.2f}s')
             h_maps = np.array(h_maps)
-            print(f'{"h_map calcul":<35}:{(timer() - total_before_time):.2f}s')
+            #print(f'{"h_map calcul":<35}:{(timer() - total_before_time):.2f}s')
 
             """
             plt.figure()
@@ -367,11 +364,10 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
             plt.show()
             """
             
-            before_time = timer()
+            #before_time = timer()
+            indices = region_max_filter(h_maps, single_winsizes, single_thresholds, detect_range=shift)
+            #print(f'{"filtering calcul":<35}:{(timer() - before_time):.2f}s')
 
-            indices = region_max_filter(h_maps, single_winsizes, single_thresholds, detect_range=1)
-            
-            print(f'{"filtering calcul":<35}:{(timer() - before_time):.2f}s')
             if len(indices) != 0:
                 for n, r, c, ws in indices:
                     win_s_dict[ws].append([all_crop_imgs[ws][n]
@@ -380,30 +376,23 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                 ws = single_winsizes[0][0]
                 if len(win_s_dict[ws]) != 0:
                     err_indice = []
-                    regress_imgs = []
-                    bg_regress = []
-                    ns = []
-                    rs = []
-                    cs = []
-                    for i1, i2, i3, i4, i5 in win_s_dict[ws]:
-                        ############ FORCE BOUNDARY TO MIN TO HAVE A EFFECT OF BOUNDED REGRESSION #########
-                        tmp = np.array(i1).reshape(ws, ws)
-                        min_tmp = np.min(tmp)
-                        tmp[:,0] = min_tmp
-                        tmp[:,-1] = min_tmp
-                        tmp[0,:] = min_tmp
-                        tmp[-1,:] = min_tmp
-                        i1 = tmp.reshape(-1)
-                        ####################################################################################
-                        regress_imgs.append(i1)
-                        bg_regress.append(i2)
-                        ns.append(i3)
-                        rs.append(i4)
-                        cs.append(i5)
-                    
+                    nb_calc = len(win_s_dict[ws])
+                    win_s_dict[ws] = np.array(win_s_dict[ws], dtype=np.object_)
+                    regress_imgs = np.array([win_s_dict[ws][i][0] for i in range(nb_calc)])
+                    bg_regress = np.array([win_s_dict[ws][i][1] for i in range(nb_calc)])
+                    ns = np.array([win_s_dict[ws][i][2] for i in range(nb_calc)])
+                    rs = np.array([win_s_dict[ws][i][3] for i in range(nb_calc)])
+                    cs = np.array([win_s_dict[ws][i][4] for i in range(nb_calc)])
+
+                    min_local_val = np.array([np.min(regress_imgs, axis=1) for _ in range(ws)]).T
+                    regress_imgs = regress_imgs.reshape(-1, ws, ws)
+                    regress_imgs[:, :, 0] = min_local_val
+                    regress_imgs[:, :, -1] = min_local_val
+                    regress_imgs[:, 0, :] = min_local_val
+                    regress_imgs[:, -1, :] = min_local_val
+
                     pdfs, xs, ys, x_vars, y_vars, amps, rhos = image_regression(regress_imgs, bg_regress,
                                                                                 (ws, ws), p0=p0, decomp_n=decomp_n)
-                    before_time = timer()
                     for err_i, (x_var, y_var, rho) in enumerate(zip(x_vars, y_vars, rhos)):
                         if x_var < 0 or y_var < 0 or x_var > 3*ws or y_var > 3*ws or rho > 1 or rho < -1:
                             err_indice.append(err_i)
@@ -432,22 +421,9 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
 
                         extended_imgs_copy = extended_imgs.copy()
                         extended_imgs = subtract_pdf(extended_imgs, pdfs, del_indices, (ws, ws), bg_means, extend)
-                    print(f'{"subtraction calcul":<35}:{(timer() - before_time):.2f}s')
+
             if np.allclose(extended_imgs_copy, extended_imgs, atol=1e-2) or len(indices) == 0 or single_winsizes[0][0] not in indices[:, 3]:
                 pass_to_multi = True
-
-
-def mapping(c_likelihood, imgs_shape, shift):
-    if shift == 1:
-        return np.array(c_likelihood).reshape(imgs_shape[0], imgs_shape[1], imgs_shape[2])
-    else:
-        h_map = np.zeros_like(imgs_shape)
-        index = 0
-        for row in range(0, h_map.shape[1], shift):
-            for col in range(0, h_map.shape[2], shift):
-                h_map[:, row, col] = c_likelihood[:, index, 0]
-                index += 1
-        return h_map
 
 
 @lru_cache(maxsize=8)
@@ -491,14 +467,10 @@ def image_regression(imgs, bgs, window_size, p0, decomp_n, amp=0, repeat=5):
     x_grid = make_x_grid(window_size)
     y_grid = make_y_grid(window_size)
     grid = quantification(window_size)
-
-    before_time = timer()
     coefs = regression.guo_algorithm(imgs, bgs, p0=p0, xgrid=x_grid, ygrid=y_grid, 
                                      window_size=window_size, repeat=repeat, decomp_n=decomp_n)
-    print(f'{"Regression calcul":<35}:{(timer() - before_time):.2f}s')
-    
-    before_time = timer()
     variables, err_indices = regression.unpack_coefs(coefs, window_size)
+
     if len(err_indices) > 0:
         coefs = regression.guo_algorithm(imgs, bgs, p0=p0, xgrid=x_grid, ygrid=y_grid,
                                          window_size=window_size, repeat=repeat+1, decomp_n=decomp_n)
@@ -512,7 +484,6 @@ def image_regression(imgs, bgs, window_size, p0, decomp_n, amp=0, repeat=5):
     for err_i in err_indices:
         variables[err_i][0] = -100
         variables[err_i][2] = -100
-    print(f'{"Other regression calcul":<35}:{(timer() - before_time):.2f}s')
     return pdfs, variables[:, 1], variables[:, 3], variables[:, 0], variables[:, 2], variables[:, 5], variables[:, 4]
 
 
@@ -640,10 +611,13 @@ def main_process(imgs, forward_gauss_grids, backward_gauss_grids, *args):
 
 
 if __name__ == '__main__':
+    MEM_SIZE = 24
     VERBOSE = eval(f'{eval(sys.argv[1])} == 1') if len(sys.argv) > 1 else False
     BATCH = eval(f'{eval(sys.argv[2])} == 1') if len(sys.argv) > 2 else False
     params = read_parameters('./config.txt')
     images = check_video_ext(params['localization']['VIDEO'], andi2=False)
+    #images = np.random.rand(2048, 512, 512)
+
     OUTPUT_DIR = params['localization']['OUTPUT_DIR']
     OUTPUT_LOC = f'{OUTPUT_DIR}/{params["localization"]["VIDEO"].split("/")[-1].split(".tif")[0]}'
     SIGMA = params['localization']['SIGMA']
@@ -661,12 +635,12 @@ if __name__ == '__main__':
     BINARY_THRESHOLDS = None
     MULTI_THRESHOLDS = None
     CUDA, _ = initialization(GPU_AVAIL, ptype=0, verbose=VERBOSE, batch=BATCH)
-    DIV_Q = int(2.7 * 4194304 / images.shape[1] / images.shape[2] / (7 / WINSIZE))
     if CUDA:
         from module import gpu_module
+        DIV_Q = int(64 * 512 * 512 / images.shape[1] / images.shape[2] / (7 / WINSIZE) * MEM_SIZE / 24 * SHIFT / 2) 
     else:
-        DIV_Q = min(50, DIV_Q)
-    print('DIVQ: ', DIV_Q)
+        DIV_Q = min(25, int(2.7 * 4194304 / images.shape[1] / images.shape[2] / (7 / WINSIZE)))
+
     xy_coords = []
     reg_pdfs = []
     reg_infos = []

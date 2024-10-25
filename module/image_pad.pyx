@@ -353,3 +353,27 @@ cpdef double[:,:,::1] image_cropping(extended_imgs, int extend, int window_size0
             cropped_imgs[:, index] = extended_imgs[:, r:r + window_size1, c:c + window_size0].reshape(-1, window_size0 * window_size1)
             index += 1
     return cropped_imgs
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nonecheck(False)
+@cython.cdivision(True) 
+@cython.profile(False)
+cpdef double[:,:,::1] mapping(double[:,:,::1] c_likelihood, int nb_img, int row_shape, int col_shape, int shift):
+    cdef int index
+    cdef double[:, :, ::1] c_view = c_likelihood
+    cdef double[:, :, ::1] h_view
+    h_map = np.zeros([nb_img, row_shape, col_shape])
+    h_view = h_map
+    if shift == 1:
+        return np.array(c_likelihood).reshape(nb_img, row_shape, col_shape)
+    else:
+        for n in range(nb_img):
+            index = 0
+            for row in range(row_shape):
+                for col in range(col_shape):
+                    if row % shift == 0 and col % shift == 0:
+                        h_view[n][row][col] = c_view[n][index][0]
+                        index += 1
+        return h_map
