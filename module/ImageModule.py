@@ -491,6 +491,7 @@ def make_loc_depth_image(output_dir, coords, amp=1):  # amp in [0, 1, 2]
             image[row, col, 0] = color[0]
             image[row, col, 1] = color[1]
             image[row, col, 2] = color[2]
+    image = np.moveaxis(image, 0, 1)
     cv2.imwrite(f'{output_dir}_loc.png', cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
 
 
