@@ -27,6 +27,7 @@ try:
                     '-g', './module/regression.o', '-o', './module/regression.so'])
     subprocess.run(['rm', './module/image_pad.o', './module/regression.o'])
     if os.path.exists(f'./module/image_pad.so') and os.path.exists(f'./module/regression.so'):
+        print('')
         print(f'***** module compiling successfully finished. *****')
 except:
     pass
