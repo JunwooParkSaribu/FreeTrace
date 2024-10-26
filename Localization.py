@@ -611,7 +611,30 @@ def main_process(imgs, forward_gauss_grids, backward_gauss_grids, *args):
     return xyz_coord, pdf, info
 
 
-if __name__ == '__main__':
+def main():
+    global VERBOSE
+    global BATCH
+    global MEM_SIZE 
+    global OUTPUT_DIR 
+    global OUTPUT_LOC 
+    global SIGMA
+    global VISUALIZATION 
+    global WINSIZE 
+    global THRES_ALPHA 
+    global GPU_AVAIL
+    global DEFLATION_LOOP_IN_BACKWARD
+    global SHIFT
+    global CUDA
+    global GPU_AVAIL
+    global P0 
+    global GAUSS_SEIDEL_DECOMP
+    global CORE 
+    global PARALLEL
+    global PBAR
+    global BINARY_THRESHOLDS
+    global MULTI_THRESHOLDS
+    global gpu_module
+
     MEM_SIZE = 24
     VERBOSE = eval(f'{eval(sys.argv[1])} == 1') if len(sys.argv) > 1 else False
     BATCH = eval(f'{eval(sys.argv[2])} == 1') if len(sys.argv) > 2 else False
@@ -694,3 +717,7 @@ if __name__ == '__main__':
     if VISUALIZATION:
         print(f'Visualizing localizations...')
         visualilzation(OUTPUT_LOC, images, xyz_coords)
+
+
+if __name__ == '__main__':
+    main()

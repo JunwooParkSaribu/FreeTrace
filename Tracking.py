@@ -581,7 +581,29 @@ def trajectory_inference(localization: dict, time_steps: np.ndarray, distributio
     return trajectory_list
 
 
-if __name__ == '__main__':
+def main():
+    global VERBOSE
+    global BATCH
+    global INPUT_TIFF 
+    global OUTPUT_DIR 
+    global BLINK_LAG 
+    global CUTOFF
+    global VISUALIZATION 
+    global PIXEL_MICRONS 
+    global FRAME_RATE 
+    global GPU_AVAIL
+    global REG_LEGNTHS
+    global ALPHA_MAX_LENGTH
+    global CUDA
+    global TF
+    global POLY_FIT_DATA 
+    global TIME_FORECAST
+    global THRESHOLDS 
+    global TIME_STEPS
+    global PBAR
+    global REG_MODEL
+    global MULTI_NORMALS
+
     VERBOSE = eval(f'{eval(sys.argv[1])} == 1') if len(sys.argv) > 1 else False
     BATCH = eval(f'{eval(sys.argv[2])} == 1') if len(sys.argv) > 2 else False
     params = read_parameters('./config.txt')
@@ -676,3 +698,7 @@ if __name__ == '__main__':
         print(f'Visualizing trajectories...')
         make_image_seqs(final_trajectories, output_dir=output_imgstack, img_stacks=images, time_steps=TIME_STEPS, cutoff=CUTOFF,
                         add_index=False, local_img=None, gt_trajectory=None)
+
+
+if __name__ == '__main__':
+    main()
