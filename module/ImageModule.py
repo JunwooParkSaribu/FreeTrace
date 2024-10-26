@@ -449,16 +449,65 @@ def cps_visualization(image_save_path, video, cps_result, trace_result):
     time_steps = np.arange(video.shape[0])
     make_image_seqs(trajectory_list, output_dir=image_save_path, img_stacks=video, time_steps=time_steps, cutoff=2,
                     add_index=False, local_img=None, gt_trajectory=None, cps_result=cps_trajectories)
+    
+
+def make_loc_depth_image(output_dir, coords, amp=1):  # amp in [0, 1, 2]
+    depth = 100
+    amp = 10**amp
+    margin_pixel = 2
+    margin_pixel *= 10*amp
+    mycmap = plt.get_cmap('jet', lut=None)
+    color_seq = [mycmap(i)[:3] for i in range(mycmap.N)][::-1]
+    time_steps = np.arange(len(coords))
+    all_coords = []
+    for t in time_steps:
+        for coord in coords[t]:
+            all_coords.append(coord)
+    all_coords = np.array(all_coords)
+    x_min = np.min(all_coords[:, 0])
+    x_max = np.max(all_coords[:, 0])
+    y_min = np.min(all_coords[:, 1])
+    y_max = np.max(all_coords[:, 1])
+    z_min = np.min(all_coords[:, 2])
+    z_max = np.max(all_coords[:, 2])
+    all_coords[:, 0] -= x_min
+    all_coords[:, 1] -= y_min
+    all_coords[:, 2] -= z_min
+    image = np.zeros((int((y_max - y_min)*amp + margin_pixel), int((x_max - x_min)*amp + margin_pixel), 3), dtype=np.uint8)
+    all_coords = np.round(all_coords * amp)
+    depth = max(depth, z_max - z_min)
+    for roundup_coord in all_coords:
+        z = roundup_coord[2]
+        c_set = color_seq[int(len(color_seq) * (z - z_min)/depth)]
+        color = (int(c_set[0]*255), int(c_set[1]*255), int(c_set[2]*255))
+        image[int(roundup_coord[1] + margin_pixel//2), int(roundup_coord[0] + margin_pixel//2), 0] = color[0]
+        image[int(roundup_coord[1] + margin_pixel//2), int(roundup_coord[0] + margin_pixel//2), 1] = color[1]
+        image[int(roundup_coord[1] + margin_pixel//2), int(roundup_coord[0] + margin_pixel//2), 2] = color[2]
+    cv2.imwrite(f'{output_dir}_loc.png', cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
 
 
-def to_gif(save_path, image, fps):
-    image = read_tif_unnormalized(image)
-    with imageio.get_writer(f'{save_path}.gif', mode='I', fps=fps, loop=30) as writer:
-        for i in range(len(image)):
-            writer.append_data(np.array(image[i]))
+def to_gif(image_stack_path, save_path, fps=10, loop=30):
+    images = read_tif_unnormalized(image_stack_path)
+    with imageio.get_writer(f'{save_path}.gif', mode='I', fps=fps, loop=loop) as writer:
+        for i in range(len(images)):
+            writer.append_data(np.array(images[i]))
+
+
+def to_mp4(image_stack_path, save_path, fps=10, resolution='high'):
+    images = read_tif_unnormalized(image_stack_path)
+    if resolution == 'high':
+        fourcc = cv2.VideoWriter_fourcc(*'HFYU') #lossless
+    else:
+        fourcc = cv2.VideoWriter_fourcc(*'avc1')
+    v_out = cv2.VideoWriter(f'{save_path}.avi', fourcc, fps, (images.shape[2], images.shape[1]))
+    for idx in range(images.shape[0]):
+        video_frame = cv2.cvtColor(images[idx], cv2.COLOR_BGR2RGB)
+        v_out.write(video_frame)
+    v_out.release()
 
 
 #vis_cps_file_name = ''
 #cps_visualization(f'./{vis_cps_file_name}_cps.tiff', f'./inputs/{vis_cps_file_name}.tiff', f'./{vis_cps_file_name}_traces.txt', f'./outputs/{vis_cps_file_name}_traces.csv')
 #concatenate_image_stack(f'{vis_cps_file_name}', f'./{vis_cps_file_name}.tiff', f'./{vis_cps_file_name}_cps.tiff')
 #to_gif(f'{vis_cps_file_name}', f'./outputs/{vis_cps_file_name}.tiff', fps=10)
+#to_mp4('outputs/alpha_test10_locvideo.tiff', 'outputs/vid')

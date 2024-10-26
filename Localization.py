@@ -7,7 +7,7 @@ from functools import lru_cache
 from module import image_pad
 from module import regression
 from module.FileIO import write_localization, read_parameters, check_video_ext, initialization
-from module.ImageModule import draw_cross
+from module.ImageModule import draw_cross, make_loc_depth_image
 from tqdm import tqdm
 from timeit import default_timer as timer
 import matplotlib.pyplot as plt
@@ -309,9 +309,10 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                             c -= int(extend/2)
                             if r+dy <= -1 or r+dy >= imgs.shape[1] or c+dx <= -1 or c+dx >= imgs.shape[2]:
                                 continue
-                            row_coord = max(0, min(r+dy, imgs.shape[1]-1))
-                            col_coord = max(0, min(c+dx, imgs.shape[2]-1))
-                            coords[n].append([row_coord, col_coord])
+                            x_coord = max(0, min(r+dy, imgs.shape[1]-1))
+                            y_coord = max(0, min(c+dx, imgs.shape[2]-1))
+                            z_coord = 0.0
+                            coords[n].append([x_coord, y_coord, z_coord])
                             reg_pdfs[n].append(pdf)
                             reg_infos[n].append([x_var, y_var, rho, amp])
                         if df_loop < deflation_loop_backward - 1:
@@ -411,9 +412,10 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                         for n, r, c, dx, dy, pdf, x_var, y_var, rho, amp in zip(ns, rs, cs, xs, ys, pdfs, x_vars, y_vars, rhos, amps):
                             if r+dy <= -1 or r+dy >= imgs.shape[1] or c+dx <= -1 or c+dx >= imgs.shape[2]:
                                 continue
-                            row_coord = max(0, min(r+dy, imgs.shape[1]-1))
-                            col_coord = max(0, min(c+dx, imgs.shape[2]-1))
-                            coords[n].append([row_coord, col_coord])
+                            x_coord = max(0, min(r+dy, imgs.shape[1]-1))
+                            y_coord = max(0, min(c+dx, imgs.shape[2]-1))
+                            z_coord = 0.0
+                            coords[n].append([x_coord, y_coord, z_coord])
                             reg_pdfs[n].append(pdf)
                             reg_infos[n].append([x_var, y_var, rho, amp])
                         del_indices = np.round(np.array([ns, rs+ys, cs+xs])).astype(int).T
@@ -540,19 +542,19 @@ def background(imgs, window_sizes, alpha):
     return bgs, bg_stds / bg_means / alpha
 
 
-def intensity_distribution(images, reg_pdfs, xy_coords, reg_infos, sigma=3.5):
+def intensity_distribution(images, reg_pdfs, xyz_coords, reg_infos, sigma=3.5):
     new_pdfs = []
     new_coords = []
     new_infos = []
-    for img_n, (pdfs, xy_coord, infos) in enumerate(zip(reg_pdfs, xy_coords, reg_infos)):
+    for img_n, (pdfs, xyz_coord, infos) in enumerate(zip(reg_pdfs, xyz_coords, reg_infos)):
         if len(pdfs) < 1:
             continue
         new_pdf_tmp = pdfs.copy()
-        new_xy_coord_tmp = xy_coord.copy()
+        new_xyz_coord_tmp = xyz_coord.copy()
         new_reg_tmp = infos.copy()
         max_pdf_vals = []
 
-        for pdf, xy, info in zip(pdfs, xy_coord, infos):
+        for pdf, xy, info in zip(pdfs, xyz_coord, infos):
             max_pdf_vals.append(np.max(images[img_n,
                                        max(0, int(np.round(xy[0])) - 1): min(images[img_n].shape[0], int(np.round(xy[0])) + 2),
                                        max(0, int(np.round(xy[1])) - 1): min(images[img_n].shape[1], int(np.round(xy[1])) + 2)]))
@@ -565,10 +567,10 @@ def intensity_distribution(images, reg_pdfs, xy_coords, reg_infos, sigma=3.5):
         for i, max_pdf_val in enumerate(max_pdf_vals):
             if max_pdf_val > mode_sigma:
                 new_pdf_tmp.append(pdfs[i])
-                new_xy_coord_tmp.append(xy_coord[i])
+                new_xyz_coord_tmp.append(xyz_coord[i])
                 new_reg_tmp.append(infos[i])
         new_pdfs.append(new_pdf_tmp)
-        new_coords.append(new_xy_coord_tmp)
+        new_coords.append(new_xyz_coord_tmp)
         new_infos.append(new_reg_tmp)
     return new_pdfs, new_coords, new_infos
 
@@ -604,9 +606,9 @@ def main_process(imgs, forward_gauss_grids, backward_gauss_grids, *args):
         args[5] = np.ones((len(imgs), len(args[3]))) * args[5]
 
     before_time = timer()
-    xy_coord, pdf, info = localization(imgs, bgs, forward_gauss_grids, backward_gauss_grids, *args)
+    xyz_coord, pdf, info = localization(imgs, bgs, forward_gauss_grids, backward_gauss_grids, *args)
     #print(f'{"localization calcul":<35}:{(timer() - before_time):.2f}s')
-    return xy_coord, pdf, info
+    return xyz_coord, pdf, info
 
 
 if __name__ == '__main__':
@@ -640,7 +642,7 @@ if __name__ == '__main__':
     else:
         DIV_Q = min(25, int(2.7 * 4194304 / images.shape[1] / images.shape[2] / (7 / WINSIZE)))
 
-    xy_coords = []
+    xyz_coords = []
     reg_pdfs = []
     reg_infos = []
     SINGLE_WINSIZES, SINGLE_RADIUS, MULTI_WINSIZES, MULTI_RADIUS = params_gen(WINSIZE)
@@ -664,18 +666,18 @@ if __name__ == '__main__':
                         executors[cc] = future
                 for wait_ in executors:
                     if type(executors[wait_]) is concurrent.futures.Future:
-                        xy_coord, pdf, info = executors[wait_].result()
-                        xy_coords.extend(xy_coord)
+                        xyz_coord, pdf, info = executors[wait_].result()
+                        xyz_coords.extend(xyz_coord)
                         reg_pdfs.extend(pdf)
                         reg_infos.extend(info)
     else:
         for div_q in range(0, len(images), DIV_Q):
             #print(f'{div_q}/{len(images)} frame (non parallelized)')
-            xy_coord, pdf, info = main_process(images[div_q:div_q+DIV_Q], forward_gauss_grids, backward_gauss_grids,
+            xyz_coord, pdf, info = main_process(images[div_q:div_q+DIV_Q], forward_gauss_grids, backward_gauss_grids,
                                                SINGLE_WINSIZES, SINGLE_RADIUS, BINARY_THRESHOLDS,
                                                MULTI_WINSIZES, MULTI_RADIUS, MULTI_THRESHOLDS,
                                                P0, SHIFT, GAUSS_SEIDEL_DECOMP, THRES_ALPHA, DEFLATION_LOOP_IN_BACKWARD)
-            xy_coords.extend(xy_coord)
+            xyz_coords.extend(xyz_coord)
             reg_pdfs.extend(pdf)
             reg_infos.extend(info)
 
@@ -686,8 +688,9 @@ if __name__ == '__main__':
     if VERBOSE:
         PBAR.close()
 
-    #reg_pdfs, xy_coords, reg_infos = intensity_distribution(images, reg_pdfs, xy_coords, reg_infos, sigma=SIGMA)
-    write_localization(OUTPUT_LOC, xy_coords, reg_pdfs, reg_infos)
+    #reg_pdfs, xyz_coords, reg_infos = intensity_distribution(images, reg_pdfs, xyz_coords, reg_infos, sigma=SIGMA)
+    write_localization(OUTPUT_LOC, xyz_coords, reg_pdfs, reg_infos)
+    make_loc_depth_image(OUTPUT_LOC, xyz_coords, amp=1)
     if VISUALIZATION:
         print(f'Visualizing localizations...')
-        visualilzation(OUTPUT_LOC, images, xy_coords)
+        visualilzation(OUTPUT_LOC, images, xyz_coords)
