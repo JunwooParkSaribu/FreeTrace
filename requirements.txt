@@ -2,7 +2,6 @@ numpy
 numba
 network
 pandas
-Cython
 scikit-learn
 scipy
 tensorflow[and-cuda]==2.14.1
