@@ -7,6 +7,7 @@ from PIL import Image
 import tifffile
 from tifffile import TiffFile
 import matplotlib.pyplot as plt
+from itertools import product
 from module.TrajectoryObject import TrajectoryObj
 
 
@@ -453,9 +454,10 @@ def cps_visualization(image_save_path, video, cps_result, trace_result):
 
 def make_loc_depth_image(output_dir, coords, amp=1):  # amp in [0, 1, 2]
     depth = 100
-    amp = 10**amp
+    amp_ = 10**amp
     margin_pixel = 2
-    margin_pixel *= 10*amp
+    margin_pixel *= 10*amp_
+    rang = amp
     mycmap = plt.get_cmap('jet', lut=None)
     color_seq = [mycmap(i)[:3] for i in range(mycmap.N)][::-1]
     time_steps = np.arange(len(coords))
@@ -473,16 +475,22 @@ def make_loc_depth_image(output_dir, coords, amp=1):  # amp in [0, 1, 2]
     all_coords[:, 0] -= x_min
     all_coords[:, 1] -= y_min
     all_coords[:, 2] -= z_min
-    image = np.zeros((int((y_max - y_min)*amp + margin_pixel), int((x_max - x_min)*amp + margin_pixel), 3), dtype=np.uint8)
-    all_coords = np.round(all_coords * amp)
+    image = np.zeros((int((y_max - y_min)*amp_ + margin_pixel), int((x_max - x_min)*amp_ + margin_pixel), 3), dtype=np.uint8)
+    all_coords = np.round(all_coords * amp_)
     depth = max(depth, z_max - z_min)
     for roundup_coord in all_coords:
         z = roundup_coord[2]
         c_set = color_seq[int(len(color_seq) * (z - z_min)/depth)]
         color = (int(c_set[0]*255), int(c_set[1]*255), int(c_set[2]*255))
-        image[int(roundup_coord[1] + margin_pixel//2), int(roundup_coord[0] + margin_pixel//2), 0] = color[0]
-        image[int(roundup_coord[1] + margin_pixel//2), int(roundup_coord[0] + margin_pixel//2), 1] = color[1]
-        image[int(roundup_coord[1] + margin_pixel//2), int(roundup_coord[0] + margin_pixel//2), 2] = color[2]
+        coord_row = int(roundup_coord[1] + margin_pixel//2)
+        coord_col = int(roundup_coord[0] + margin_pixel//2)
+        row_col_set = product(list(range(coord_row-rang, coord_row+rang+1)), list(range(coord_col-rang, coord_col+rang+1)))
+        for row, col in row_col_set:
+            row = min(max(0, row), image.shape[0])
+            col = min(max(0, col), image.shape[1])
+            image[row, col, 0] = color[0]
+            image[row, col, 1] = color[1]
+            image[row, col, 2] = color[2]
     cv2.imwrite(f'{output_dir}_loc.png', cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
 
 
