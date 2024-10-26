@@ -16,6 +16,7 @@ from module.TrajectoryObject import TrajectoryObj
 from module.ImageModule import read_tif, make_image_seqs, make_whole_img
 from module.XmlModule import write_xml
 from module.FileIO import write_trajectory, read_localization, read_parameters, write_trxyt, initialization
+from timeit import default_timer as timer
 
 
 @lru_cache
@@ -279,6 +280,38 @@ def dfs_edges(G, source=None, depth_limit=None):
     return paths
 
 
+def paths_dfs(G, source=None):
+    paths = []
+    node_tuple_gen = nx.edge_dfs(G, source=source)
+    first_tuple = next(node_tuple_gen)
+    path = [first_tuple[0], first_tuple[1]]
+    while True:
+        try:
+            node_tuple = next(node_tuple_gen)
+            if node_tuple[0] == source:
+                paths.append(path)
+                path = [node_tuple[0], node_tuple[1]]
+            else:
+                if path[-1] == node_tuple[0]:
+                    path.append(node_tuple[1])
+                else:
+                    paths.append(path)
+                    path_copy = path.copy()
+                    path = []
+                    for node in path_copy:
+                        if node == node_tuple[0]:
+                            path.append(node)
+                            break
+                        else:
+                            path.append(node)
+                    path.append(node_tuple[1])
+        except StopIteration:
+            paths.append(path)
+            break
+    return paths
+
+
+
 def predict_alphas(x, y):
     pred_alpha = REG_MODEL.alpha_predict(np.array([x, y]))
     return pred_alpha
@@ -326,22 +359,15 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, i
             sys.exit("Untreated exception, check trajectory inference method again.")
 
 
-def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizations, next_times, distribution, max_pause_time, first_step, most_probable_jump_d):
+def select_opt_graph(saved_graph:nx.graph, next_graph:nx.graph, localizations, next_times, distribution, first_step, most_probable_jump_d):
     initial_cost = 1000
     selected_graph = nx.DiGraph()
-    prev_graph = saved_graph.copy()
     source_node = (0, 0)
     alpha_values = {}
     
+    #before_time = timer()
     if not first_step:
-        prev_paths = dfs_edges(prev_graph, source=source_node)
-        #print('Len prev graph:', len(prev_paths), end=' ')
-        for path in prev_paths:
-            if next_times[0] - path[-1][0] > max_pause_time:
-                prev_graph.remove_nodes_from(path[1:])
-
-        prev_paths = dfs_edges(prev_graph, source=source_node)
-        #print('after deletion: ', len(prev_paths))
+        prev_paths = paths_dfs(saved_graph, source=source_node)
         if TF:
             for path_idx in range(len(prev_paths)):
                 prev_xys = np.array([localizations[txy[0]][txy[1]][:2] for txy in prev_paths[path_idx][1:]])[-ALPHA_MAX_LENGTH:]
@@ -354,13 +380,13 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
             for path_idx in range(len(prev_paths)):
                 alpha_values[tuple(prev_paths[path_idx])] = 1.0
                 prev_paths[path_idx] = tuple(prev_paths[path_idx])
-
+    #print(f'\n{"prev dfs calcul":<35}:{(timer() - before_time):.2f}s')
 
     while True:
         start_g_len = len(next_graph)
         index = 0
         while True:
-            last_nodes = list([nodes[-1] for nodes in dfs_edges(next_graph, source=source_node)])
+            last_nodes = list([nodes[-1] for nodes in paths_dfs(next_graph, source=source_node)])
             for last_node in last_nodes:
                 for cur_time in next_times[index:index+1]:
                     if last_node[0] < cur_time:
@@ -394,12 +420,10 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
         if start_g_len == end_g_len:
             break
 
-
     while True:
-        next_paths = dfs_edges(next_graph, source=source_node)
+        next_paths = paths_dfs(next_graph, source=source_node)
         for path_idx in range(len(next_paths)):
             next_paths[path_idx] = tuple(next_paths[path_idx])
-
         trajectories_costs = {next_path:initial_cost for next_path in next_paths}
 
         if first_step:
@@ -450,7 +474,6 @@ def set_traj_combinations(saved_graph:nx.graph, next_graph:nx.graph, localizatio
                                     if jump_d < threshold:
                                         next_graph.add_edge(pred, suc, jump_d=jump_d)
             
-
         next_graph.remove_nodes_from(lowest_cost_traj[1:])
         nodes = np.array([node for node in next_graph.nodes])
         args = np.argsort([node[0] for node in nodes])
@@ -476,9 +499,11 @@ def forecast(localization: dict, t_avail_steps, distribution, blink_lag):
     source_node = (0, 0)
     time_forecast = TIME_FORECAST
     max_pause_time = blink_lag + 1
-    prev_graph = nx.DiGraph()
+    final_graph = nx.DiGraph()
+    light_prev_graph = nx.DiGraph()
     next_graph = nx.DiGraph()
-    prev_graph.add_node(source_node)
+    final_graph.add_node(source_node)
+    light_prev_graph.add_node(source_node)
     next_graph.add_node(source_node)
     initial_time_gap = 0
     most_probable_jump_d = distribution[initial_time_gap][6].means_[np.argmax(distribution[initial_time_gap][6].weights_)][0]
@@ -493,35 +518,43 @@ def forecast(localization: dict, t_avail_steps, distribution, blink_lag):
             mysum += pbar_update
             PBAR.update(pbar_update)
 
-        selected_sub_graph = set_traj_combinations(prev_graph, next_graph, localization, selected_time_steps, distribution, max_pause_time, first_construction, most_probable_jump_d)
-        #last_times = list(set([nodes[-1][0] for nodes in dfs_edges(selected_sub_graph, source=source_node)]))
-        #max_time = np.max(last_times)
-
+        selected_sub_graph = select_opt_graph(light_prev_graph, next_graph, localization, selected_time_steps, distribution, first_construction, most_probable_jump_d)
+        light_prev_graph = nx.DiGraph()
+        light_prev_graph.add_node(source_node)
         last_nodes = []
         second_last_nodes = []
         if first_construction:
             start_index = 1
         else:
             start_index = 3
-        for path in dfs_edges(selected_sub_graph, source=source_node):
+        for path in paths_dfs(selected_sub_graph, source=source_node):
             if len(path) <= 3:
                 for i in range(1, len(path)):
                     before_node = path[i-1]
                     next_node = path[i]
-                    if next_node not in prev_graph.nodes:
-                        prev_graph.add_edge(before_node, next_node)
+                    if next_node not in final_graph.nodes:
+                        final_graph.add_edge(before_node, next_node)
             else:
                 for edge_index in range(start_index, len(path)):
                     before_node = path[edge_index - 1]
                     next_node = path[edge_index]
-                    if before_node in prev_graph:
-                        prev_graph.add_edge(before_node, next_node)
+                    if before_node in final_graph:
+                        final_graph.add_edge(before_node, next_node)
                     else:
-                        prev_graph.add_edge(source_node, before_node)
-                        prev_graph.add_edge(before_node, next_node)
+                        final_graph.add_edge(source_node, before_node)
+                        final_graph.add_edge(before_node, next_node)
             if selected_time_steps[-1] - path[-1][0] < max_pause_time: 
                 last_nodes.append(path[-1])
                 second_last_nodes.append(path[-2])
+
+                ancestors = list(nx.ancestors(final_graph, path[-1]))
+                sorted_ancestors = sorted(ancestors, key=lambda tup: tup[0], reverse=True)
+                light_prev_graph.add_edge(sorted_ancestors[0], path[-1])
+                if len(sorted_ancestors) > 1:
+                    for idx in range(len(sorted_ancestors[:15]) - 1):
+                        light_prev_graph.add_edge(sorted_ancestors[idx+1], sorted_ancestors[idx])
+                    if sorted_ancestors[idx+1] != source_node:
+                        light_prev_graph.add_edge(source_node, sorted_ancestors[idx+1])
 
         if last_time in selected_time_steps:
             if VERBOSE:
@@ -551,7 +584,6 @@ def forecast(localization: dict, t_avail_steps, distribution, blink_lag):
                     second_last_xyz = localization[second_last_node[0]][second_last_node[1]]
                     next_graph.add_edge(source_node, second_last_node, jump_d=most_probable_jump_d)
                     next_graph.add_edge(second_last_node, last_node, jump_d=math.sqrt((last_xyz[0] - second_last_xyz[0])**2 + (last_xyz[1] - second_last_xyz[1])**2))
-        #saved_last_nodes = last_nodes.copy()
 
     all_nodes_ = []
     for t in list(localization.keys()):
@@ -560,11 +592,11 @@ def forecast(localization: dict, t_avail_steps, distribution, blink_lag):
                 all_nodes_.append((t, nb_sample))
     
     for node_ in all_nodes_:
-        if node_ not in prev_graph:
+        if node_ not in final_graph:
             print('missing node: ', node_, ' possible errors on tracking.')
 
     trajectory_list = []
-    for traj_idx, path in enumerate(dfs_edges(prev_graph, source=source_node)):
+    for traj_idx, path in enumerate(paths_dfs(final_graph, source=source_node)):
         traj = TrajectoryObj(index=traj_idx, localizations=localization)
         for node in path[1:]:
             traj.add_trajectory_tuple(node[0], node[1])
