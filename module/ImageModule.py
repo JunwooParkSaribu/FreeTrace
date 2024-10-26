@@ -7,7 +7,7 @@ from PIL import Image
 import tifffile
 from tifffile import TiffFile
 import matplotlib.pyplot as plt
-from TrajectoryObject import TrajectoryObj
+from module.TrajectoryObject import TrajectoryObj
 
 
 def read_tif(filepath, andi2=False):
