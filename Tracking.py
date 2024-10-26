@@ -551,7 +551,7 @@ def forecast(localization: dict, t_avail_steps, distribution, blink_lag):
                 sorted_ancestors = sorted(ancestors, key=lambda tup: tup[0], reverse=True)
                 light_prev_graph.add_edge(sorted_ancestors[0], path[-1])
                 if len(sorted_ancestors) > 1:
-                    for idx in range(len(sorted_ancestors[:15]) - 1):
+                    for idx in range(len(sorted_ancestors[:ALPHA_MAX_LENGTH+3]) - 1):
                         light_prev_graph.add_edge(sorted_ancestors[idx+1], sorted_ancestors[idx])
                     if sorted_ancestors[idx+1] != source_node:
                         light_prev_graph.add_edge(source_node, sorted_ancestors[idx+1])
