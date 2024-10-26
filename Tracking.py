@@ -624,7 +624,7 @@ if __name__ == '__main__':
             os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
         else:
             os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  
-        from models.load_models import RegModel
+        from module.load_models import RegModel
         REG_MODEL = RegModel(REG_LEGNTHS)
 
     TIME_STEPS, mean_nb_per_time, xyz_min, xyz_max = count_localizations(loc)
