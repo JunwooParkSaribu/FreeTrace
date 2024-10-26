@@ -3,8 +3,8 @@ sys.path.append('../')
 import numpy as np
 import tifffile
 import concurrent.futures
-import image_pad
-import regression
+from module import image_pad
+from module import regression
 from module.FileIO import write_localization, read_parameters, check_video_ext
 from module.ImageModule import draw_cross
 from timeit import default_timer as timer
