@@ -5,6 +5,9 @@ from module.TrajectoryObject import TrajectoryObj
 from module.ImageModule import read_tif
 
 
+author_emails = [f'junwoo.park@sorbonne-universite.fr']
+
+
 def read_trajectory(file: str, andi_gt=False) -> dict | list:
     """
     @params : filename(String), cutoff value(Integer)
@@ -326,7 +329,11 @@ def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False, batch=False)
     if not os.path.exists('./outputs'):
         os.mkdir('./outputs')
     if not os.path.exists(f'./models/theta_hat.npz'):
-        sys.exit(f'***** Parmeters[theta_hat.npz] are not found for trajectory inference, contact author for the pretrained models. *****')
+        print(f'\n***** Parmeters[theta_hat.npz] are not found for trajectory inference, please contact author for the pretrained models. *****\n')
+        print(f'***********  Contacts  ***********')
+        for author in author_emails:
+            print(author)
+        sys.exit('**********************************\n')
 
     if gpu:
         try:
@@ -350,8 +357,12 @@ def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False, batch=False)
     if TF and ptype==1:
         for reg_model_num in reg_model_nums:
             if not os.path.exists(f'./models/reg_model_{reg_model_num}.keras'):
-                sys.exit(f'***** reg_model_{reg_model_num}.keras is not found, contact author for the pretrained models. *****')
-    
+                print(f'\n***** reg_model_{reg_model_num}.keras is not found, contact author for the pretrained models. *****')
+                print(f'***********  Contacts  ***********')
+                for author in author_emails:
+                    print(author)
+                sys.exit('**********************************\n')
+
     if not batch and verbose:
         track_ = True if ptype==1 else False
         print(f'\n******************************** OPTIONS *****************************************')

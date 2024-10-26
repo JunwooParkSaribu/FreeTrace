@@ -4,8 +4,8 @@ import tifffile
 import concurrent.futures
 from timeit import default_timer as timer
 from functools import lru_cache
-import image_pad  # type: ignore
-import regression  # type: ignore
+from module import image_pad
+from module import regression
 from module.FileIO import write_localization, read_parameters, check_video_ext, initialization
 from module.ImageModule import draw_cross
 from tqdm import tqdm
