@@ -9,7 +9,6 @@ import regression  # type: ignore
 from module.FileIO import write_localization, read_parameters, check_video_ext, initialization
 from module.ImageModule import draw_cross
 from tqdm import tqdm
-from module import gpu_module
 from timeit import default_timer as timer
 import matplotlib.pyplot as plt
 
