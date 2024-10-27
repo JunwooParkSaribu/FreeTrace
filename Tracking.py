@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from functools import lru_cache
+from itertools import product
 import networkx as nx
 import matplotlib.pyplot as plt
 from sklearn.neighbors import KernelDensity
@@ -46,11 +47,18 @@ def greedy_shortest(srcs, dests, lag):
     linked_dest = [False] * superposed_len
     linkage = [[0 for _ in range(superposed_len)] for _ in range(len(srcs))]
 
-    for i, src in enumerate(srcs):
-        for dest, sup_local in enumerate(superposed_locals):
-            segment_length = euclidian_displacement(np.array([src]), np.array([sup_local]))
-            if segment_length is not None:
-                linkage[i][dest] = segment_length[0]
+    combs = list(product(np.arange(len(srcs)), np.arange(len(superposed_locals))))
+    euclid_tmp0 = []
+    euclid_tmp1 = []
+    for i, dest in combs:
+        euclid_tmp0.append(srcs[i])
+        euclid_tmp1.append(superposed_locals[dest])
+    euclid_tmp0 = np.array(euclid_tmp0)
+    euclid_tmp1 = np.array(euclid_tmp1)
+    segment_lengths = euclidian_displacement(euclid_tmp0, euclid_tmp1)
+    for (i, dest), segment_length in zip(combs, segment_lengths):
+        if segment_length is not None:
+            linkage[i][dest] = segment_length
 
     minargs = np.argsort(np.array(linkage).flatten())
     for minarg in minargs:
@@ -77,23 +85,6 @@ def greedy_shortest(srcs, dests, lag):
     return filtered_distrib
 
 
-def count_localizations(localization):
-    nb = 0
-    xyz_min = np.array([1e5, 1e5, 1e5])
-    xyz_max = np.array([-1e5, -1e5, -1e5])
-    time_steps = np.sort(list(localization.keys()))
-    for t in time_steps:
-        if localization[t].shape[1] > 0:
-            x_ = np.array(localization[t])[:, 0]
-            y_ = np.array(localization[t])[:, 1]
-            z_ = np.array(localization[t])[:, 2]
-            xyz_min = [min(xyz_min[0], np.min(x_)), min(xyz_min[1], np.min(y_)), min(xyz_min[2], np.min(z_))]
-            xyz_max = [max(xyz_max[0], np.max(x_)), max(xyz_max[1], np.max(y_)), max(xyz_max[2], np.max(z_))]
-            nb += len(localization[t])
-    nb_per_time = nb / len(time_steps)
-    return np.array(time_steps), nb_per_time, np.array(xyz_min), np.array(xyz_max)
-
-
 def segmentation(localization: dict, time_steps: np.ndarray, lag=2):
     seg_distribution = {}
     for i in range(lag + 1):
@@ -110,35 +101,48 @@ def segmentation(localization: dict, time_steps: np.ndarray, lag=2):
     return seg_distribution
 
 
+def count_localizations(localization):
+    nb = 0
+    xyz_min = np.array([1e5, 1e5, 1e5])
+    xyz_max = np.array([-1e5, -1e5, -1e5])
+    time_steps = np.sort(list(localization.keys()))
+    for t in time_steps:
+        loc = localization[t]
+        if loc.shape[1] > 0:
+            x_ = loc[:, 0]
+            y_ = loc[:, 1]
+            z_ = loc[:, 2]
+            xyz_min = [min(xyz_min[0], np.min(x_)), min(xyz_min[1], np.min(y_)), min(xyz_min[2], np.min(z_))]
+            xyz_max = [max(xyz_max[0], np.max(x_)), max(xyz_max[1], np.max(y_)), max(xyz_max[2], np.max(z_))]
+            nb += len(loc)
+    nb_per_time = nb / len(time_steps)
+    return np.array(time_steps), nb_per_time, np.array(xyz_min), np.array(xyz_max)
+
+
 def euclidian_displacement(pos1, pos2):
-    if len(pos1) == 0 or len(pos2) == 0:
-        return None
-    if pos1.ndim == 2 and pos1.shape[1] == 0 or pos2.ndim == 2 and pos2.shape[1] == 0:
-        return None
-    if pos1.ndim == 1 and len(pos1) < 3:
-        return np.sqrt((pos1[0] - pos2[0]) ** 2 + (pos1[1] - pos2[1]) ** 2)
-    elif pos1.ndim == 1 and len(pos1) == 3:
-        return np.sqrt((pos1[0] - pos2[0]) ** 2 + (pos1[1] - pos2[1]) ** 2 + (pos1[2] - pos2[2]) ** 2)
-    elif pos1.ndim == 2 and pos1.shape[1] == 3:
+    assert type(pos1) == type(pos2)
+    if type(pos1) != np.ndarray and type(pos1) == list:
+        return [math.sqrt((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2 + (pos1[2] - pos2[2])**2)]
+    elif type(pos1) == np.ndarray and pos1.ndim == 1:
+        return [math.sqrt((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2 + (pos1[2] - pos2[2])**2)]
+    elif type(pos1) == np.ndarray and pos1.shape[0] > 1 and pos1.shape[1] == 3:
         return np.sqrt((pos1[:, 0] - pos2[:, 0])**2 + (pos1[:, 1] - pos2[:, 1])**2 + (pos1[:, 2] - pos2[:, 2])**2)
-    elif pos1.ndim == 2 and pos1.shape[1] < 3:
-        return np.sqrt((pos1[:, 0] - pos2[:, 0]) ** 2 + (pos1[:, 1] - pos2[:, 1]) ** 2)
+    else:
+        raise Exception
     
-
-def euclid_dist(coords:np.ndarray):
-    return np.sqrt((coords[:, 0] - coords[:, 3])**2 + (coords[:, 1] - coords[:, 4])**2 + (coords[:, 2] - coords[:, 5])**2)
-
 
 def gmm_bic_score(estimator, x):
     return -estimator.bic(x)
 
 
 def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
+    resample_nb = 1000
+    resampled = distribution[np.random.randint(0, len(distribution), min(resample_nb, len(distribution)))]
+
     bin_size *= 2
-    length_max_val = np.max(distribution)
+    length_max_val = np.max(resampled)
     bins = np.arange(0, length_max_val + bin_size, bin_size)
     kdes = []
-
     param_grid = {
         "n_components": [1, 2, 3],
     }
@@ -146,7 +150,7 @@ def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
         GaussianMixture(max_iter=1000, n_init=10, covariance_type='diag'), param_grid=param_grid,
         scoring=gmm_bic_score
     )
-    grid_search.fit(distribution.reshape(-1, 1))
+    grid_search.fit(resampled.reshape(-1, 1))
     cluster_df = pd.DataFrame(grid_search.cv_results_)[
         ["param_n_components", "mean_test_score"]
     ]
@@ -158,19 +162,20 @@ def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
         }
     )
     opt_nb_component = np.argmin(cluster_df["BIC score"]) + param_grid['n_components'][0]
-    #print("Optimal number of components: ",opt_nb_component)
     cluster = BayesianGaussianMixture(n_components=opt_nb_component, max_iter=1000, n_init=10,
                                       mean_precision_prior=1e-7,
-                                      covariance_type='diag').fit(distribution.reshape(-1, 1))
-    #print('MEANS: ', cluster.means_)
-    #print('COVS: ', cluster.covariances_)
+                                      covariance_type='diag').fit(resampled.reshape(-1, 1))
+    #print('MEANS: ', cluster.means, '\nCOVS: ', cluster.covariances_, '\nWEIGHTS: ', cluster.weights_)
 
+    max_diffusive = 0
     for mean, cov, weight in zip(cluster.means_.flatten(), cluster.covariances_.flatten(), cluster.weights_.flatten()):
         sample = np.random.normal(loc=mean, scale=cov, size=10000)
         kde = KernelDensity(kernel="gaussian", bandwidth=0.75).fit(sample.reshape(-1, 1))
         kdes.append(kde)
+        if weight > 0.1:
+            max_diffusive = max(max_diffusive, mean + 2*cov)
 
-    hist = np.histogram(distribution, bins=bins)
+    hist = np.histogram(resampled, bins=bins)
     hist_dist = rv_histogram(hist)
     pdf = hist[0] / np.sum(hist[0])
     bin_edges = hist[1]
@@ -178,22 +183,20 @@ def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
     pdf = pdf / np.sum(pdf)
 
     if approx == 'metropolis_hastings':
-        distribution = metropolis_hastings(pdf, n_iter=n_iter, burn=burn) * bin_size
+        resampled = metropolis_hastings(pdf, n_iter=n_iter, burn=burn) * bin_size
         reduced_bins = np.arange(0, length_max_val + bin_size, bin_size)
-        hist = np.histogram(distribution, bins=reduced_bins)
+        hist = np.histogram(resampled, bins=reduced_bins)
         hist_dist = rv_histogram(hist)
         pdf = hist[0] / np.sum(hist[0])
         bin_edges = hist[1]
+    return max_diffusive, pdf, bin_edges, hist_dist.cdf, resampled, kdes, cluster
 
-    return np.quantile(distribution, conf), pdf, bin_edges, hist_dist.cdf, distribution, kdes, cluster
 
-
-def mcmc(real_distribution, conf, bin_size, approx='metropolis_hastings', n_iter=1e6, burn=0, thresholds=None):
+def approximation(real_distribution, conf, bin_size, approx='metropolis_hastings', n_iter=1e6, burn=0, thresholds=None):
     for lag_key in real_distribution:
         real_distribution[lag_key] = np.array(real_distribution[lag_key])
     approx_distribution = {}
     n_iter = int(n_iter)
-
     for index, lag in enumerate(real_distribution.keys()):
         seg_len_obv, pdf_obv, bins_obv, cdf_obv, distrib, kdes, cluster = (
             approx_cdf(distribution=real_distribution[lag],
@@ -201,12 +204,15 @@ def mcmc(real_distribution, conf, bin_size, approx='metropolis_hastings', n_iter
         if thresholds is not None:
             approx_distribution[lag] = [thresholds[index], pdf_obv, bins_obv, cdf_obv, distrib, kdes, cluster]
         else:
-            approx_distribution[lag] = [seg_len_obv * 1.3, pdf_obv, bins_obv, cdf_obv, distrib, kdes, cluster]
+            approx_distribution[lag] = [seg_len_obv, pdf_obv, bins_obv, cdf_obv, distrib, kdes, cluster]
 
+    #########################
     if thresholds == None:
         max_length_0 = approx_distribution[0][0]
+        alpha = 4 / max_length_0  # TODO: consideration
         for index, lag in enumerate(real_distribution.keys()):
-            approx_distribution[lag][0] = max_length_0 * np.power(index + 1, (1/4)) + 4
+            approx_distribution[lag][0] = max_length_0 * np.power(index + 1, (1/3)) + alpha  # TODO: consideration
+    #########################
 
     bin_max = -1
     for lag in real_distribution.keys():
@@ -365,7 +371,6 @@ def select_opt_graph(saved_graph:nx.graph, next_graph:nx.graph, localizations, n
     source_node = (0, 0)
     alpha_values = {}
     
-    #before_time = timer()
     if not first_step:
         prev_paths = paths_dfs(saved_graph, source=source_node)
         if TF:
@@ -380,7 +385,6 @@ def select_opt_graph(saved_graph:nx.graph, next_graph:nx.graph, localizations, n
             for path_idx in range(len(prev_paths)):
                 alpha_values[tuple(prev_paths[path_idx])] = 1.0
                 prev_paths[path_idx] = tuple(prev_paths[path_idx])
-    #print(f'\n{"prev dfs calcul":<35}:{(timer() - before_time):.2f}s')
 
     while True:
         start_g_len = len(next_graph)
@@ -390,14 +394,17 @@ def select_opt_graph(saved_graph:nx.graph, next_graph:nx.graph, localizations, n
             for last_node in last_nodes:
                 for cur_time in next_times[index:index+1]:
                     if last_node[0] < cur_time:
-                        jump_d_mat = []
+                        jump_d_pos1 = []
+                        jump_d_pos2 = []
                         node_loc = localizations[last_node[0]][last_node[1]]
                         for next_idx, loc in enumerate(localizations[cur_time]):
                             if len(loc) == 3 and len(node_loc) == 3:
-                                jump_d_mat.append([loc[0], loc[1], loc[2], node_loc[0], node_loc[1], node_loc[2]])
-                        jump_d_mat = np.array(jump_d_mat)
-                        if jump_d_mat.shape[0] > 0:
-                            jump_d_mat = euclid_dist(jump_d_mat)
+                                jump_d_pos1.append([loc[0], loc[1], loc[2]])
+                                jump_d_pos2.append([node_loc[0], node_loc[1], node_loc[2]])
+                        jump_d_pos1 = np.array(jump_d_pos1)
+                        jump_d_pos2 = np.array(jump_d_pos2)
+                        if jump_d_pos1.shape[0] > 0:
+                            jump_d_mat = euclidian_displacement(jump_d_pos1, jump_d_pos2)
                             local_idx = 0
                             for next_idx, loc in enumerate(localizations[cur_time]):
                                 if len(loc) == 3 and len(node_loc) == 3:
@@ -420,6 +427,7 @@ def select_opt_graph(saved_graph:nx.graph, next_graph:nx.graph, localizations, n
         if start_g_len == end_g_len:
             break
 
+    #before_time = timer()
     while True:
         next_paths = paths_dfs(next_graph, source=source_node)
         for path_idx in range(len(next_paths)):
@@ -490,6 +498,7 @@ def select_opt_graph(saved_graph:nx.graph, next_graph:nx.graph, localizations, n
 
         if len(next_graph) == 1:
             break
+    #print(f'\n{"cost calcul":<35}:{(timer() - before_time):.2f}s')
     return selected_graph
 
 
@@ -684,7 +693,7 @@ def main():
     TIME_STEPS, mean_nb_per_time, xyz_min, xyz_max = count_localizations(loc)
     raw_jump_distribution = segmentation(loc, time_steps=TIME_STEPS, lag=BLINK_LAG)
     bin_size = np.mean(xyz_max - xyz_min) / 5000. 
-    jump_distribution = mcmc(raw_jump_distribution, confidence, bin_size, n_iter=1e3, burn=0, approx=None, thresholds=THRESHOLDS)
+    jump_distribution = approximation(raw_jump_distribution, confidence, bin_size, n_iter=1e3, burn=0, approx=None, thresholds=THRESHOLDS)
 
     if VERBOSE:
         print(f'Mean nb of molecules per frame: {mean_nb_per_time:.2f} molecules/frame')
