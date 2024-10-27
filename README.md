@@ -9,7 +9,7 @@
 > - With GPU, Pre-trained [models](https://drive.google.com/file/d/1WF0eW8Co23-mKQiHNH-KHHK_lJiIW-WC/view?usp=sharing) (recommended)</br>
 
 > [!NOTE]  
-> PRE-REQUISITE: package installation by running requirements.py</br>
+> PRE-REQUISITE: package installation by running installation.py</br>
 > with GPU off on tracking, FreeTrace only considers standard brownian motion for inferences.</br>
 > on MacOS, FreeTrace can infereces with tensorflow-metal, however the speed is slower without Cuda.</br>
 

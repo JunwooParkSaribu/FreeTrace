@@ -20,6 +20,7 @@
 *.rar
 *.tar
 *.zip
+scratch*
 
 # Logs and databases #
 ######################
