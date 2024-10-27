@@ -56,9 +56,10 @@ def greedy_shortest(srcs, dests, lag):
     euclid_tmp0 = np.array(euclid_tmp0)
     euclid_tmp1 = np.array(euclid_tmp1)
     segment_lengths = euclidian_displacement(euclid_tmp0, euclid_tmp1)
-    for (i, dest), segment_length in zip(combs, segment_lengths):
-        if segment_length is not None:
-            linkage[i][dest] = segment_length
+    if segment_lengths is not None:
+        for (i, dest), segment_length in zip(combs, segment_lengths):
+            if segment_length is not None:
+                linkage[i][dest] = segment_length
 
     minargs = np.argsort(np.array(linkage).flatten())
     for minarg in minargs:
@@ -121,12 +122,19 @@ def count_localizations(localization):
 
 def euclidian_displacement(pos1, pos2):
     assert type(pos1) == type(pos2)
+    if type(pos1) is not np.ndarray and type(pos1) is not list:
+        return math.sqrt((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2 + (pos1[2] - pos2[2])**2)
+    if pos1.ndim == 2:
+        if len(pos1[0]) == 0 or len(pos2[0]) == 0:
+            return None
     if type(pos1) != np.ndarray and type(pos1) == list:
         return [math.sqrt((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2 + (pos1[2] - pos2[2])**2)]
     elif type(pos1) == np.ndarray and pos1.ndim == 1:
         return [math.sqrt((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2 + (pos1[2] - pos2[2])**2)]
-    elif type(pos1) == np.ndarray and pos1.shape[0] > 1 and pos1.shape[1] == 3:
+    elif type(pos1) == np.ndarray and pos1.shape[0] >= 1 and pos1.shape[1] == 3:
         return np.sqrt((pos1[:, 0] - pos2[:, 0])**2 + (pos1[:, 1] - pos2[:, 1])**2 + (pos1[:, 2] - pos2[:, 2])**2)
+    elif len(pos1[0]) == 0 or len(pos2[0]) == 0:
+        return None
     else:
         raise Exception
     
@@ -165,7 +173,7 @@ def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
     cluster = BayesianGaussianMixture(n_components=opt_nb_component, max_iter=1000, n_init=10,
                                       mean_precision_prior=1e-7,
                                       covariance_type='diag').fit(resampled.reshape(-1, 1))
-    #print('MEANS: ', cluster.means, '\nCOVS: ', cluster.covariances_, '\nWEIGHTS: ', cluster.weights_)
+    #print('MEANS: ', cluster.means_, '\nCOVS: ', cluster.covariances_, '\nWEIGHTS: ', cluster.weights_)
 
     max_diffusive = 0
     for mean, cov, weight in zip(cluster.means_.flatten(), cluster.covariances_.flatten(), cluster.weights_.flatten()):
@@ -209,7 +217,7 @@ def approximation(real_distribution, conf, bin_size, approx='metropolis_hastings
     #########################
     if thresholds == None:
         max_length_0 = approx_distribution[0][0]
-        alpha = 4 / max_length_0  # TODO: consideration
+        alpha = min(4, 4 / max_length_0)  # TODO: consideration
         for index, lag in enumerate(real_distribution.keys()):
             approx_distribution[lag][0] = max_length_0 * np.power(index + 1, (1/3)) + alpha  # TODO: consideration
     #########################
@@ -324,45 +332,48 @@ def predict_alphas(x, y):
 
 
 def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, initial_cost, next_times):
-    if len(next_path) <= 1:
-        raise Exception
-    elif len(next_path) == 2:
-        trajectories_costs[next_path] = initial_cost
-    elif len(next_path) == 3 and next_path[2][0] in next_times:
-        before_node = next_path[1]
-        next_node = next_path[2]
-        time_gap = next_node[0] - before_node[0] - 1
-        next_coord = localizations[next_node[0]][next_node[1]]
-        cur_coord = localizations[before_node[0]][before_node[1]]
-        dir_vec_before = np.array([0, 0, 0])
-        estim_mu = (time_gap + 1) * pdf_mu_measure(prev_alpha) * dir_vec_before + cur_coord
-        input_mu = next_coord - estim_mu
-        log_p0 = log_p_multi(input_mu, prev_alpha, time_gap)
-        log_p0 = abs(log_p0)
-        trajectories_costs[next_path] = min(log_p0, trajectories_costs[next_path])
-    elif len(next_path) == 3 and next_path[2][0] not in next_times:
-        trajectories_costs[next_path] = initial_cost
+    if next_path in trajectories_costs and trajectories_costs[next_path] < initial_cost - 1:
+        return
     else:
-        if len(next_path) >= 4:
-            traj_cost = []
-            for edge_index in range(3, len(next_path)):
-                bebefore_node = next_path[edge_index - 2]
-                before_node = next_path[edge_index - 1]
-                next_node = next_path[edge_index]
-                time_gap = next_node[0] - before_node[0] - 1
-                next_coord = localizations[next_node[0]][next_node[1]]
-                cur_coord = localizations[before_node[0]][before_node[1]]
-                before_coord = localizations[bebefore_node[0]][bebefore_node[1]]
-                dir_vec_before = cur_coord - before_coord
-                estim_mu = (time_gap + 1) * pdf_mu_measure(prev_alpha) * dir_vec_before + cur_coord
-                input_mu = next_coord - estim_mu
-                log_p0 = log_p_multi(input_mu, prev_alpha, time_gap)
-                log_p0 = abs(log_p0)
-                traj_cost.append(log_p0)
-            traj_cost = np.mean(traj_cost)
-            trajectories_costs[next_path] = min(traj_cost, trajectories_costs[next_path])
+        if len(next_path) <= 1:
+            raise Exception
+        elif len(next_path) == 2:
+            trajectories_costs[next_path] = initial_cost
+        elif len(next_path) == 3 and next_path[2][0] in next_times:
+            before_node = next_path[1]
+            next_node = next_path[2]
+            time_gap = next_node[0] - before_node[0] - 1
+            next_coord = localizations[next_node[0]][next_node[1]]
+            cur_coord = localizations[before_node[0]][before_node[1]]
+            dir_vec_before = np.array([0, 0, 0])
+            estim_mu = (time_gap + 1) * pdf_mu_measure(prev_alpha) * dir_vec_before + cur_coord
+            input_mu = next_coord - estim_mu
+            log_p0 = log_p_multi(input_mu, prev_alpha, time_gap)
+            log_p0 = abs(log_p0)
+            trajectories_costs[next_path] = log_p0
+        elif len(next_path) == 3 and next_path[2][0] not in next_times:
+            trajectories_costs[next_path] = initial_cost
         else:
-            sys.exit("Untreated exception, check trajectory inference method again.")
+            if len(next_path) >= 4:
+                traj_cost = []
+                for edge_index in range(3, len(next_path)):
+                    bebefore_node = next_path[edge_index - 2]
+                    before_node = next_path[edge_index - 1]
+                    next_node = next_path[edge_index]
+                    time_gap = next_node[0] - before_node[0] - 1
+                    next_coord = localizations[next_node[0]][next_node[1]]
+                    cur_coord = localizations[before_node[0]][before_node[1]]
+                    before_coord = localizations[bebefore_node[0]][bebefore_node[1]]
+                    dir_vec_before = cur_coord - before_coord
+                    estim_mu = (time_gap + 1) * pdf_mu_measure(prev_alpha) * dir_vec_before + cur_coord
+                    input_mu = next_coord - estim_mu
+                    log_p0 = log_p_multi(input_mu, prev_alpha, time_gap)
+                    log_p0 = abs(log_p0)
+                    traj_cost.append(log_p0)
+                traj_cost = np.mean(traj_cost)
+                trajectories_costs[next_path] = traj_cost
+            else:
+                sys.exit("Untreated exception, check trajectory inference method again.")
 
 
 def select_opt_graph(saved_graph:nx.graph, next_graph:nx.graph, localizations, next_times, distribution, first_step, most_probable_jump_d):
@@ -427,12 +438,17 @@ def select_opt_graph(saved_graph:nx.graph, next_graph:nx.graph, localizations, n
         if start_g_len == end_g_len:
             break
 
-    #before_time = timer()
+    t_time = timer()
+    trajectories_costs = {tuple(next_path):initial_cost for next_path in paths_dfs(next_graph, source=source_node)}
     while True:
+        cost_copy = {}
         next_paths = paths_dfs(next_graph, source=source_node)
         for path_idx in range(len(next_paths)):
             next_paths[path_idx] = tuple(next_paths[path_idx])
-        trajectories_costs = {next_path:initial_cost for next_path in next_paths}
+        for next_path in next_paths:
+            if next_path in trajectories_costs:
+                cost_copy[next_path] = trajectories_costs[next_path]
+        trajectories_costs = cost_copy
 
         if first_step:
             for next_path in next_paths:
@@ -443,21 +459,12 @@ def select_opt_graph(saved_graph:nx.graph, next_graph:nx.graph, localizations, n
                 for next_path in next_paths:
                     if prev_path[-1] in next_path:
                         predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, initial_cost, next_times)
-                    else:
-                        trajectories_costs[next_path] = min(initial_cost, trajectories_costs[next_path])
-
-            #for cost_path in trajectories_costs.keys():
-            #    if trajectories_costs[cost_path] > initial_cost - 1:
-            #        predict_long_seq(next_graph, next_path, trajectories_costs, localizations, prev_alpha, initial_cost, next_times)
-            #        predict_short_seq(next_graph, cost_path, trajectories_costs, distribution, initial_cost, first_step)
 
         trajs = [path for path in trajectories_costs.keys()]
         costs = [trajectories_costs[path] for path in trajectories_costs.keys()]
         low_cost_args = np.argsort(costs)
         next_trajectories = np.array(trajs, dtype=object)[low_cost_args]
-        trajectories_costs = np.array(costs)[low_cost_args]
         lowest_cost_traj = list(next_trajectories[0])
-        
         for i in range(len(lowest_cost_traj)):
             lowest_cost_traj[i] = tuple(lowest_cost_traj[i])
 
@@ -481,24 +488,27 @@ def select_opt_graph(saved_graph:nx.graph, next_graph:nx.graph, localizations, n
                                     threshold = distribution[time_gap][0]
                                     if jump_d < threshold:
                                         next_graph.add_edge(pred, suc, jump_d=jump_d)
-            
-        next_graph.remove_nodes_from(lowest_cost_traj[1:])
-        nodes = np.array([node for node in next_graph.nodes])
-        args = np.argsort([node[0] for node in nodes])
-        nodes = nodes[args]
-        for node in nodes:
-            node = tuple(node)
-            if node != (0, 0) and not nx.has_path(next_graph, (0, 0), node):
-                next_graph.add_edge((0, 0), node, jump_d=most_probable_jump_d)
 
+        next_graph.remove_nodes_from(lowest_cost_traj[1:])
+        trajectories_costs.pop(tuple(lowest_cost_traj))
+
+        # selected graph update
         for edge_index in range(1, len(lowest_cost_traj)):
             before_node = lowest_cost_traj[edge_index - 1]
             next_node = lowest_cost_traj[edge_index]
             selected_graph.add_edge(before_node, next_node)
 
+        # escape loop
         if len(next_graph) == 1:
             break
-    #print(f'\n{"cost calcul":<35}:{(timer() - before_time):.2f}s')
+
+        # newborn cost update
+        for next_path in paths_dfs(next_graph, source=source_node):
+            next_path = tuple(next_path)
+            if next_path not in trajectories_costs:
+                trajectories_costs[next_path] = initial_cost
+
+    #print(f'\n{"cost calcul":<35}:{(timer() - t_time):.2f}s')
     return selected_graph
 
 
