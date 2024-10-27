@@ -475,7 +475,7 @@ def select_opt_graph(saved_graph:nx.graph, next_graph:nx.graph, localizations, n
                             if pred in next_graph and suc in next_graph and pred != (0, 0):
                                 pred_loc = localizations[pred[0]][pred[1]]
                                 suc_loc = localizations[suc[0]][suc[1]]
-                                jump_d = math.sqrt((pred_loc[0] - suc_loc[0])**2 + (pred_loc[1] - suc_loc[1])**2 + (pred_loc[2] - suc_loc[2])**2)
+                                jump_d = euclidian_displacement(pred_loc, suc_loc)
                                 time_gap = suc[0] - pred[0] - 1
                                 if time_gap in distribution:
                                     threshold = distribution[time_gap][0]
