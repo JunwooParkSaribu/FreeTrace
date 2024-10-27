@@ -2,11 +2,11 @@
     OUTPUT_DIR=./outputs
     
     # LOCALIZATION
-    WINDOW_SIZE = 9
+    WINDOW_SIZE = 7
     THRESHOLD_ALPHA = 1.0
     DEFLATION_LOOP_IN_BACKWARD = 0
     SIGMA = 4.0
-    LOC_VISUALIZATION = False
+    LOC_VISUALIZATION = True
     GPU_LOC = True
     
     
@@ -15,7 +15,7 @@
     BLINK_LAG = 2
     PIXEL_MICRONS = 0.16
     FRAME_PER_SEC = 0.01
-    TRACK_VISUALIZATION = False
+    TRACK_VISUALIZATION = True
     GPU_TRACK = True
     
     
