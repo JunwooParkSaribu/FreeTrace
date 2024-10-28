@@ -1,7 +1,7 @@
-from module.FileIO import read_parameters, initialization
-import subprocess
 import os
 import sys
+import subprocess
+from module.FileIO import read_parameters, initialization
 
 
 def run_command(cmd):
