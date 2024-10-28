@@ -452,47 +452,63 @@ def cps_visualization(image_save_path, video, cps_result, trace_result):
                     add_index=False, local_img=None, gt_trajectory=None, cps_result=cps_trajectories)
     
 
-def make_loc_depth_image(output_dir, coords, amp=1):  # amp in [0, 1, 2]
-    depth = 100
-    amp_ = 10**amp
-    margin_pixel = 2
-    margin_pixel *= 10*amp_
-    rang = amp
-    mycmap = plt.get_cmap('jet', lut=None)
-    color_seq = [mycmap(i)[:3] for i in range(mycmap.N)][::-1]
-    time_steps = np.arange(len(coords))
-    all_coords = []
-    for t in time_steps:
-        for coord in coords[t]:
-            all_coords.append(coord)
-    all_coords = np.array(all_coords)
-    x_min = np.min(all_coords[:, 0])
-    x_max = np.max(all_coords[:, 0])
-    y_min = np.min(all_coords[:, 1])
-    y_max = np.max(all_coords[:, 1])
-    z_min = np.min(all_coords[:, 2])
-    z_max = np.max(all_coords[:, 2])
-    all_coords[:, 0] -= x_min
-    all_coords[:, 1] -= y_min
-    all_coords[:, 2] -= z_min
-    image = np.zeros((int((y_max - y_min)*amp_ + margin_pixel), int((x_max - x_min)*amp_ + margin_pixel), 3), dtype=np.uint8)
-    all_coords = np.round(all_coords * amp_)
-    depth = max(depth, z_max - z_min)
-    for roundup_coord in all_coords:
-        z = roundup_coord[2]
-        c_set = color_seq[int(len(color_seq) * (z - z_min)/depth)]
-        color = (int(c_set[0]*255), int(c_set[1]*255), int(c_set[2]*255))
-        coord_row = int(roundup_coord[1] + margin_pixel//2)
-        coord_col = int(roundup_coord[0] + margin_pixel//2)
-        row_col_set = product(list(range(coord_row-rang, coord_row+rang+1)), list(range(coord_col-rang, coord_col+rang+1)))
-        for row, col in row_col_set:
-            row = min(max(0, row), image.shape[0])
-            col = min(max(0, col), image.shape[1])
-            image[row, col, 0] = color[0]
-            image[row, col, 1] = color[1]
-            image[row, col, 2] = color[2]
-    image = np.moveaxis(image, 0, 1)
-    cv2.imwrite(f'{output_dir}_loc.png', cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+def make_loc_depth_image(output_dir, coords, winsize=7, resolution=1, dim=2):  # resolution in [1, 2, 3]
+    if dim == 2:
+        amp = 1
+        winsize += 30
+        cov_std = 30
+        amp_ = 10**amp
+        margin_pixel = 2
+        margin_pixel *= 10*amp_
+        amp_*= resolution
+        
+        mycmap = plt.get_cmap('hot', lut=None)
+        color_seq = [mycmap(i)[:3] for i in range(mycmap.N)]
+        time_steps = np.arange(len(coords))
+        all_coords = []
+        for t in time_steps:
+            for coord in coords[t]:
+                all_coords.append(coord)
+        all_coords = np.array(all_coords)
+        x_min = np.min(all_coords[:, 0])
+        x_max = np.max(all_coords[:, 0])
+        y_min = np.min(all_coords[:, 1])
+        y_max = np.max(all_coords[:, 1])
+        z_min = np.min(all_coords[:, 2])
+        z_max = np.max(all_coords[:, 2])
+        all_coords[:, 0] -= x_min
+        all_coords[:, 1] -= y_min
+        all_coords[:, 2] -= z_min
+        image = np.zeros((int((y_max - y_min)*amp_ + margin_pixel), int((x_max - x_min)*amp_ + margin_pixel)), dtype=np.float32)
+        all_coords = np.round(all_coords * amp_)
+        template = np.ones((1, (winsize)**2, 2), dtype=np.float32) * quantification(winsize)
+        template = (np.exp((-1./2) * np.sum(template @ np.linalg.inv([[cov_std, 0], [0, cov_std]]) * template, axis=2))).reshape([winsize, winsize])
+        for roundup_coord in all_coords:
+            coord_row = int(roundup_coord[1] + margin_pixel//2)
+            coord_col = int(roundup_coord[0] + margin_pixel//2)
+            row = min(max(0, coord_row), image.shape[0])
+            col = min(max(0, coord_col), image.shape[1])
+            image[row - winsize//2: row + winsize//2 + 1, col - winsize//2: col + winsize//2 + 1] += template
+        image = image / np.max(image)
+        image_copy = np.zeros((int((y_max - y_min)*amp_ + margin_pixel), int((x_max - x_min)*amp_ + margin_pixel), 3), dtype=np.uint8)
+        row_col_coords = list(product(range(image.shape[0]), range(image.shape[1])))
+        for idx, (row, col) in enumerate(row_col_coords):
+            color = color_seq[int(image[row, col] * (len(color_seq) - 1))]
+            color = (int(color[0]*255), int(color[1]*255), int(color[2]*255))
+            image_copy[row, col, 0] = color[0]
+            image_copy[row, col, 1] = color[1]
+            image_copy[row, col, 2] = color[2]
+        image = image_copy
+        image = np.moveaxis(image, 0, 1)
+        cv2.imwrite(f'{output_dir}_loc_2d_density.png', cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+
+
+def quantification(window_size):
+    x = np.arange(-(window_size-1)/2, (window_size+1)/2)
+    y = np.arange(-(window_size-1)/2, (window_size+1)/2)
+    xv, yv = np.meshgrid(x, y, sparse=True)
+    grid = np.stack(np.meshgrid(xv, yv), -1).reshape(window_size * window_size, 2)
+    return grid.astype(np.float32)
 
 
 def to_gif(image_stack_path, save_path, fps=10, loop=30):
