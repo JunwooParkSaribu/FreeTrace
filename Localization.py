@@ -99,7 +99,7 @@ def gauss_psf(window_sizes, radi):
         gauss_psf_vals = np.stack(np.meshgrid(x_subpixel, y_subpixel), -1)
         gauss_psf_vals = np.exp(-(np.sum((gauss_psf_vals - base_vals)**2, axis=2))
                                 /(2*(radius**2))) / (np.sqrt(np.pi) * radius)
-        gauss_grid_window.append(np.array(gauss_psf_vals))
+        gauss_grid_window.append(np.array(gauss_psf_vals, dtype=np.float32))
     return gauss_grid_window
 
 
@@ -322,9 +322,9 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                     if cp_type:
                         crop_imgs = crop_imgs.get()
                 else:
-                    crop_imgs = image_pad.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift)
+                    crop_imgs = np.array(image_pad.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift), dtype=np.float32)
                     bg_squared_sums = window_size[0] * window_size[1] * bg_means**2
-                    c = image_pad.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, window_size[0], window_size[1])
+                    c = np.array(image_pad.likelihood(crop_imgs.astype(np.float64), g_grid.astype(np.float64), bg_squared_sums.astype(np.float64), bg_means.astype(np.float64), int(window_size[0]), int(window_size[1])), dtype=np.float32)
 
                 all_crop_imgs[window_size[0]] = crop_imgs
                 h_map = np.array(image_pad.mapping(c, imgs.shape[0], imgs.shape[1], imgs.shape[2], shift))
@@ -524,10 +524,10 @@ def background(imgs, window_sizes, alpha):
     bg_stds = np.array(bg_stds)
 
     for window_size in window_sizes:
-        bg = np.ones((bg_intensities.shape[0], window_size[0] * window_size[1]))
+        bg = np.ones((bg_intensities.shape[0], window_size[0] * window_size[1]), dtype=np.float32)
         bg *= bg_means.reshape(-1, 1)
         bgs[window_size[0]] = bg
-    return (bgs).astype(np.float32), (bg_stds / bg_means / alpha).astype(np.float32)
+    return bgs, (bg_stds / bg_means / alpha).astype(np.float32)
 
 
 def intensity_distribution(images, reg_pdfs, xyz_coords, reg_infos, sigma=3.5):
