@@ -389,5 +389,20 @@ def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False, batch=False)
                 print(f'***** Cuda: X, Tensorflow: X, Tracking performs fast/incomplete inferences. ******') 
             else:
                 print(f'**** Cuda: X, Tensorflow: X, Localization performs slow/complete inferences. ****') 
-        print(f'**********************************************************************************\n')   
+        print(f'**********************************************************************************\n')
+        
+    if batch and verbose:
+        print(f'\n******************************** OPTIONS *****************************************')
+        if cuda and TF:
+            print(f'***** Cuda: Ok, Tensorflow: Ok, FreeTrace performs fast/complete inferences. *****')
+
+        elif cuda and not TF:
+            print(f'****** Cuda: Ok, Tensorflow: X, FreeTrace performs fast/complete inferences. *****')
+
+        elif not cuda and TF:
+            print(f'****** Cuda: X, Tensorflow: Ok, FreeTrace performs slow/complete inferences. *****')
+                
+        else:
+            print(f'**** Cuda: X, Tensorflow: X, FreeTrace performs slow/complete inferences. ****') 
+        print(f'**********************************************************************************\n')
     return cuda, TF
