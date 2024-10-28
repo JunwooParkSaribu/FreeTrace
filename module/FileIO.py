@@ -370,7 +370,7 @@ def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False, batch=False)
             if track_:
                 print(f'***** Cuda: Ok, Tensorflow: Ok, Tracking performs slow/complete inferences. ******')
             else:
-                print(f'**** Cuda: Ok, Tensorflow: Ok, Localization performs fast/complete inferences. ****')
+                print(f'**** Cuda: Ok, Tensorflow: Ok, Localization performs fast/complete inferences. ***')
 
         elif cuda and not TF:
             if track_:
