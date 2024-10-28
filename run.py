@@ -13,11 +13,11 @@ params = read_parameters('./config.txt')
 video_name = params['localization']['VIDEO']
 
 try:
-    initialization(True, verbose=True, batch=False)
-    proc = subprocess.run([sys.executable, 'Localization.py', '1', '1'])
+    initialization(False, verbose=False, batch=False)
+    proc = subprocess.run([sys.executable, 'Localization.py', '1', '0'])
     if proc.returncode != 0:
         raise Exception(proc)
-    proc = subprocess.run([sys.executable, 'Tracking.py', '1', '1'])
+    proc = subprocess.run([sys.executable, 'Tracking.py', '1', '0'])
     if proc.returncode != 0:
         raise Exception(proc)
     if os.path.exists('diffusion_image.py') and proc.returncode == 0:
