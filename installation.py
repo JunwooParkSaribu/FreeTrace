@@ -3,7 +3,8 @@ import sys
 import subprocess
 
 
-include_path = '/Library/Frameworks/Python.framework/Versions/3.10/include/python3.10'
+include_path = '/usr/include/python3.10'
+#include_path = '/Library/Frameworks/Python.framework/Versions/3.10/include/python3.10'
 non_installed_packages = {}
 
 
@@ -19,19 +20,20 @@ with open('./requirements.txt', 'r') as f:
             pass
 
 try:
-    subprocess.run(['clang', '-Wno-unused-result', '-Wsign-compare', '-Wunreachable-code', '-fno-common', '-dynamic', '-DNDEBUG', '-g', '-fwrapv', '-O3', '-Wall', '-arch', 'arm64', '-arch', 'x86_64', '-g', '-I', f'{include_path}',
+    subprocess.run(['clang', '-Wno-unused-result', '-Wsign-compare', '-Wunreachable-code', '-fno-common', '-dynamic', '-DNDEBUG', '-g', '-fwrapv', '-O3', '-Wall', '-arch', 'arm64', '-arch', 'x86_64', '-g', '-fPIC', '-I', f'{include_path}',
                     '-c', './module/image_pad.c', '-o', './module/image_pad.o'])
-    subprocess.run(['clang', '-bundle', '-undefined', 'dynamic_lookup', '-arch', 'arm64', '-arch', 'x86_64',
+    subprocess.run(['clang', '-bundle', '-shared', '-g', '-fwrapv', '-undefined', 'dynamic_lookup', '-arch', 'arm64', '-arch', 'x86_64',
                     '-g', './module/image_pad.o', '-o', './module/image_pad.so'])
-    subprocess.run(['clang', '-Wno-unused-result', '-Wsign-compare', '-Wunreachable-code', '-fno-common', '-dynamic', '-DNDEBUG', '-g', '-fwrapv', '-O3', '-Wall', '-arch', 'arm64', '-arch', 'x86_64', '-g', '-I', f'{include_path}',
+    subprocess.run(['clang', '-Wno-unused-result', '-Wsign-compare', '-Wunreachable-code', '-fno-common', '-dynamic', '-DNDEBUG', '-g', '-fwrapv', '-O3', '-Wall', '-arch', 'arm64', '-arch', 'x86_64', '-g', '-fPIC', '-I', f'{include_path}',
                     '-c', './module/regression.c', '-o', './module/regression.o'])
-    subprocess.run(['clang', '-bundle', '-undefined', 'dynamic_lookup', '-arch', 'arm64', '-arch', 'x86_64',
+    subprocess.run(['clang', '-bundle', '-shared', '-g', '-fwrapv', '-undefined', 'dynamic_lookup', '-arch', 'arm64', '-arch', 'x86_64',
                     '-g', './module/regression.o', '-o', './module/regression.so'])
     subprocess.run(['rm', './module/image_pad.o', './module/regression.o'])
     if os.path.exists(f'./module/image_pad.so') and os.path.exists(f'./module/regression.so'):
         print('')
-        print(f'***** module compiling successfully finished. *****')
-except:
+        print(f'***** module compiling finished successfully. *****')
+except Exception as e:
+    print(f'\n***** Compiling Error: {e} *****')
     pass
 
 
@@ -45,4 +47,4 @@ else:
         print(f'***** Package [{non_installed_pacakge}] installation failed due to subprocess exit code:{non_installed_packages[non_installed_pacakge]}, please install it manually. *****')
     print('')
 if not os.path.exists(f'./models/theta_hat.npz'):
-    print(f'\n***** Parmeters[theta_hat.npz] are not found for trajectory inference, please contact author for the pretrained models. *****\n')
+    print(f'***** Parmeters[theta_hat.npz] are not found for trajectory inference, please contact author for the pretrained models. *****\n')
