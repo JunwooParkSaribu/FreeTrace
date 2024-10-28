@@ -47,7 +47,7 @@ if not os.path.exists('./outputs'):
     os.makedirs('./outputs')
 file_list = os.listdir('./inputs')
 print(f'\n*****  Batch processing on {len(file_list)} files. ({len(file_list)*2} tasks: Localizations + Trackings)  *****')
-initialization(gpu=True, verbose=True, batch=False)
+initialization(gpu=True, verbose=True, batch=True)
 PBAR = tqdm(total=len(file_list)*2, desc="Batch", unit="task", ncols=120, miniters=1)
 for idx in range(len(file_list)):
     file = file_list[idx]
@@ -71,7 +71,7 @@ for idx in range(len(file_list)):
         except:
             failed_tasks.append(file)
             print(f"ERROR on {file}, code:{pid.returncode}")
-            with open('./error_log.txt', 'a') as error_log:
+            with open('./outputs/error_log.txt', 'a') as error_log:
                 dt_string = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
                 input_str = f'{file} has an err[{pid.stderr.decode("utf-8")}]. DATE: {dt_string}\n'        
                 error_log.write(input_str)
