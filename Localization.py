@@ -696,7 +696,7 @@ def main():
 
     #reg_pdfs, xyz_coords, reg_infos = intensity_distribution(images, reg_pdfs, xyz_coords, reg_infos, sigma=SIGMA)
     write_localization(OUTPUT_LOC, xyz_coords, reg_pdfs, reg_infos)
-    make_loc_depth_image(OUTPUT_LOC, xyz_coords, amp=1)
+    make_loc_depth_image(OUTPUT_LOC, xyz_coords, winsize=WINSIZE, resolution=1, dim=2)
     if VISUALIZATION:
         print(f'Visualizing localizations...')
         visualilzation(OUTPUT_LOC, images, xyz_coords)
