@@ -452,11 +452,12 @@ def cps_visualization(image_save_path, video, cps_result, trace_result):
                     add_index=False, local_img=None, gt_trajectory=None, cps_result=cps_trajectories)
     
 
-def make_loc_depth_image(output_dir, coords, winsize=7, resolution=1, dim=2):  # resolution in [1, 2, 3]
+def make_loc_depth_image(output_dir, coords, winsize=7, resolution=1, dim=2):  
     if dim == 2:
+        resolution = int(max(1, min(3, resolution)))  # resolution in [1, 2, 3]
         amp = 1
-        winsize += 30
-        cov_std = 30
+        winsize += 30 * resolution
+        cov_std = 30 * resolution
         amp_ = 10**amp
         margin_pixel = 2
         margin_pixel *= 10*amp_
