@@ -5,7 +5,7 @@
 > Requirements </br>
 > - C compiler(clang)</br>
 > - Python 3.10 or higher</br>
-> - GPU & Cuda on Linux/WSL2 (recommended)</br>
+> - GPU & Cuda12 on Linux/WSL2 (recommended)</br>
 > - With GPU, Pre-trained [models](https://drive.google.com/file/d/1WF0eW8Co23-mKQiHNH-KHHK_lJiIW-WC/view?usp=sharing) (recommended)</br>
 
 > [!NOTE]  
