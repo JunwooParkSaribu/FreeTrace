@@ -52,7 +52,7 @@ def read_tif(filepath, andi2=False):
         img = (img - s_min) / (s_max - s_min)
         normalized_imgs.append(img)
 
-    normalized_imgs = np.array(normalized_imgs, dtype=np.double).reshape(-1, y_size, x_size)
+    normalized_imgs = np.array(normalized_imgs, dtype=np.float32).reshape(-1, y_size, x_size)
     if andi2:
         return normalized_imgs, indice_image
     else:
@@ -62,7 +62,7 @@ def read_tif(filepath, andi2=False):
 def read_tif_unnormalized(filepath):
     imgs = []
     with TiffFile(filepath) as tif:
-        imgs = tif.asarray()
+        imgs = (tif.asarray()).astype(np.float32)
         axes = tif.series[0].axes
         imagej_metadata = tif.imagej_metadata
     return imgs

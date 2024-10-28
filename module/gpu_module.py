@@ -6,6 +6,13 @@ from itertools import product, islice
 CP_NP_CRITERIA = 50
 
 
+def get_gpu_mem_size():
+    gpu_count = cp.cuda.runtime.getDeviceCount()
+    free_mem, total_mem = cp.cuda.Device(0).mem_info
+    free_mem /= 1000 * 1000 * 1000
+    return int(free_mem)
+
+
 def likelihood(crop_imgs, gauss_grid, bg_squared_sums, bg_means, window_size1, window_size2):
     nb_imgs = crop_imgs.shape[0]
     if nb_imgs < CP_NP_CRITERIA:
@@ -24,7 +31,7 @@ def likelihood(crop_imgs, gauss_grid, bg_squared_sums, bg_means, window_size1, w
     i_hat = cp.maximum(cp.zeros(i_hat.shape), i_hat)
     L = ((surface_window / 2.) * cp.log(1 - (i_hat ** 2 * g_squared_sum).T /
                                         (bg_squared_sums - (surface_window * bg_means)))).T
-    L = cp.asnumpy(L.reshape(crop_imgs.shape[0], crop_imgs.shape[1], 1))
+    L = cp.asnumpy(L.reshape(crop_imgs.shape[0], crop_imgs.shape[1], 1).astype(cp.float32))
     return L
 
 
@@ -61,10 +68,10 @@ def background(imgs, window_sizes, alpha):
     for i in range(nb_imgs):
         bg_means.append(cp.mean(cp.take(bg_intensities[i], post_mask_args[i])))
         bg_stds.append(cp.std(cp.take(bg_intensities[i], post_mask_args[i])))
-    bg_means = cp.array(bg_means)
-    bg_stds = cp.array(bg_stds)
+    bg_means = cp.array(bg_means, dtype=cp.float32)
+    bg_stds = cp.array(bg_stds, dtype=cp.float32)
     for window_size in window_sizes:
-        bg = cp.ones((bg_intensities.shape[0], window_size[0] * window_size[1]))
+        bg = cp.ones((bg_intensities.shape[0], window_size[0] * window_size[1]), dtype=cp.float32)
         bg *= bg_means.reshape(-1, 1)
         bgs[window_size[0]] = cp.asnumpy(bg)
     return bgs, cp.asnumpy(bg_stds / bg_means / alpha)
@@ -81,9 +88,9 @@ def image_cropping(extended_imgs, extend, window_size0, window_size1, shift):
     row_col_comb = list(product(range(start_row, end_row, shift), range(start_col, end_col, shift)))
     if nb_imgs >= CP_NP_CRITERIA:
         extended_imgs = cp.asarray(extended_imgs)
-        cropped_imgs = cp.empty([nb_imgs, len(row_col_comb), window_size0, window_size1], dtype=cp.double)
+        cropped_imgs = cp.empty([nb_imgs, len(row_col_comb), window_size0, window_size1], dtype=cp.float32)
     else:
-        cropped_imgs = np.empty([nb_imgs, len(row_col_comb), window_size0, window_size1], dtype=np.double)
+        cropped_imgs = np.empty([nb_imgs, len(row_col_comb), window_size0, window_size1], dtype=np.float32)
     index = 0
     for r, c in row_col_comb:
         r = int(r)

@@ -6,7 +6,7 @@
         "depends": [],
         "name": "regression",
         "sources": [
-            "./module/regression.pyx"
+            "./regression.pyx"
         ]
     },
     "module_name": "regression"
@@ -1484,7 +1484,7 @@ static const char *__pyx_filename;
 /* #### Code section: filename_table ### */
 
 static const char *__pyx_f[] = {
-  "module/regression.pyx",
+  "regression.pyx",
   "<stringsource>",
 };
 /* #### Code section: utility_code_proto_before_types ### */
@@ -1643,7 +1643,7 @@ struct __pyx_opt_args_10regression_guo_algorithm;
 /* "regression.pyx":98
  * @cython.cdivision(True)
  * @cython.profile(False)
- * cpdef guo_algorithm(imgs:np.ndarray, bgs, double[::1] p0,             # <<<<<<<<<<<<<<
+ * cpdef guo_algorithm(imgs:np.ndarray, bgs, float[::1] p0,             # <<<<<<<<<<<<<<
  *                     xgrid, ygrid, window_size=(7, 7), repeat=7, decomp_n=1):
  *     cdef int k, nb_imgs
  */
@@ -2723,13 +2723,13 @@ static int __Pyx_ValidateAndInit_memviewslice(
                 PyObject *original_obj);
 
 /* ObjectToMemviewSlice.proto */
-static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_dc_double(PyObject *, int writable_flag);
+static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_dc_float(PyObject *, int writable_flag);
 
 /* ObjectToMemviewSlice.proto */
-static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_d_dc_double(PyObject *, int writable_flag);
+static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_d_dc_float(PyObject *, int writable_flag);
 
 /* ObjectToMemviewSlice.proto */
-static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_double(PyObject *, int writable_flag);
+static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_float(PyObject *, int writable_flag);
 
 /* MemviewSliceCopyTemplate.proto */
 static __Pyx_memviewslice
@@ -2871,7 +2871,7 @@ static void __pyx_memoryview_slice_assign_scalar(__Pyx_memviewslice *, int, size
 static void __pyx_memoryview__slice_assign_scalar(char *, Py_ssize_t *, Py_ssize_t *, int, size_t, void *); /*proto*/
 static PyObject *__pyx_unpickle_Enum__set_state(struct __pyx_MemviewEnum_obj *, PyObject *); /*proto*/
 /* #### Code section: typeinfo ### */
-static __Pyx_TypeInfo __Pyx_TypeInfo_double = { "double", NULL, sizeof(double), { 0 }, 0, 'R', 0, 0 };
+static __Pyx_TypeInfo __Pyx_TypeInfo_float = { "float", NULL, sizeof(float), { 0 }, 0, 'R', 0, 0 };
 /* #### Code section: before_global_var ### */
 #define __Pyx_MODULE_NAME "regression"
 extern int __pyx_module_is_main_regression;
@@ -2964,7 +2964,6 @@ static const char __pyx_k_ygrid[] = "ygrid";
 static const char __pyx_k_zeros[] = "zeros";
 static const char __pyx_k_array1[] = "array1";
 static const char __pyx_k_array2[] = "array2";
-static const char __pyx_k_double[] = "double";
 static const char __pyx_k_enable[] = "enable";
 static const char __pyx_k_encode[] = "encode";
 static const char __pyx_k_extend[] = "extend";
@@ -2983,7 +2982,7 @@ static const char __pyx_k_unpack[] = "unpack";
 static const char __pyx_k_update[] = "update";
 static const char __pyx_k_disable[] = "disable";
 static const char __pyx_k_flatten[] = "flatten";
-static const char __pyx_k_float64[] = "float64";
+static const char __pyx_k_float32[] = "float32";
 static const char __pyx_k_fortran[] = "fortran";
 static const char __pyx_k_imatmul[] = "__imatmul__";
 static const char __pyx_k_len_img[] = "len_img";
@@ -3035,6 +3034,7 @@ static const char __pyx_k_matrix_decomp[] = "matrix_decomp";
 static const char __pyx_k_matrix_pow_2d[] = "matrix_pow_2d";
 static const char __pyx_k_reduce_cython[] = "__reduce_cython__";
 static const char __pyx_k_AssertionError[] = "AssertionError";
+static const char __pyx_k_regression_pyx[] = "regression.pyx";
 static const char __pyx_k_View_MemoryView[] = "View.MemoryView";
 static const char __pyx_k_allocate_buffer[] = "allocate_buffer";
 static const char __pyx_k_collections_abc[] = "collections.abc";
@@ -3048,7 +3048,6 @@ static const char __pyx_k_strided_and_direct[] = "<strided and direct>";
 static const char __pyx_k_strided_and_indirect[] = "<strided and indirect>";
 static const char __pyx_k_Invalid_shape_in_axis[] = "Invalid shape in axis ";
 static const char __pyx_k_contiguous_and_direct[] = "<contiguous and direct>";
-static const char __pyx_k_module_regression_pyx[] = "module/regression.pyx";
 static const char __pyx_k_Cannot_index_with_type[] = "Cannot index with type '";
 static const char __pyx_k_MemoryView_of_r_object[] = "<MemoryView of %r object>";
 static const char __pyx_k_MemoryView_of_r_at_0x_x[] = "<MemoryView of %r at 0x%x>";
@@ -3243,7 +3242,6 @@ typedef struct {
   PyObject *__pyx_n_s_decomp_n;
   PyObject *__pyx_n_s_dict;
   PyObject *__pyx_kp_u_disable;
-  PyObject *__pyx_n_s_double;
   PyObject *__pyx_n_s_dtype;
   PyObject *__pyx_n_s_dtype_is_object;
   PyObject *__pyx_n_s_element_wise_maximum_2d;
@@ -3257,7 +3255,7 @@ typedef struct {
   PyObject *__pyx_n_s_extend;
   PyObject *__pyx_n_s_flags;
   PyObject *__pyx_n_s_flatten;
-  PyObject *__pyx_n_s_float64;
+  PyObject *__pyx_n_s_float32;
   PyObject *__pyx_n_s_format;
   PyObject *__pyx_n_s_fortran;
   PyObject *__pyx_n_u_fortran;
@@ -3291,7 +3289,6 @@ typedef struct {
   PyObject *__pyx_n_s_matrix_pow_2d;
   PyObject *__pyx_n_s_memview;
   PyObject *__pyx_n_s_mode;
-  PyObject *__pyx_kp_s_module_regression_pyx;
   PyObject *__pyx_n_s_name;
   PyObject *__pyx_n_s_name_2;
   PyObject *__pyx_n_s_ndim;
@@ -3324,6 +3321,7 @@ typedef struct {
   PyObject *__pyx_n_s_reduce_ex;
   PyObject *__pyx_n_s_register;
   PyObject *__pyx_n_s_regression;
+  PyObject *__pyx_kp_s_regression_pyx;
   PyObject *__pyx_n_s_repeat;
   PyObject *__pyx_n_s_reshape;
   PyObject *__pyx_n_s_rmatmul;
@@ -3536,7 +3534,6 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_n_s_decomp_n);
   Py_CLEAR(clear_module_state->__pyx_n_s_dict);
   Py_CLEAR(clear_module_state->__pyx_kp_u_disable);
-  Py_CLEAR(clear_module_state->__pyx_n_s_double);
   Py_CLEAR(clear_module_state->__pyx_n_s_dtype);
   Py_CLEAR(clear_module_state->__pyx_n_s_dtype_is_object);
   Py_CLEAR(clear_module_state->__pyx_n_s_element_wise_maximum_2d);
@@ -3550,7 +3547,7 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_n_s_extend);
   Py_CLEAR(clear_module_state->__pyx_n_s_flags);
   Py_CLEAR(clear_module_state->__pyx_n_s_flatten);
-  Py_CLEAR(clear_module_state->__pyx_n_s_float64);
+  Py_CLEAR(clear_module_state->__pyx_n_s_float32);
   Py_CLEAR(clear_module_state->__pyx_n_s_format);
   Py_CLEAR(clear_module_state->__pyx_n_s_fortran);
   Py_CLEAR(clear_module_state->__pyx_n_u_fortran);
@@ -3584,7 +3581,6 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_n_s_matrix_pow_2d);
   Py_CLEAR(clear_module_state->__pyx_n_s_memview);
   Py_CLEAR(clear_module_state->__pyx_n_s_mode);
-  Py_CLEAR(clear_module_state->__pyx_kp_s_module_regression_pyx);
   Py_CLEAR(clear_module_state->__pyx_n_s_name);
   Py_CLEAR(clear_module_state->__pyx_n_s_name_2);
   Py_CLEAR(clear_module_state->__pyx_n_s_ndim);
@@ -3617,6 +3613,7 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_n_s_reduce_ex);
   Py_CLEAR(clear_module_state->__pyx_n_s_register);
   Py_CLEAR(clear_module_state->__pyx_n_s_regression);
+  Py_CLEAR(clear_module_state->__pyx_kp_s_regression_pyx);
   Py_CLEAR(clear_module_state->__pyx_n_s_repeat);
   Py_CLEAR(clear_module_state->__pyx_n_s_reshape);
   Py_CLEAR(clear_module_state->__pyx_n_s_rmatmul);
@@ -3807,7 +3804,6 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_n_s_decomp_n);
   Py_VISIT(traverse_module_state->__pyx_n_s_dict);
   Py_VISIT(traverse_module_state->__pyx_kp_u_disable);
-  Py_VISIT(traverse_module_state->__pyx_n_s_double);
   Py_VISIT(traverse_module_state->__pyx_n_s_dtype);
   Py_VISIT(traverse_module_state->__pyx_n_s_dtype_is_object);
   Py_VISIT(traverse_module_state->__pyx_n_s_element_wise_maximum_2d);
@@ -3821,7 +3817,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_n_s_extend);
   Py_VISIT(traverse_module_state->__pyx_n_s_flags);
   Py_VISIT(traverse_module_state->__pyx_n_s_flatten);
-  Py_VISIT(traverse_module_state->__pyx_n_s_float64);
+  Py_VISIT(traverse_module_state->__pyx_n_s_float32);
   Py_VISIT(traverse_module_state->__pyx_n_s_format);
   Py_VISIT(traverse_module_state->__pyx_n_s_fortran);
   Py_VISIT(traverse_module_state->__pyx_n_u_fortran);
@@ -3855,7 +3851,6 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_n_s_matrix_pow_2d);
   Py_VISIT(traverse_module_state->__pyx_n_s_memview);
   Py_VISIT(traverse_module_state->__pyx_n_s_mode);
-  Py_VISIT(traverse_module_state->__pyx_kp_s_module_regression_pyx);
   Py_VISIT(traverse_module_state->__pyx_n_s_name);
   Py_VISIT(traverse_module_state->__pyx_n_s_name_2);
   Py_VISIT(traverse_module_state->__pyx_n_s_ndim);
@@ -3888,6 +3883,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_n_s_reduce_ex);
   Py_VISIT(traverse_module_state->__pyx_n_s_register);
   Py_VISIT(traverse_module_state->__pyx_n_s_regression);
+  Py_VISIT(traverse_module_state->__pyx_kp_s_regression_pyx);
   Py_VISIT(traverse_module_state->__pyx_n_s_repeat);
   Py_VISIT(traverse_module_state->__pyx_n_s_reshape);
   Py_VISIT(traverse_module_state->__pyx_n_s_rmatmul);
@@ -4096,7 +4092,6 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_n_s_decomp_n __pyx_mstate_global->__pyx_n_s_decomp_n
 #define __pyx_n_s_dict __pyx_mstate_global->__pyx_n_s_dict
 #define __pyx_kp_u_disable __pyx_mstate_global->__pyx_kp_u_disable
-#define __pyx_n_s_double __pyx_mstate_global->__pyx_n_s_double
 #define __pyx_n_s_dtype __pyx_mstate_global->__pyx_n_s_dtype
 #define __pyx_n_s_dtype_is_object __pyx_mstate_global->__pyx_n_s_dtype_is_object
 #define __pyx_n_s_element_wise_maximum_2d __pyx_mstate_global->__pyx_n_s_element_wise_maximum_2d
@@ -4110,7 +4105,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_n_s_extend __pyx_mstate_global->__pyx_n_s_extend
 #define __pyx_n_s_flags __pyx_mstate_global->__pyx_n_s_flags
 #define __pyx_n_s_flatten __pyx_mstate_global->__pyx_n_s_flatten
-#define __pyx_n_s_float64 __pyx_mstate_global->__pyx_n_s_float64
+#define __pyx_n_s_float32 __pyx_mstate_global->__pyx_n_s_float32
 #define __pyx_n_s_format __pyx_mstate_global->__pyx_n_s_format
 #define __pyx_n_s_fortran __pyx_mstate_global->__pyx_n_s_fortran
 #define __pyx_n_u_fortran __pyx_mstate_global->__pyx_n_u_fortran
@@ -4144,7 +4139,6 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_n_s_matrix_pow_2d __pyx_mstate_global->__pyx_n_s_matrix_pow_2d
 #define __pyx_n_s_memview __pyx_mstate_global->__pyx_n_s_memview
 #define __pyx_n_s_mode __pyx_mstate_global->__pyx_n_s_mode
-#define __pyx_kp_s_module_regression_pyx __pyx_mstate_global->__pyx_kp_s_module_regression_pyx
 #define __pyx_n_s_name __pyx_mstate_global->__pyx_n_s_name
 #define __pyx_n_s_name_2 __pyx_mstate_global->__pyx_n_s_name_2
 #define __pyx_n_s_ndim __pyx_mstate_global->__pyx_n_s_ndim
@@ -4177,6 +4171,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_n_s_reduce_ex __pyx_mstate_global->__pyx_n_s_reduce_ex
 #define __pyx_n_s_register __pyx_mstate_global->__pyx_n_s_register
 #define __pyx_n_s_regression __pyx_mstate_global->__pyx_n_s_regression
+#define __pyx_kp_s_regression_pyx __pyx_mstate_global->__pyx_kp_s_regression_pyx
 #define __pyx_n_s_repeat __pyx_mstate_global->__pyx_n_s_repeat
 #define __pyx_n_s_reshape __pyx_mstate_global->__pyx_n_s_reshape
 #define __pyx_n_s_rmatmul __pyx_mstate_global->__pyx_n_s_rmatmul
@@ -18151,8 +18146,8 @@ static PyObject *__pyx_pf_10regression_ord_lu(CYTHON_UNUSED PyObject *__pyx_self
 /* "regression.pyx":23
  * @cython.cdivision(True)
  * @cython.profile(False)
- * cpdef pack_vars(double[::1] vars, int len_img):             # <<<<<<<<<<<<<<
- *     cdef double a,b,c,d,e,f
+ * cpdef pack_vars(float[::1] vars, int len_img):             # <<<<<<<<<<<<<<
+ *     cdef float a,b,c,d,e,f
  *     cdef Py_ssize_t i
  */
 
@@ -18164,12 +18159,12 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
 #endif
 ); /*proto*/
 static PyObject *__pyx_f_10regression_pack_vars(__Pyx_memviewslice __pyx_v_vars, int __pyx_v_len_img, CYTHON_UNUSED int __pyx_skip_dispatch) {
-  double __pyx_v_a;
-  double __pyx_v_b;
-  double __pyx_v_c;
-  double __pyx_v_d;
-  double __pyx_v_e;
-  double __pyx_v_f;
+  float __pyx_v_a;
+  float __pyx_v_b;
+  float __pyx_v_c;
+  float __pyx_v_d;
+  float __pyx_v_e;
+  float __pyx_v_f;
   Py_ssize_t __pyx_v_i;
   PyObject *__pyx_v_var_stack = NULL;
   PyObject *__pyx_r = NULL;
@@ -18209,9 +18204,9 @@ static PyObject *__pyx_f_10regression_pack_vars(__Pyx_memviewslice __pyx_v_vars,
   __Pyx_RefNannySetupContext("pack_vars", 1);
 
   /* "regression.pyx":26
- *     cdef double a,b,c,d,e,f
+ *     cdef float a,b,c,d,e,f
  *     cdef Py_ssize_t i
- *     var_stack = np.zeros([len_img, 6], dtype=np.double)             # <<<<<<<<<<<<<<
+ *     var_stack = np.zeros([len_img, 6], dtype=np.float32)             # <<<<<<<<<<<<<<
  * 
  *     a = -1. / (2 * vars[0] * (1 - vars[4]*vars[4]))
  */
@@ -18239,7 +18234,7 @@ static PyObject *__pyx_f_10regression_pack_vars(__Pyx_memviewslice __pyx_v_vars,
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_n_s_np); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 26, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_double); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 26, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_float32); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 26, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
   if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_dtype, __pyx_t_5) < 0) __PYX_ERR(0, 26, __pyx_L1_error)
@@ -18253,7 +18248,7 @@ static PyObject *__pyx_f_10regression_pack_vars(__Pyx_memviewslice __pyx_v_vars,
   __pyx_t_5 = 0;
 
   /* "regression.pyx":28
- *     var_stack = np.zeros([len_img, 6], dtype=np.double)
+ *     var_stack = np.zeros([len_img, 6], dtype=np.float32)
  * 
  *     a = -1. / (2 * vars[0] * (1 - vars[4]*vars[4]))             # <<<<<<<<<<<<<<
  *     b = vars[1] / ((1 - vars[4] * vars[4]) * vars[0]) - (vars[4] * vars[3]) / ((1 - vars[4] * vars[4]) * sqrt(vars[0]) * sqrt(vars[2]))
@@ -18262,7 +18257,7 @@ static PyObject *__pyx_f_10regression_pack_vars(__Pyx_memviewslice __pyx_v_vars,
   __pyx_t_6 = 0;
   __pyx_t_7 = 4;
   __pyx_t_8 = 4;
-  __pyx_v_a = (-1. / ((2.0 * (*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_6)) )))) * (1.0 - ((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_7)) ))) * (*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_8)) )))))));
+  __pyx_v_a = (-1. / ((double)((2.0 * (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_6)) )))) * (1.0 - ((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_7)) ))) * (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_8)) ))))))));
 
   /* "regression.pyx":29
  * 
@@ -18281,7 +18276,7 @@ static PyObject *__pyx_f_10regression_pack_vars(__Pyx_memviewslice __pyx_v_vars,
   __pyx_t_13 = 4;
   __pyx_t_14 = 0;
   __pyx_t_15 = 2;
-  __pyx_v_b = (((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_8)) ))) / ((1.0 - ((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_7)) ))) * (*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_6)) ))))) * (*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_9)) ))))) - (((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_10)) ))) * (*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_11)) )))) / (((1.0 - ((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_12)) ))) * (*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_13)) ))))) * sqrt((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_14)) ))))) * sqrt((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_15)) )))))));
+  __pyx_v_b = (((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_8)) ))) / ((1.0 - ((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_7)) ))) * (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_6)) ))))) * (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_9)) ))))) - (((double)((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_10)) ))) * (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_11)) ))))) / (((1.0 - ((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_12)) ))) * (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_13)) ))))) * sqrt((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_14)) ))))) * sqrt((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_15)) )))))));
 
   /* "regression.pyx":30
  *     a = -1. / (2 * vars[0] * (1 - vars[4]*vars[4]))
@@ -18293,7 +18288,7 @@ static PyObject *__pyx_f_10regression_pack_vars(__Pyx_memviewslice __pyx_v_vars,
   __pyx_t_15 = 2;
   __pyx_t_14 = 4;
   __pyx_t_13 = 4;
-  __pyx_v_c = (-1. / ((2.0 * (*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_15)) )))) * (1.0 - ((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_14)) ))) * (*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_13)) )))))));
+  __pyx_v_c = (-1. / ((double)((2.0 * (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_15)) )))) * (1.0 - ((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_14)) ))) * (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_13)) ))))))));
 
   /* "regression.pyx":31
  *     b = vars[1] / ((1 - vars[4] * vars[4]) * vars[0]) - (vars[4] * vars[3]) / ((1 - vars[4] * vars[4]) * sqrt(vars[0]) * sqrt(vars[2]))
@@ -18312,7 +18307,7 @@ static PyObject *__pyx_f_10regression_pack_vars(__Pyx_memviewslice __pyx_v_vars,
   __pyx_t_6 = 4;
   __pyx_t_7 = 0;
   __pyx_t_8 = 2;
-  __pyx_v_d = (((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_13)) ))) / ((1.0 - ((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_14)) ))) * (*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_15)) ))))) * (*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_12)) ))))) - (((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_11)) ))) * (*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_10)) )))) / (((1.0 - ((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_9)) ))) * (*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_6)) ))))) * sqrt((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_7)) ))))) * sqrt((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_8)) )))))));
+  __pyx_v_d = (((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_13)) ))) / ((1.0 - ((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_14)) ))) * (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_15)) ))))) * (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_12)) ))))) - (((double)((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_11)) ))) * (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_10)) ))))) / (((1.0 - ((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_9)) ))) * (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_6)) ))))) * sqrt((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_7)) ))))) * sqrt((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_8)) )))))));
 
   /* "regression.pyx":32
  *     c = -1. / (2 * vars[2] * (1 - vars[4]*vars[4]))
@@ -18326,7 +18321,7 @@ static PyObject *__pyx_f_10regression_pack_vars(__Pyx_memviewslice __pyx_v_vars,
   __pyx_t_6 = 4;
   __pyx_t_9 = 0;
   __pyx_t_10 = 2;
-  __pyx_v_e = ((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_8)) ))) / (((1.0 - ((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_7)) ))) * (*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_6)) ))))) * sqrt((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_9)) ))))) * sqrt((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_10)) ))))));
+  __pyx_v_e = (((double)(*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_8)) )))) / (((1.0 - ((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_7)) ))) * (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_6)) ))))) * sqrt((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_9)) ))))) * sqrt((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_10)) ))))));
 
   /* "regression.pyx":33
  *     d = vars[3] / ((1 - vars[4] * vars[4]) * vars[2]) - (vars[4] * vars[1]) / ((1 - vars[4] * vars[4]) * sqrt(vars[0]) * sqrt(vars[2]))
@@ -18372,7 +18367,7 @@ static PyObject *__pyx_f_10regression_pack_vars(__Pyx_memviewslice __pyx_v_vars,
  *         log(1 / (2 * M_PI * sqrt(vars[0]) * sqrt(vars[2]) * (sqrt(1 - vars[4] * vars[4])))))
  * 
  */
-  __pyx_v_f = (((((-((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_10)) ))) * (*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_9)) ))))) / ((2.0 * (1.0 - ((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_6)) ))) * (*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_7)) )))))) * (*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_8)) ))))) - (((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_11)) ))) * (*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_12)) )))) / ((2.0 * (1.0 - ((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_15)) ))) * (*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_14)) )))))) * (*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_13)) )))))) + ((((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_16)) ))) * (*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_17)) )))) * (*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_18)) )))) / (((1.0 - ((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_19)) ))) * (*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_20)) ))))) * sqrt((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_21)) ))))) * sqrt((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_22)) ))))))) + log((1.0 / ((((2.0 * M_PI) * sqrt((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_23)) ))))) * sqrt((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_24)) ))))) * sqrt((1.0 - ((*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_25)) ))) * (*((double *) ( /* dim=0 */ ((char *) (((double *) __pyx_v_vars.data) + __pyx_t_26)) ))))))))));
+  __pyx_v_f = (((((-((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_10)) ))) * (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_9)) ))))) / ((2.0 * (1.0 - ((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_6)) ))) * (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_7)) )))))) * (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_8)) ))))) - (((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_11)) ))) * (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_12)) )))) / ((2.0 * (1.0 - ((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_15)) ))) * (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_14)) )))))) * (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_13)) )))))) + (((double)(((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_16)) ))) * (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_17)) )))) * (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_18)) ))))) / (((1.0 - ((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_19)) ))) * (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_20)) ))))) * sqrt((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_21)) ))))) * sqrt((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_22)) ))))))) + log((1.0 / ((((2.0 * M_PI) * sqrt((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_23)) ))))) * sqrt((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_24)) ))))) * sqrt((1.0 - ((*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_25)) ))) * (*((float *) ( /* dim=0 */ ((char *) (((float *) __pyx_v_vars.data) + __pyx_t_26)) ))))))))));
 
   /* "regression.pyx":36
  *         log(1 / (2 * M_PI * sqrt(vars[0]) * sqrt(vars[2]) * (sqrt(1 - vars[4] * vars[4])))))
@@ -18492,8 +18487,8 @@ static PyObject *__pyx_f_10regression_pack_vars(__Pyx_memviewslice __pyx_v_vars,
   /* "regression.pyx":23
  * @cython.cdivision(True)
  * @cython.profile(False)
- * cpdef pack_vars(double[::1] vars, int len_img):             # <<<<<<<<<<<<<<
- *     cdef double a,b,c,d,e,f
+ * cpdef pack_vars(float[::1] vars, int len_img):             # <<<<<<<<<<<<<<
+ *     cdef float a,b,c,d,e,f
  *     cdef Py_ssize_t i
  */
 
@@ -18592,7 +18587,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       values[0] = __Pyx_Arg_FASTCALL(__pyx_args, 0);
       values[1] = __Pyx_Arg_FASTCALL(__pyx_args, 1);
     }
-    __pyx_v_vars = __Pyx_PyObject_to_MemoryviewSlice_dc_double(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_vars.memview)) __PYX_ERR(0, 23, __pyx_L3_error)
+    __pyx_v_vars = __Pyx_PyObject_to_MemoryviewSlice_dc_float(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_vars.memview)) __PYX_ERR(0, 23, __pyx_L3_error)
     __pyx_v_len_img = __Pyx_PyInt_As_int(values[1]); if (unlikely((__pyx_v_len_img == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 23, __pyx_L3_error)
   }
   goto __pyx_L6_skip;
@@ -20641,7 +20636,7 @@ static PyObject *__pyx_pf_10regression_6unpack_coefs(CYTHON_UNUSED PyObject *__p
 /* "regression.pyx":98
  * @cython.cdivision(True)
  * @cython.profile(False)
- * cpdef guo_algorithm(imgs:np.ndarray, bgs, double[::1] p0,             # <<<<<<<<<<<<<<
+ * cpdef guo_algorithm(imgs:np.ndarray, bgs, float[::1] p0,             # <<<<<<<<<<<<<<
  *                     xgrid, ygrid, window_size=(7, 7), repeat=7, decomp_n=1):
  *     cdef int k, nb_imgs
  */
@@ -20731,7 +20726,7 @@ static PyObject *__pyx_f_10regression_guo_algorithm(PyObject *__pyx_v_imgs, PyOb
   }
 
   /* "regression.pyx":104
- *     cdef double [::1] local_backgrounds
+ *     cdef float [::1] local_backgrounds
  * 
  *     k = 0             # <<<<<<<<<<<<<<
  *     nb_imgs = imgs.shape[0]
@@ -20784,7 +20779,7 @@ static PyObject *__pyx_f_10regression_guo_algorithm(PyObject *__pyx_v_imgs, PyOb
  *     ## background for each crop image needed rather than background intensity for whole image.
  *     #imgs = np.maximum(np.zeros(imgs.shape), imgs - bgs.reshape(-1, window_size[0], window_size[1])) + 1e-2
  */
-  __pyx_t_4 = __Pyx_PyObject_to_MemoryviewSlice_d_dc_double(__pyx_v_bgs, PyBUF_WRITABLE); if (unlikely(!__pyx_t_4.memview)) __PYX_ERR(0, 108, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_to_MemoryviewSlice_d_dc_float(__pyx_v_bgs, PyBUF_WRITABLE); if (unlikely(!__pyx_t_4.memview)) __PYX_ERR(0, 108, __pyx_L1_error)
   __pyx_v_bgs_view = __pyx_t_4;
   __pyx_t_4.memview = NULL;
   __pyx_t_4.data = NULL;
@@ -20796,12 +20791,12 @@ static PyObject *__pyx_f_10regression_guo_algorithm(PyObject *__pyx_v_imgs, PyOb
  *     element_wise_maximum_2d(img_view, local_backgrounds)
  *     yk_2 = imgs.copy()
  */
-  __pyx_t_4 = __Pyx_PyObject_to_MemoryviewSlice_d_dc_double(__pyx_v_img_view, PyBUF_WRITABLE); if (unlikely(!__pyx_t_4.memview)) __PYX_ERR(0, 111, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_to_MemoryviewSlice_d_dc_float(__pyx_v_img_view, PyBUF_WRITABLE); if (unlikely(!__pyx_t_4.memview)) __PYX_ERR(0, 111, __pyx_L1_error)
   __pyx_t_2 = __pyx_f_10regression_element_wise_subtraction_2d(__pyx_t_4, __pyx_v_bgs_view, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 111, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __PYX_XCLEAR_MEMVIEW(&__pyx_t_4, 1);
   __pyx_t_4.memview = NULL; __pyx_t_4.data = NULL;
-  __pyx_t_5 = __Pyx_PyObject_to_MemoryviewSlice_dc_double(__pyx_t_2, PyBUF_WRITABLE); if (unlikely(!__pyx_t_5.memview)) __PYX_ERR(0, 111, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_to_MemoryviewSlice_dc_float(__pyx_t_2, PyBUF_WRITABLE); if (unlikely(!__pyx_t_5.memview)) __PYX_ERR(0, 111, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_v_local_backgrounds = __pyx_t_5;
   __pyx_t_5.memview = NULL;
@@ -20814,7 +20809,7 @@ static PyObject *__pyx_f_10regression_guo_algorithm(PyObject *__pyx_v_imgs, PyOb
  *     yk_2 = imgs.copy()
  * 
  */
-  __pyx_t_4 = __Pyx_PyObject_to_MemoryviewSlice_d_dc_double(__pyx_v_img_view, PyBUF_WRITABLE); if (unlikely(!__pyx_t_4.memview)) __PYX_ERR(0, 112, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyObject_to_MemoryviewSlice_d_dc_float(__pyx_v_img_view, PyBUF_WRITABLE); if (unlikely(!__pyx_t_4.memview)) __PYX_ERR(0, 112, __pyx_L1_error)
   __pyx_t_2 = __pyx_f_10regression_element_wise_maximum_2d(__pyx_t_4, __pyx_v_local_backgrounds, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 112, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __PYX_XCLEAR_MEMVIEW(&__pyx_t_4, 1);
@@ -21916,7 +21911,7 @@ static PyObject *__pyx_f_10regression_guo_algorithm(PyObject *__pyx_v_imgs, PyOb
  *         ans_matrix = np.sum(
  *             np.array(             # <<<<<<<<<<<<<<
  *                 [[ans1], [ans2], [ans3], [ans4], [ans5], [ans6]]
- *             ), axis=(3), dtype=np.float64).transpose(2, 0, 1)
+ *             ), axis=(3), dtype=np.float32).transpose(2, 0, 1)
  */
     __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_np); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 152, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
@@ -21928,7 +21923,7 @@ static PyObject *__pyx_f_10regression_guo_algorithm(PyObject *__pyx_v_imgs, PyOb
  *         ans_matrix = np.sum(
  *             np.array(
  *                 [[ans1], [ans2], [ans3], [ans4], [ans5], [ans6]]             # <<<<<<<<<<<<<<
- *             ), axis=(3), dtype=np.float64).transpose(2, 0, 1)
+ *             ), axis=(3), dtype=np.float32).transpose(2, 0, 1)
  *         coef_matrix = matrix_decomp(coef_matrix, decomp_n)
  */
     __pyx_t_6 = PyList_New(1); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 153, __pyx_L1_error)
@@ -22021,7 +22016,7 @@ static PyObject *__pyx_f_10regression_guo_algorithm(PyObject *__pyx_v_imgs, PyOb
     /* "regression.pyx":154
  *             np.array(
  *                 [[ans1], [ans2], [ans3], [ans4], [ans5], [ans6]]
- *             ), axis=(3), dtype=np.float64).transpose(2, 0, 1)             # <<<<<<<<<<<<<<
+ *             ), axis=(3), dtype=np.float32).transpose(2, 0, 1)             # <<<<<<<<<<<<<<
  *         coef_matrix = matrix_decomp(coef_matrix, decomp_n)
  *         ans_matrix = matrix_decomp(ans_matrix, decomp_n)
  */
@@ -22030,7 +22025,7 @@ static PyObject *__pyx_f_10regression_guo_algorithm(PyObject *__pyx_v_imgs, PyOb
     if (PyDict_SetItem(__pyx_t_9, __pyx_n_s_axis, __pyx_int_3) < 0) __PYX_ERR(0, 154, __pyx_L1_error)
     __Pyx_GetModuleGlobalName(__pyx_t_11, __pyx_n_s_np); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 154, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_11);
-    __pyx_t_10 = __Pyx_PyObject_GetAttrStr(__pyx_t_11, __pyx_n_s_float64); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 154, __pyx_L1_error)
+    __pyx_t_10 = __Pyx_PyObject_GetAttrStr(__pyx_t_11, __pyx_n_s_float32); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 154, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_10);
     __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
     if (PyDict_SetItem(__pyx_t_9, __pyx_n_s_dtype, __pyx_t_10) < 0) __PYX_ERR(0, 154, __pyx_L1_error)
@@ -22052,7 +22047,7 @@ static PyObject *__pyx_f_10regression_guo_algorithm(PyObject *__pyx_v_imgs, PyOb
     /* "regression.pyx":154
  *             np.array(
  *                 [[ans1], [ans2], [ans3], [ans4], [ans5], [ans6]]
- *             ), axis=(3), dtype=np.float64).transpose(2, 0, 1)             # <<<<<<<<<<<<<<
+ *             ), axis=(3), dtype=np.float32).transpose(2, 0, 1)             # <<<<<<<<<<<<<<
  *         coef_matrix = matrix_decomp(coef_matrix, decomp_n)
  *         ans_matrix = matrix_decomp(ans_matrix, decomp_n)
  */
@@ -22067,7 +22062,7 @@ static PyObject *__pyx_f_10regression_guo_algorithm(PyObject *__pyx_v_imgs, PyOb
 
     /* "regression.pyx":155
  *                 [[ans1], [ans2], [ans3], [ans4], [ans5], [ans6]]
- *             ), axis=(3), dtype=np.float64).transpose(2, 0, 1)
+ *             ), axis=(3), dtype=np.float32).transpose(2, 0, 1)
  *         coef_matrix = matrix_decomp(coef_matrix, decomp_n)             # <<<<<<<<<<<<<<
  *         ans_matrix = matrix_decomp(ans_matrix, decomp_n)
  *         decomp_coef_vals = matrix_decomp(coef_vals, decomp_n)
@@ -22078,7 +22073,7 @@ static PyObject *__pyx_f_10regression_guo_algorithm(PyObject *__pyx_v_imgs, PyOb
     __pyx_t_10 = 0;
 
     /* "regression.pyx":156
- *             ), axis=(3), dtype=np.float64).transpose(2, 0, 1)
+ *             ), axis=(3), dtype=np.float32).transpose(2, 0, 1)
  *         coef_matrix = matrix_decomp(coef_matrix, decomp_n)
  *         ans_matrix = matrix_decomp(ans_matrix, decomp_n)             # <<<<<<<<<<<<<<
  *         decomp_coef_vals = matrix_decomp(coef_vals, decomp_n)
@@ -22735,7 +22730,7 @@ static PyObject *__pyx_f_10regression_guo_algorithm(PyObject *__pyx_v_imgs, PyOb
   /* "regression.pyx":98
  * @cython.cdivision(True)
  * @cython.profile(False)
- * cpdef guo_algorithm(imgs:np.ndarray, bgs, double[::1] p0,             # <<<<<<<<<<<<<<
+ * cpdef guo_algorithm(imgs:np.ndarray, bgs, float[::1] p0,             # <<<<<<<<<<<<<<
  *                     xgrid, ygrid, window_size=(7, 7), repeat=7, decomp_n=1):
  *     cdef int k, nb_imgs
  */
@@ -22847,10 +22842,10 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
 
     /* "regression.pyx":99
  * @cython.profile(False)
- * cpdef guo_algorithm(imgs:np.ndarray, bgs, double[::1] p0,
+ * cpdef guo_algorithm(imgs:np.ndarray, bgs, float[::1] p0,
  *                     xgrid, ygrid, window_size=(7, 7), repeat=7, decomp_n=1):             # <<<<<<<<<<<<<<
  *     cdef int k, nb_imgs
- *     cdef double [:,::1] imgs_view, bgs_view
+ *     cdef float [:,::1] imgs_view, bgs_view
  */
     values[5] = __Pyx_Arg_NewRef_FASTCALL(((PyObject *)__pyx_tuple__18));
     values[6] = __Pyx_Arg_NewRef_FASTCALL(((PyObject *)__pyx_int_7));
@@ -22971,7 +22966,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
     }
     __pyx_v_imgs = values[0];
     __pyx_v_bgs = values[1];
-    __pyx_v_p0 = __Pyx_PyObject_to_MemoryviewSlice_dc_double(values[2], PyBUF_WRITABLE); if (unlikely(!__pyx_v_p0.memview)) __PYX_ERR(0, 98, __pyx_L3_error)
+    __pyx_v_p0 = __Pyx_PyObject_to_MemoryviewSlice_dc_float(values[2], PyBUF_WRITABLE); if (unlikely(!__pyx_v_p0.memview)) __PYX_ERR(0, 98, __pyx_L3_error)
     __pyx_v_xgrid = values[3];
     __pyx_v_ygrid = values[4];
     __pyx_v_window_size = values[5];
@@ -23000,7 +22995,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   /* "regression.pyx":98
  * @cython.cdivision(True)
  * @cython.profile(False)
- * cpdef guo_algorithm(imgs:np.ndarray, bgs, double[::1] p0,             # <<<<<<<<<<<<<<
+ * cpdef guo_algorithm(imgs:np.ndarray, bgs, float[::1] p0,             # <<<<<<<<<<<<<<
  *                     xgrid, ygrid, window_size=(7, 7), repeat=7, decomp_n=1):
  *     cdef int k, nb_imgs
  */
@@ -23052,7 +23047,7 @@ static PyObject *__pyx_pf_10regression_8guo_algorithm(CYTHON_UNUSED PyObject *__
 /* "regression.pyx":178
  * @cython.cdivision(True)
  * @cython.profile(False)
- * cpdef element_wise_maximum_2d(double [:,::1] array1, double[:] local_bgs):             # <<<<<<<<<<<<<<
+ * cpdef element_wise_maximum_2d(float [:,::1] array1, float[:] local_bgs):             # <<<<<<<<<<<<<<
  *     cdef int nb_imgs, img_size
  *     cdef Py_ssize_t i, j
  */
@@ -23138,14 +23133,14 @@ static PyObject *__pyx_f_10regression_element_wise_maximum_2d(__Pyx_memviewslice
       __pyx_t_9 = __pyx_v_i;
       __pyx_t_10 = __pyx_v_i;
       __pyx_t_11 = __pyx_v_j;
-      *((double *) ( /* dim=1 */ ((char *) (((double *) ( /* dim=0 */ (__pyx_v_array1.data + __pyx_t_10 * __pyx_v_array1.strides[0]) )) + __pyx_t_11)) )) = (((*((double *) ( /* dim=1 */ ((char *) (((double *) ( /* dim=0 */ (__pyx_v_array1.data + __pyx_t_7 * __pyx_v_array1.strides[0]) )) + __pyx_t_8)) ))) - (*((double *) ( /* dim=0 */ (__pyx_v_local_bgs.data + __pyx_t_9 * __pyx_v_local_bgs.strides[0]) )))) + 1e-2);
+      *((float *) ( /* dim=1 */ ((char *) (((float *) ( /* dim=0 */ (__pyx_v_array1.data + __pyx_t_10 * __pyx_v_array1.strides[0]) )) + __pyx_t_11)) )) = (((*((float *) ( /* dim=1 */ ((char *) (((float *) ( /* dim=0 */ (__pyx_v_array1.data + __pyx_t_7 * __pyx_v_array1.strides[0]) )) + __pyx_t_8)) ))) - (*((float *) ( /* dim=0 */ (__pyx_v_local_bgs.data + __pyx_t_9 * __pyx_v_local_bgs.strides[0]) )))) + 1e-2);
     }
   }
 
   /* "regression.pyx":178
  * @cython.cdivision(True)
  * @cython.profile(False)
- * cpdef element_wise_maximum_2d(double [:,::1] array1, double[:] local_bgs):             # <<<<<<<<<<<<<<
+ * cpdef element_wise_maximum_2d(float [:,::1] array1, float[:] local_bgs):             # <<<<<<<<<<<<<<
  *     cdef int nb_imgs, img_size
  *     cdef Py_ssize_t i, j
  */
@@ -23236,8 +23231,8 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       values[0] = __Pyx_Arg_FASTCALL(__pyx_args, 0);
       values[1] = __Pyx_Arg_FASTCALL(__pyx_args, 1);
     }
-    __pyx_v_array1 = __Pyx_PyObject_to_MemoryviewSlice_d_dc_double(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_array1.memview)) __PYX_ERR(0, 178, __pyx_L3_error)
-    __pyx_v_local_bgs = __Pyx_PyObject_to_MemoryviewSlice_ds_double(values[1], PyBUF_WRITABLE); if (unlikely(!__pyx_v_local_bgs.memview)) __PYX_ERR(0, 178, __pyx_L3_error)
+    __pyx_v_array1 = __Pyx_PyObject_to_MemoryviewSlice_d_dc_float(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_array1.memview)) __PYX_ERR(0, 178, __pyx_L3_error)
+    __pyx_v_local_bgs = __Pyx_PyObject_to_MemoryviewSlice_ds_float(values[1], PyBUF_WRITABLE); if (unlikely(!__pyx_v_local_bgs.memview)) __PYX_ERR(0, 178, __pyx_L3_error)
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
@@ -23303,7 +23298,7 @@ static PyObject *__pyx_pf_10regression_10element_wise_maximum_2d(CYTHON_UNUSED P
 /* "regression.pyx":194
  * @cython.cdivision(True)
  * @cython.profile(False)
- * cpdef element_wise_subtraction_2d(double [:,::1] array1, double [:,::1] array2):             # <<<<<<<<<<<<<<
+ * cpdef element_wise_subtraction_2d(float [:,::1] array1, float [:,::1] array2):             # <<<<<<<<<<<<<<
  *     assert(array1.shape[0] == array2.shape[0] and array1.shape[1] == array2.shape[1])
  *     cdef int nb_imgs, img_size
  */
@@ -23318,7 +23313,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
 static PyObject *__pyx_f_10regression_element_wise_subtraction_2d(__Pyx_memviewslice __pyx_v_array1, __Pyx_memviewslice __pyx_v_array2, CYTHON_UNUSED int __pyx_skip_dispatch) {
   int __pyx_v_nb_imgs;
   int __pyx_v_img_size;
-  double __pyx_v_local_bg;
+  float __pyx_v_local_bg;
   Py_ssize_t __pyx_v_i;
   Py_ssize_t __pyx_v_j;
   PyObject *__pyx_v_local_bgs = NULL;
@@ -23345,9 +23340,9 @@ static PyObject *__pyx_f_10regression_element_wise_subtraction_2d(__Pyx_memviews
   Py_ssize_t __pyx_t_18;
   Py_ssize_t __pyx_t_19;
   Py_ssize_t __pyx_t_20;
-  double __pyx_t_21;
-  double __pyx_t_22;
-  double __pyx_t_23;
+  float __pyx_t_21;
+  float __pyx_t_22;
+  float __pyx_t_23;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -23355,10 +23350,10 @@ static PyObject *__pyx_f_10regression_element_wise_subtraction_2d(__Pyx_memviews
 
   /* "regression.pyx":195
  * @cython.profile(False)
- * cpdef element_wise_subtraction_2d(double [:,::1] array1, double [:,::1] array2):
+ * cpdef element_wise_subtraction_2d(float [:,::1] array1, float [:,::1] array2):
  *     assert(array1.shape[0] == array2.shape[0] and array1.shape[1] == array2.shape[1])             # <<<<<<<<<<<<<<
  *     cdef int nb_imgs, img_size
- *     cdef double local_bg
+ *     cdef float local_bg
  */
   #ifndef CYTHON_WITHOUT_ASSERTIONS
   if (unlikely(__pyx_assertions_enabled())) {
@@ -23381,11 +23376,11 @@ static PyObject *__pyx_f_10regression_element_wise_subtraction_2d(__Pyx_memviews
   #endif
 
   /* "regression.pyx":199
- *     cdef double local_bg
+ *     cdef float local_bg
  *     cdef Py_ssize_t i, j
  *     nb_imgs = array1.shape[0]             # <<<<<<<<<<<<<<
  *     img_size = array1.shape[1]
- *     local_bgs = np.empty(nb_imgs, dtype=np.double)
+ *     local_bgs = np.empty(nb_imgs, dtype=np.float32)
  */
   __pyx_v_nb_imgs = (__pyx_v_array1.shape[0]);
 
@@ -23393,16 +23388,16 @@ static PyObject *__pyx_f_10regression_element_wise_subtraction_2d(__Pyx_memviews
  *     cdef Py_ssize_t i, j
  *     nb_imgs = array1.shape[0]
  *     img_size = array1.shape[1]             # <<<<<<<<<<<<<<
- *     local_bgs = np.empty(nb_imgs, dtype=np.double)
- *     cdef double[:] local_bgs_view = local_bgs
+ *     local_bgs = np.empty(nb_imgs, dtype=np.float32)
+ *     cdef float[:] local_bgs_view = local_bgs
  */
   __pyx_v_img_size = (__pyx_v_array1.shape[1]);
 
   /* "regression.pyx":201
  *     nb_imgs = array1.shape[0]
  *     img_size = array1.shape[1]
- *     local_bgs = np.empty(nb_imgs, dtype=np.double)             # <<<<<<<<<<<<<<
- *     cdef double[:] local_bgs_view = local_bgs
+ *     local_bgs = np.empty(nb_imgs, dtype=np.float32)             # <<<<<<<<<<<<<<
+ *     cdef float[:] local_bgs_view = local_bgs
  * 
  */
   __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_np); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 201, __pyx_L1_error)
@@ -23421,7 +23416,7 @@ static PyObject *__pyx_f_10regression_element_wise_subtraction_2d(__Pyx_memviews
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_GetModuleGlobalName(__pyx_t_6, __pyx_n_s_np); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 201, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
-  __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_double); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 201, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_t_6, __pyx_n_s_float32); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 201, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
   __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
   if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_dtype, __pyx_t_7) < 0) __PYX_ERR(0, 201, __pyx_L1_error)
@@ -23436,18 +23431,18 @@ static PyObject *__pyx_f_10regression_element_wise_subtraction_2d(__Pyx_memviews
 
   /* "regression.pyx":202
  *     img_size = array1.shape[1]
- *     local_bgs = np.empty(nb_imgs, dtype=np.double)
- *     cdef double[:] local_bgs_view = local_bgs             # <<<<<<<<<<<<<<
+ *     local_bgs = np.empty(nb_imgs, dtype=np.float32)
+ *     cdef float[:] local_bgs_view = local_bgs             # <<<<<<<<<<<<<<
  * 
  *     for i in range(nb_imgs):
  */
-  __pyx_t_8 = __Pyx_PyObject_to_MemoryviewSlice_ds_double(__pyx_v_local_bgs, PyBUF_WRITABLE); if (unlikely(!__pyx_t_8.memview)) __PYX_ERR(0, 202, __pyx_L1_error)
+  __pyx_t_8 = __Pyx_PyObject_to_MemoryviewSlice_ds_float(__pyx_v_local_bgs, PyBUF_WRITABLE); if (unlikely(!__pyx_t_8.memview)) __PYX_ERR(0, 202, __pyx_L1_error)
   __pyx_v_local_bgs_view = __pyx_t_8;
   __pyx_t_8.memview = NULL;
   __pyx_t_8.data = NULL;
 
   /* "regression.pyx":204
- *     cdef double[:] local_bgs_view = local_bgs
+ *     cdef float[:] local_bgs_view = local_bgs
  * 
  *     for i in range(nb_imgs):             # <<<<<<<<<<<<<<
  *         local_bg = 9999.0
@@ -23492,7 +23487,7 @@ static PyObject *__pyx_f_10regression_element_wise_subtraction_2d(__Pyx_memviews
       __pyx_t_18 = __pyx_v_j;
       __pyx_t_19 = __pyx_v_i;
       __pyx_t_20 = __pyx_v_j;
-      *((double *) ( /* dim=1 */ ((char *) (((double *) ( /* dim=0 */ (__pyx_v_array1.data + __pyx_t_19 * __pyx_v_array1.strides[0]) )) + __pyx_t_20)) )) = ((*((double *) ( /* dim=1 */ ((char *) (((double *) ( /* dim=0 */ (__pyx_v_array1.data + __pyx_t_15 * __pyx_v_array1.strides[0]) )) + __pyx_t_16)) ))) - (*((double *) ( /* dim=1 */ ((char *) (((double *) ( /* dim=0 */ (__pyx_v_array2.data + __pyx_t_17 * __pyx_v_array2.strides[0]) )) + __pyx_t_18)) ))));
+      *((float *) ( /* dim=1 */ ((char *) (((float *) ( /* dim=0 */ (__pyx_v_array1.data + __pyx_t_19 * __pyx_v_array1.strides[0]) )) + __pyx_t_20)) )) = ((*((float *) ( /* dim=1 */ ((char *) (((float *) ( /* dim=0 */ (__pyx_v_array1.data + __pyx_t_15 * __pyx_v_array1.strides[0]) )) + __pyx_t_16)) ))) - (*((float *) ( /* dim=1 */ ((char *) (((float *) ( /* dim=0 */ (__pyx_v_array2.data + __pyx_t_17 * __pyx_v_array2.strides[0]) )) + __pyx_t_18)) ))));
 
       /* "regression.pyx":208
  *         for j in range(img_size):
@@ -23503,7 +23498,7 @@ static PyObject *__pyx_f_10regression_element_wise_subtraction_2d(__Pyx_memviews
  */
       __pyx_t_18 = __pyx_v_i;
       __pyx_t_17 = __pyx_v_j;
-      __pyx_t_21 = (*((double *) ( /* dim=1 */ ((char *) (((double *) ( /* dim=0 */ (__pyx_v_array1.data + __pyx_t_18 * __pyx_v_array1.strides[0]) )) + __pyx_t_17)) )));
+      __pyx_t_21 = (*((float *) ( /* dim=1 */ ((char *) (((float *) ( /* dim=0 */ (__pyx_v_array1.data + __pyx_t_18 * __pyx_v_array1.strides[0]) )) + __pyx_t_17)) )));
       __pyx_t_22 = __pyx_v_local_bg;
       __pyx_t_1 = (__pyx_t_21 < __pyx_t_22);
       if (__pyx_t_1) {
@@ -23522,7 +23517,7 @@ static PyObject *__pyx_f_10regression_element_wise_subtraction_2d(__Pyx_memviews
  * 
  */
     __pyx_t_17 = __pyx_v_i;
-    *((double *) ( /* dim=0 */ (__pyx_v_local_bgs_view.data + __pyx_t_17 * __pyx_v_local_bgs_view.strides[0]) )) = __pyx_v_local_bg;
+    *((float *) ( /* dim=0 */ (__pyx_v_local_bgs_view.data + __pyx_t_17 * __pyx_v_local_bgs_view.strides[0]) )) = __pyx_v_local_bg;
   }
 
   /* "regression.pyx":210
@@ -23540,7 +23535,7 @@ static PyObject *__pyx_f_10regression_element_wise_subtraction_2d(__Pyx_memviews
   /* "regression.pyx":194
  * @cython.cdivision(True)
  * @cython.profile(False)
- * cpdef element_wise_subtraction_2d(double [:,::1] array1, double [:,::1] array2):             # <<<<<<<<<<<<<<
+ * cpdef element_wise_subtraction_2d(float [:,::1] array1, float [:,::1] array2):             # <<<<<<<<<<<<<<
  *     assert(array1.shape[0] == array2.shape[0] and array1.shape[1] == array2.shape[1])
  *     cdef int nb_imgs, img_size
  */
@@ -23642,8 +23637,8 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       values[0] = __Pyx_Arg_FASTCALL(__pyx_args, 0);
       values[1] = __Pyx_Arg_FASTCALL(__pyx_args, 1);
     }
-    __pyx_v_array1 = __Pyx_PyObject_to_MemoryviewSlice_d_dc_double(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_array1.memview)) __PYX_ERR(0, 194, __pyx_L3_error)
-    __pyx_v_array2 = __Pyx_PyObject_to_MemoryviewSlice_d_dc_double(values[1], PyBUF_WRITABLE); if (unlikely(!__pyx_v_array2.memview)) __PYX_ERR(0, 194, __pyx_L3_error)
+    __pyx_v_array1 = __Pyx_PyObject_to_MemoryviewSlice_d_dc_float(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_array1.memview)) __PYX_ERR(0, 194, __pyx_L3_error)
+    __pyx_v_array2 = __Pyx_PyObject_to_MemoryviewSlice_d_dc_float(values[1], PyBUF_WRITABLE); if (unlikely(!__pyx_v_array2.memview)) __PYX_ERR(0, 194, __pyx_L3_error)
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
@@ -23709,7 +23704,7 @@ static PyObject *__pyx_pf_10regression_12element_wise_subtraction_2d(CYTHON_UNUS
 /* "regression.pyx":218
  * @cython.cdivision(True)
  * @cython.profile(False)
- * cpdef matrix_pow_2d(double [:,::1] array1, int power):             # <<<<<<<<<<<<<<
+ * cpdef matrix_pow_2d(float [:,::1] array1, int power):             # <<<<<<<<<<<<<<
  *     cdef int row_size, col_size
  *     cdef Py_ssize_t i, j, k
  */
@@ -23727,7 +23722,7 @@ static PyObject *__pyx_f_10regression_matrix_pow_2d(__Pyx_memviewslice __pyx_v_a
   Py_ssize_t __pyx_v_i;
   Py_ssize_t __pyx_v_j;
   CYTHON_UNUSED Py_ssize_t __pyx_v_k;
-  double __pyx_v_tmp;
+  float __pyx_v_tmp;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   int __pyx_t_1;
@@ -23751,7 +23746,7 @@ static PyObject *__pyx_f_10regression_matrix_pow_2d(__Pyx_memviewslice __pyx_v_a
 
   /* "regression.pyx":222
  *     cdef Py_ssize_t i, j, k
- *     cdef double tmp
+ *     cdef float tmp
  *     row_size = array1.shape[0]             # <<<<<<<<<<<<<<
  *     col_size = array1.shape[1]
  *     assert(power >= 0)
@@ -23759,7 +23754,7 @@ static PyObject *__pyx_f_10regression_matrix_pow_2d(__Pyx_memviewslice __pyx_v_a
   __pyx_v_row_size = (__pyx_v_array1.shape[0]);
 
   /* "regression.pyx":223
- *     cdef double tmp
+ *     cdef float tmp
  *     row_size = array1.shape[0]
  *     col_size = array1.shape[1]             # <<<<<<<<<<<<<<
  *     assert(power >= 0)
@@ -23829,7 +23824,7 @@ static PyObject *__pyx_f_10regression_matrix_pow_2d(__Pyx_memviewslice __pyx_v_a
  */
         __pyx_t_8 = __pyx_v_i;
         __pyx_t_9 = __pyx_v_j;
-        *((double *) ( /* dim=1 */ ((char *) (((double *) ( /* dim=0 */ (__pyx_v_array1.data + __pyx_t_8 * __pyx_v_array1.strides[0]) )) + __pyx_t_9)) )) = 1.0;
+        *((float *) ( /* dim=1 */ ((char *) (((float *) ( /* dim=0 */ (__pyx_v_array1.data + __pyx_t_8 * __pyx_v_array1.strides[0]) )) + __pyx_t_9)) )) = 1.0;
       }
     }
 
@@ -23895,7 +23890,7 @@ static PyObject *__pyx_f_10regression_matrix_pow_2d(__Pyx_memviewslice __pyx_v_a
  */
         __pyx_t_9 = __pyx_v_i;
         __pyx_t_8 = __pyx_v_j;
-        __pyx_v_tmp = (*((double *) ( /* dim=1 */ ((char *) (((double *) ( /* dim=0 */ (__pyx_v_array1.data + __pyx_t_9 * __pyx_v_array1.strides[0]) )) + __pyx_t_8)) )));
+        __pyx_v_tmp = (*((float *) ( /* dim=1 */ ((char *) (((float *) ( /* dim=0 */ (__pyx_v_array1.data + __pyx_t_9 * __pyx_v_array1.strides[0]) )) + __pyx_t_8)) )));
 
         /* "regression.pyx":234
  *             for j in range(col_size):
@@ -23917,7 +23912,7 @@ static PyObject *__pyx_f_10regression_matrix_pow_2d(__Pyx_memviewslice __pyx_v_a
           __pyx_t_9 = __pyx_v_j;
           __pyx_t_13 = __pyx_v_i;
           __pyx_t_14 = __pyx_v_j;
-          *((double *) ( /* dim=1 */ ((char *) (((double *) ( /* dim=0 */ (__pyx_v_array1.data + __pyx_t_13 * __pyx_v_array1.strides[0]) )) + __pyx_t_14)) )) = ((*((double *) ( /* dim=1 */ ((char *) (((double *) ( /* dim=0 */ (__pyx_v_array1.data + __pyx_t_8 * __pyx_v_array1.strides[0]) )) + __pyx_t_9)) ))) * __pyx_v_tmp);
+          *((float *) ( /* dim=1 */ ((char *) (((float *) ( /* dim=0 */ (__pyx_v_array1.data + __pyx_t_13 * __pyx_v_array1.strides[0]) )) + __pyx_t_14)) )) = ((*((float *) ( /* dim=1 */ ((char *) (((float *) ( /* dim=0 */ (__pyx_v_array1.data + __pyx_t_8 * __pyx_v_array1.strides[0]) )) + __pyx_t_9)) ))) * __pyx_v_tmp);
         }
       }
     }
@@ -23935,7 +23930,7 @@ static PyObject *__pyx_f_10regression_matrix_pow_2d(__Pyx_memviewslice __pyx_v_a
   /* "regression.pyx":218
  * @cython.cdivision(True)
  * @cython.profile(False)
- * cpdef matrix_pow_2d(double [:,::1] array1, int power):             # <<<<<<<<<<<<<<
+ * cpdef matrix_pow_2d(float [:,::1] array1, int power):             # <<<<<<<<<<<<<<
  *     cdef int row_size, col_size
  *     cdef Py_ssize_t i, j, k
  */
@@ -24031,7 +24026,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
       values[0] = __Pyx_Arg_FASTCALL(__pyx_args, 0);
       values[1] = __Pyx_Arg_FASTCALL(__pyx_args, 1);
     }
-    __pyx_v_array1 = __Pyx_PyObject_to_MemoryviewSlice_d_dc_double(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_array1.memview)) __PYX_ERR(0, 218, __pyx_L3_error)
+    __pyx_v_array1 = __Pyx_PyObject_to_MemoryviewSlice_d_dc_float(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_array1.memview)) __PYX_ERR(0, 218, __pyx_L3_error)
     __pyx_v_power = __Pyx_PyInt_As_int(values[1]); if (unlikely((__pyx_v_power == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 218, __pyx_L3_error)
   }
   goto __pyx_L6_skip;
@@ -25134,7 +25129,6 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_n_s_decomp_n, __pyx_k_decomp_n, sizeof(__pyx_k_decomp_n), 0, 0, 1, 1},
     {&__pyx_n_s_dict, __pyx_k_dict, sizeof(__pyx_k_dict), 0, 0, 1, 1},
     {&__pyx_kp_u_disable, __pyx_k_disable, sizeof(__pyx_k_disable), 0, 1, 0, 0},
-    {&__pyx_n_s_double, __pyx_k_double, sizeof(__pyx_k_double), 0, 0, 1, 1},
     {&__pyx_n_s_dtype, __pyx_k_dtype, sizeof(__pyx_k_dtype), 0, 0, 1, 1},
     {&__pyx_n_s_dtype_is_object, __pyx_k_dtype_is_object, sizeof(__pyx_k_dtype_is_object), 0, 0, 1, 1},
     {&__pyx_n_s_element_wise_maximum_2d, __pyx_k_element_wise_maximum_2d, sizeof(__pyx_k_element_wise_maximum_2d), 0, 0, 1, 1},
@@ -25148,7 +25142,7 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_n_s_extend, __pyx_k_extend, sizeof(__pyx_k_extend), 0, 0, 1, 1},
     {&__pyx_n_s_flags, __pyx_k_flags, sizeof(__pyx_k_flags), 0, 0, 1, 1},
     {&__pyx_n_s_flatten, __pyx_k_flatten, sizeof(__pyx_k_flatten), 0, 0, 1, 1},
-    {&__pyx_n_s_float64, __pyx_k_float64, sizeof(__pyx_k_float64), 0, 0, 1, 1},
+    {&__pyx_n_s_float32, __pyx_k_float32, sizeof(__pyx_k_float32), 0, 0, 1, 1},
     {&__pyx_n_s_format, __pyx_k_format, sizeof(__pyx_k_format), 0, 0, 1, 1},
     {&__pyx_n_s_fortran, __pyx_k_fortran, sizeof(__pyx_k_fortran), 0, 0, 1, 1},
     {&__pyx_n_u_fortran, __pyx_k_fortran, sizeof(__pyx_k_fortran), 0, 1, 0, 1},
@@ -25182,7 +25176,6 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_n_s_matrix_pow_2d, __pyx_k_matrix_pow_2d, sizeof(__pyx_k_matrix_pow_2d), 0, 0, 1, 1},
     {&__pyx_n_s_memview, __pyx_k_memview, sizeof(__pyx_k_memview), 0, 0, 1, 1},
     {&__pyx_n_s_mode, __pyx_k_mode, sizeof(__pyx_k_mode), 0, 0, 1, 1},
-    {&__pyx_kp_s_module_regression_pyx, __pyx_k_module_regression_pyx, sizeof(__pyx_k_module_regression_pyx), 0, 0, 1, 0},
     {&__pyx_n_s_name, __pyx_k_name, sizeof(__pyx_k_name), 0, 0, 1, 1},
     {&__pyx_n_s_name_2, __pyx_k_name_2, sizeof(__pyx_k_name_2), 0, 0, 1, 1},
     {&__pyx_n_s_ndim, __pyx_k_ndim, sizeof(__pyx_k_ndim), 0, 0, 1, 1},
@@ -25215,6 +25208,7 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_n_s_reduce_ex, __pyx_k_reduce_ex, sizeof(__pyx_k_reduce_ex), 0, 0, 1, 1},
     {&__pyx_n_s_register, __pyx_k_register, sizeof(__pyx_k_register), 0, 0, 1, 1},
     {&__pyx_n_s_regression, __pyx_k_regression, sizeof(__pyx_k_regression), 0, 0, 1, 1},
+    {&__pyx_kp_s_regression_pyx, __pyx_k_regression_pyx, sizeof(__pyx_k_regression_pyx), 0, 0, 1, 0},
     {&__pyx_n_s_repeat, __pyx_k_repeat, sizeof(__pyx_k_repeat), 0, 0, 1, 1},
     {&__pyx_n_s_reshape, __pyx_k_reshape, sizeof(__pyx_k_reshape), 0, 0, 1, 1},
     {&__pyx_n_s_rmatmul, __pyx_k_rmatmul, sizeof(__pyx_k_rmatmul), 0, 0, 1, 1},
@@ -25393,10 +25387,10 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
 
   /* "regression.pyx":99
  * @cython.profile(False)
- * cpdef guo_algorithm(imgs:np.ndarray, bgs, double[::1] p0,
+ * cpdef guo_algorithm(imgs:np.ndarray, bgs, float[::1] p0,
  *                     xgrid, ygrid, window_size=(7, 7), repeat=7, decomp_n=1):             # <<<<<<<<<<<<<<
  *     cdef int k, nb_imgs
- *     cdef double [:,::1] imgs_view, bgs_view
+ *     cdef float [:,::1] imgs_view, bgs_view
  */
   __pyx_tuple__18 = PyTuple_Pack(2, __pyx_int_7, __pyx_int_7); if (unlikely(!__pyx_tuple__18)) __PYX_ERR(0, 99, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__18);
@@ -25513,19 +25507,19 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __pyx_tuple__30 = PyTuple_Pack(5, __pyx_n_s_X, __pyx_n_s_y, __pyx_n_s_A, __pyx_n_s_b, __pyx_n_s_beta); if (unlikely(!__pyx_tuple__30)) __PYX_ERR(0, 10, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__30);
   __Pyx_GIVEREF(__pyx_tuple__30);
-  __pyx_codeobj__31 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 5, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__30, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_module_regression_pyx, __pyx_n_s_ord_lu, 10, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__31)) __PYX_ERR(0, 10, __pyx_L1_error)
+  __pyx_codeobj__31 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 5, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__30, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_regression_pyx, __pyx_n_s_ord_lu, 10, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__31)) __PYX_ERR(0, 10, __pyx_L1_error)
 
   /* "regression.pyx":23
  * @cython.cdivision(True)
  * @cython.profile(False)
- * cpdef pack_vars(double[::1] vars, int len_img):             # <<<<<<<<<<<<<<
- *     cdef double a,b,c,d,e,f
+ * cpdef pack_vars(float[::1] vars, int len_img):             # <<<<<<<<<<<<<<
+ *     cdef float a,b,c,d,e,f
  *     cdef Py_ssize_t i
  */
   __pyx_tuple__32 = PyTuple_Pack(2, __pyx_n_s_vars, __pyx_n_s_len_img); if (unlikely(!__pyx_tuple__32)) __PYX_ERR(0, 23, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__32);
   __Pyx_GIVEREF(__pyx_tuple__32);
-  __pyx_codeobj__33 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__32, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_module_regression_pyx, __pyx_n_s_pack_vars, 23, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__33)) __PYX_ERR(0, 23, __pyx_L1_error)
+  __pyx_codeobj__33 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__32, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_regression_pyx, __pyx_n_s_pack_vars, 23, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__33)) __PYX_ERR(0, 23, __pyx_L1_error)
 
   /* "regression.pyx":51
  * @cython.cdivision(True)
@@ -25537,7 +25531,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __pyx_tuple__34 = PyTuple_Pack(2, __pyx_n_s_matrix, __pyx_n_s_q); if (unlikely(!__pyx_tuple__34)) __PYX_ERR(0, 51, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__34);
   __Pyx_GIVEREF(__pyx_tuple__34);
-  __pyx_codeobj__35 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__34, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_module_regression_pyx, __pyx_n_s_matrix_decomp, 51, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__35)) __PYX_ERR(0, 51, __pyx_L1_error)
+  __pyx_codeobj__35 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__34, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_regression_pyx, __pyx_n_s_matrix_decomp, 51, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__35)) __PYX_ERR(0, 51, __pyx_L1_error)
 
   /* "regression.pyx":63
  * @cython.cdivision(True)
@@ -25549,19 +25543,19 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __pyx_tuple__36 = PyTuple_Pack(2, __pyx_n_s_coefs, __pyx_n_s_window_size); if (unlikely(!__pyx_tuple__36)) __PYX_ERR(0, 63, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__36);
   __Pyx_GIVEREF(__pyx_tuple__36);
-  __pyx_codeobj__37 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__36, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_module_regression_pyx, __pyx_n_s_unpack_coefs, 63, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__37)) __PYX_ERR(0, 63, __pyx_L1_error)
+  __pyx_codeobj__37 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__36, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_regression_pyx, __pyx_n_s_unpack_coefs, 63, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__37)) __PYX_ERR(0, 63, __pyx_L1_error)
 
   /* "regression.pyx":98
  * @cython.cdivision(True)
  * @cython.profile(False)
- * cpdef guo_algorithm(imgs:np.ndarray, bgs, double[::1] p0,             # <<<<<<<<<<<<<<
+ * cpdef guo_algorithm(imgs:np.ndarray, bgs, float[::1] p0,             # <<<<<<<<<<<<<<
  *                     xgrid, ygrid, window_size=(7, 7), repeat=7, decomp_n=1):
  *     cdef int k, nb_imgs
  */
   __pyx_tuple__38 = PyTuple_Pack(8, __pyx_n_s_imgs, __pyx_n_s_bgs, __pyx_n_s_p0, __pyx_n_s_xgrid, __pyx_n_s_ygrid, __pyx_n_s_window_size, __pyx_n_s_repeat, __pyx_n_s_decomp_n); if (unlikely(!__pyx_tuple__38)) __PYX_ERR(0, 98, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__38);
   __Pyx_GIVEREF(__pyx_tuple__38);
-  __pyx_codeobj__39 = (PyObject*)__Pyx_PyCode_New(8, 0, 0, 8, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__38, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_module_regression_pyx, __pyx_n_s_guo_algorithm, 98, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__39)) __PYX_ERR(0, 98, __pyx_L1_error)
+  __pyx_codeobj__39 = (PyObject*)__Pyx_PyCode_New(8, 0, 0, 8, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__38, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_regression_pyx, __pyx_n_s_guo_algorithm, 98, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__39)) __PYX_ERR(0, 98, __pyx_L1_error)
   __pyx_tuple__40 = PyTuple_Pack(3, __pyx_tuple__18, __pyx_int_7, __pyx_int_1); if (unlikely(!__pyx_tuple__40)) __PYX_ERR(0, 98, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__40);
   __Pyx_GIVEREF(__pyx_tuple__40);
@@ -25569,38 +25563,38 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   /* "regression.pyx":178
  * @cython.cdivision(True)
  * @cython.profile(False)
- * cpdef element_wise_maximum_2d(double [:,::1] array1, double[:] local_bgs):             # <<<<<<<<<<<<<<
+ * cpdef element_wise_maximum_2d(float [:,::1] array1, float[:] local_bgs):             # <<<<<<<<<<<<<<
  *     cdef int nb_imgs, img_size
  *     cdef Py_ssize_t i, j
  */
   __pyx_tuple__41 = PyTuple_Pack(2, __pyx_n_s_array1, __pyx_n_s_local_bgs); if (unlikely(!__pyx_tuple__41)) __PYX_ERR(0, 178, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__41);
   __Pyx_GIVEREF(__pyx_tuple__41);
-  __pyx_codeobj__42 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__41, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_module_regression_pyx, __pyx_n_s_element_wise_maximum_2d, 178, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__42)) __PYX_ERR(0, 178, __pyx_L1_error)
+  __pyx_codeobj__42 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__41, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_regression_pyx, __pyx_n_s_element_wise_maximum_2d, 178, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__42)) __PYX_ERR(0, 178, __pyx_L1_error)
 
   /* "regression.pyx":194
  * @cython.cdivision(True)
  * @cython.profile(False)
- * cpdef element_wise_subtraction_2d(double [:,::1] array1, double [:,::1] array2):             # <<<<<<<<<<<<<<
+ * cpdef element_wise_subtraction_2d(float [:,::1] array1, float [:,::1] array2):             # <<<<<<<<<<<<<<
  *     assert(array1.shape[0] == array2.shape[0] and array1.shape[1] == array2.shape[1])
  *     cdef int nb_imgs, img_size
  */
   __pyx_tuple__43 = PyTuple_Pack(2, __pyx_n_s_array1, __pyx_n_s_array2); if (unlikely(!__pyx_tuple__43)) __PYX_ERR(0, 194, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__43);
   __Pyx_GIVEREF(__pyx_tuple__43);
-  __pyx_codeobj__44 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__43, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_module_regression_pyx, __pyx_n_s_element_wise_subtraction_2d, 194, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__44)) __PYX_ERR(0, 194, __pyx_L1_error)
+  __pyx_codeobj__44 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__43, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_regression_pyx, __pyx_n_s_element_wise_subtraction_2d, 194, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__44)) __PYX_ERR(0, 194, __pyx_L1_error)
 
   /* "regression.pyx":218
  * @cython.cdivision(True)
  * @cython.profile(False)
- * cpdef matrix_pow_2d(double [:,::1] array1, int power):             # <<<<<<<<<<<<<<
+ * cpdef matrix_pow_2d(float [:,::1] array1, int power):             # <<<<<<<<<<<<<<
  *     cdef int row_size, col_size
  *     cdef Py_ssize_t i, j, k
  */
   __pyx_tuple__45 = PyTuple_Pack(2, __pyx_n_s_array1, __pyx_n_s_power); if (unlikely(!__pyx_tuple__45)) __PYX_ERR(0, 218, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__45);
   __Pyx_GIVEREF(__pyx_tuple__45);
-  __pyx_codeobj__46 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__45, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_module_regression_pyx, __pyx_n_s_matrix_pow_2d, 218, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__46)) __PYX_ERR(0, 218, __pyx_L1_error)
+  __pyx_codeobj__46 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__45, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_regression_pyx, __pyx_n_s_matrix_pow_2d, 218, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__46)) __PYX_ERR(0, 218, __pyx_L1_error)
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;
@@ -26728,8 +26722,8 @@ if (!__Pyx_RefNanny) {
   /* "regression.pyx":23
  * @cython.cdivision(True)
  * @cython.profile(False)
- * cpdef pack_vars(double[::1] vars, int len_img):             # <<<<<<<<<<<<<<
- *     cdef double a,b,c,d,e,f
+ * cpdef pack_vars(float[::1] vars, int len_img):             # <<<<<<<<<<<<<<
+ *     cdef float a,b,c,d,e,f
  *     cdef Py_ssize_t i
  */
   __pyx_t_7 = __Pyx_CyFunction_New(&__pyx_mdef_10regression_3pack_vars, 0, __pyx_n_s_pack_vars, NULL, __pyx_n_s_regression, __pyx_d, ((PyObject *)__pyx_codeobj__33)); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 23, __pyx_L1_error)
@@ -26764,7 +26758,7 @@ if (!__Pyx_RefNanny) {
   /* "regression.pyx":98
  * @cython.cdivision(True)
  * @cython.profile(False)
- * cpdef guo_algorithm(imgs:np.ndarray, bgs, double[::1] p0,             # <<<<<<<<<<<<<<
+ * cpdef guo_algorithm(imgs:np.ndarray, bgs, float[::1] p0,             # <<<<<<<<<<<<<<
  *                     xgrid, ygrid, window_size=(7, 7), repeat=7, decomp_n=1):
  *     cdef int k, nb_imgs
  */
@@ -26782,7 +26776,7 @@ if (!__Pyx_RefNanny) {
   /* "regression.pyx":178
  * @cython.cdivision(True)
  * @cython.profile(False)
- * cpdef element_wise_maximum_2d(double [:,::1] array1, double[:] local_bgs):             # <<<<<<<<<<<<<<
+ * cpdef element_wise_maximum_2d(float [:,::1] array1, float[:] local_bgs):             # <<<<<<<<<<<<<<
  *     cdef int nb_imgs, img_size
  *     cdef Py_ssize_t i, j
  */
@@ -26794,7 +26788,7 @@ if (!__Pyx_RefNanny) {
   /* "regression.pyx":194
  * @cython.cdivision(True)
  * @cython.profile(False)
- * cpdef element_wise_subtraction_2d(double [:,::1] array1, double [:,::1] array2):             # <<<<<<<<<<<<<<
+ * cpdef element_wise_subtraction_2d(float [:,::1] array1, float [:,::1] array2):             # <<<<<<<<<<<<<<
  *     assert(array1.shape[0] == array2.shape[0] and array1.shape[1] == array2.shape[1])
  *     cdef int nb_imgs, img_size
  */
@@ -26806,7 +26800,7 @@ if (!__Pyx_RefNanny) {
   /* "regression.pyx":218
  * @cython.cdivision(True)
  * @cython.profile(False)
- * cpdef matrix_pow_2d(double [:,::1] array1, int power):             # <<<<<<<<<<<<<<
+ * cpdef matrix_pow_2d(float [:,::1] array1, int power):             # <<<<<<<<<<<<<<
  *     cdef int row_size, col_size
  *     cdef Py_ssize_t i, j, k
  */
@@ -32890,7 +32884,7 @@ no_fail:
 }
 
 /* ObjectToMemviewSlice */
-  static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_dc_double(PyObject *obj, int writable_flag) {
+  static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_dc_float(PyObject *obj, int writable_flag) {
     __Pyx_memviewslice result = { 0, 0, { 0 }, { 0 }, { 0 } };
     __Pyx_BufFmt_StackElem stack[1];
     int axes_specs[] = { (__Pyx_MEMVIEW_DIRECT | __Pyx_MEMVIEW_CONTIG) };
@@ -32901,7 +32895,7 @@ no_fail:
     }
     retcode = __Pyx_ValidateAndInit_memviewslice(axes_specs, __Pyx_IS_C_CONTIG,
                                                  (PyBUF_C_CONTIGUOUS | PyBUF_FORMAT) | writable_flag, 1,
-                                                 &__Pyx_TypeInfo_double, stack,
+                                                 &__Pyx_TypeInfo_float, stack,
                                                  &result, obj);
     if (unlikely(retcode == -1))
         goto __pyx_fail;
@@ -32935,7 +32929,7 @@ __pyx_fail:
     }
 
 /* ObjectToMemviewSlice */
-  static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_d_dc_double(PyObject *obj, int writable_flag) {
+  static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_d_dc_float(PyObject *obj, int writable_flag) {
     __Pyx_memviewslice result = { 0, 0, { 0 }, { 0 }, { 0 } };
     __Pyx_BufFmt_StackElem stack[1];
     int axes_specs[] = { (__Pyx_MEMVIEW_DIRECT | __Pyx_MEMVIEW_FOLLOW), (__Pyx_MEMVIEW_DIRECT | __Pyx_MEMVIEW_CONTIG) };
@@ -32946,7 +32940,7 @@ __pyx_fail:
     }
     retcode = __Pyx_ValidateAndInit_memviewslice(axes_specs, __Pyx_IS_C_CONTIG,
                                                  (PyBUF_C_CONTIGUOUS | PyBUF_FORMAT) | writable_flag, 2,
-                                                 &__Pyx_TypeInfo_double, stack,
+                                                 &__Pyx_TypeInfo_float, stack,
                                                  &result, obj);
     if (unlikely(retcode == -1))
         goto __pyx_fail;
@@ -32958,7 +32952,7 @@ __pyx_fail:
 }
 
 /* ObjectToMemviewSlice */
-  static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_double(PyObject *obj, int writable_flag) {
+  static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_float(PyObject *obj, int writable_flag) {
     __Pyx_memviewslice result = { 0, 0, { 0 }, { 0 }, { 0 } };
     __Pyx_BufFmt_StackElem stack[1];
     int axes_specs[] = { (__Pyx_MEMVIEW_DIRECT | __Pyx_MEMVIEW_STRIDED) };
@@ -32969,7 +32963,7 @@ __pyx_fail:
     }
     retcode = __Pyx_ValidateAndInit_memviewslice(axes_specs, 0,
                                                  PyBUF_RECORDS_RO | writable_flag, 1,
-                                                 &__Pyx_TypeInfo_double, stack,
+                                                 &__Pyx_TypeInfo_float, stack,
                                                  &result, obj);
     if (unlikely(retcode == -1))
         goto __pyx_fail;
