@@ -7,7 +7,7 @@
     DEFLATION_LOOP_IN_BACKWARD = 0
     SIGMA = 4.0
     LOC_VISUALIZATION = False
-    GPU_LOC = False
+    GPU_LOC = True
     
     
     # TRACKING
