@@ -1,4 +1,4 @@
-    VIDEO=./inputs/alpha_test11.tiff
+    VIDEO=./inputs/sample0.tiff
     OUTPUT_DIR=./outputs
     
     # LOCALIZATION
@@ -7,7 +7,7 @@
     DEFLATION_LOOP_IN_BACKWARD = 0
     SIGMA = 4.0
     LOC_VISUALIZATION = False
-    GPU_LOC = True
+    GPU_LOC = False
     
     
     # TRACKING
