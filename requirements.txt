@@ -1,10 +1,9 @@
 numpy
 numba
-network
+networkx
 pandas
 scikit-learn
 scipy
-tensorflow[and-cuda]==2.14.1
 opencv-python
 matplotlib
 imageio
@@ -12,3 +11,4 @@ tifffile
 pillow
 tqdm
 cupy-cuda12x
+tensorflow[and-cuda]==2.14.1
