@@ -12,7 +12,7 @@
 > PRE-REQUISITE: package installation by running installation.py</br>
 > The versions of python and Ubuntu is fixed due to the compatibility of tensorflow 2.14</br>
 > with GPU off on tracking, FreeTrace only considers standard brownian motion for inferences.</br>
-> on MacOS, FreeTrace can infereces with tensorflow-metal, however the speed is slower without Cuda.</br>
+> on MacOS, FreeTrace can inference in tracking with tensorflow-metal, however the speed is slower.</br>
 
 ------------------------------------------------------------------------------------------------------------------</br>
 <b>*** For the video prediction of [AnDi2 Challenge](http://andi-challenge.org/challenge-2024/#andi2seminar) final-phase datasets, please check [ANDI2_PRESET](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/ANDI2_PRESET). ***</b></br>
