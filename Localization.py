@@ -324,7 +324,7 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                 else:
                     crop_imgs = np.array(image_pad.image_cropping(extended_imgs, extend, window_size[0], window_size[1], shift=shift), dtype=np.float32)
                     bg_squared_sums = window_size[0] * window_size[1] * bg_means**2
-                    c = np.array(image_pad.likelihood(crop_imgs.astype(np.float64), g_grid.astype(np.float64), bg_squared_sums.astype(np.float64), bg_means.astype(np.float64), int(window_size[0]), int(window_size[1])), dtype=np.float32)
+                    c = np.array(image_pad.likelihood(crop_imgs, g_grid, bg_squared_sums, bg_means, int(window_size[0]), int(window_size[1])), dtype=np.float32)
 
                 all_crop_imgs[window_size[0]] = crop_imgs
                 h_map = np.array(image_pad.mapping(c, imgs.shape[0], imgs.shape[1], imgs.shape[2], shift))
