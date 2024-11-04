@@ -63,29 +63,14 @@ class RegModel:
         return k_preds.flatten()
 
     def model_selection(self, length):
-        """
-        if length < 8:
-            reg_model_num = self.reg_model_nums[0]
-        elif length < 12:
-            reg_model_num = self.reg_model_nums[1]
-        elif length < 18:
-            reg_model_num = self.reg_model_nums[2]
-        elif length < 36:
-            reg_model_num = self.reg_model_nums[3]
-        elif length < 72:
-            reg_model_num = self.reg_model_nums[4]
-        elif length < 140:
-            reg_model_num = self.reg_model_nums[5]
-        else:
-            reg_model_num = self.reg_model_nums[6]
-        """
-        if length < 8:
-            reg_model_num = self.reg_model_nums[0]
-        elif length < 12:
-            reg_model_num = self.reg_model_nums[1]
-        else:
-            reg_model_num = self.reg_model_nums[2]
-        return reg_model_num
+        index = 0
+        crits = [8, 12, 18, 36, 72, 140]
+        while True:
+            if length < crits[index]:
+                return self.reg_model_nums[index]
+            index += 1
+            if index >= len(crits):
+                return self.reg_model_nums[-1]
 
     def log_displacements(self, xs, ys):
         disps = self.displacement(xs, ys)
