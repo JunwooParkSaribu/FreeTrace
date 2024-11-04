@@ -93,12 +93,12 @@ class RegModel:
     def cvt_2_signal(self, x, y):
         rad_list, xs_raw, ys_raw = self.make_alpha_inputs(x, y)
         x = x / (np.std(x))
-        x = np.cumsum(self.subtraction(x)) / x.shape[0]
+        x = np.cumsum(self.abs_subtraction(x)) / x.shape[0]
         y = y / (np.std(y))
-        y = np.cumsum(self.subtraction(y)) / y.shape[0]
+        y = np.cumsum(self.abs_subtraction(y)) / y.shape[0]
         return np.transpose(np.stack((x, rad_list, xs_raw))), np.transpose(np.stack((y, rad_list, ys_raw)))
 
-    def subtraction(self, xs):
+    def abs_subtraction(self, xs):
         assert xs.ndim == 1
         uncum_list = [0.]
         for i in range(1, xs.shape[0]):
