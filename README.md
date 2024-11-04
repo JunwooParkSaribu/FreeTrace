@@ -6,7 +6,7 @@
 > - C compiler (clang)</br>
 > - Python 3.10/11, python-dev, pip</br>
 > - GPU & Cuda12 on Linux/WSL2(Ubuntu22.04) (recommended)</br>
-> - With GPU, Pre-trained [models](https://drive.google.com/file/d/1WF0eW8Co23-mKQiHNH-KHHK_lJiIW-WC/view?usp=sharing) (recommended)</br>
+> - With GPU, Pre-trained [models](https://drive.google.com/file/d/1uPLtL9USZPIJtYvaBSYN-xGyDR6k1ifl/view?usp=drive_link) (recommended)</br>
 
 > [!NOTE]  
 > PRE-REQUISITE: package installation by running installation.py</br>
