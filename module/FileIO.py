@@ -388,7 +388,7 @@ def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False, batch=False)
             if track_:
                 print(f'***** Cuda: X, Tensorflow: X, Tracking performs fast/incomplete inferences. ******') 
             else:
-                print(f'**** Cuda: X, Tensorflow: X, Localization performs slow/complete inferences. ****') 
+                print(f'***** Cuda: X, Tensorflow: X, Localization performs slow/complete inferences. ****') 
         print(f'**********************************************************************************\n')
         
     if batch and verbose:
