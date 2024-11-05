@@ -1,6 +1,5 @@
 import os
 import sys
-import glob
 import subprocess
 
 
@@ -24,7 +23,7 @@ if found_head_file == 0 :
                 found_head_file = 1
 
 if include_path is None and found_head_file == 0:
-    sys.exit(f'**** Please install python-dev to install modules, Python.h header file was not found. *****')
+    sys.exit(f'***** Please install python-dev to install modules, Python.h header file was not found. *****')
 
 if not os.path.exists(f'./models/theta_hat.npz'):
     print(f'***** Parmeters[theta_hat.npz] are not found for trajectory inference, please contact author for the pretrained models. *****\n')
