@@ -1,11 +1,30 @@
 import os
 import sys
+import glob
 import subprocess
 
 
-include_path = '/usr/include/python3.10'
-#include_path = '/Library/Frameworks/Python.framework/Versions/3.10/include/python3.10'
 non_installed_packages = {}
+include_path = None
+found_head_file = 0
+#include_path = '/usr/include/python3.10'
+#include_path = '/Library/Frameworks/Python.framework/Versions/3.10/include/python3.10'
+
+for root, dirs, files in os.walk("/usr", topdown=False):
+    for name in files:
+        if 'Python.h' in name:
+            include_path = f'{root}'
+            found_head_file = 1
+
+if found_head_file == 0 :
+    for root, dirs, files in os.walk("/Library", topdown=False):
+        for name in files:
+            if 'Python.h' in name:
+                include_path = f'{root}'
+                found_head_file = 1
+
+if include_path is None and found_head_file == 0:
+    sys.exit(f'**** Please install python-dev to install modules, Python.h header file was not found. *****')
 
 if not os.path.exists(f'./models/theta_hat.npz'):
     print(f'***** Parmeters[theta_hat.npz] are not found for trajectory inference, please contact author for the pretrained models. *****\n')
