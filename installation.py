@@ -9,6 +9,7 @@ found_head_file = 0
 #include_path = '/usr/include/python3.10'
 #include_path = '/Library/Frameworks/Python.framework/Versions/3.10/include/python3.10'
 
+
 for root, dirs, files in os.walk("/usr", topdown=False):
     for name in files:
         if 'Python.h' in name:
