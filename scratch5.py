@@ -57,7 +57,13 @@ def cu_solve(A, B):
     return result.get()
 
 
-def sequential_solve(A, B, N):
+def sequential_numpy_solve(A, B, N):
     for _ in range(N):
         numpy_solve(A, B)
+
+
+def sequential_cp_solve(A, B, N):
+    for _ in range(N):
+        cu_solve(A, B)
+
 
