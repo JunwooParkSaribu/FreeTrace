@@ -4,7 +4,7 @@
 > [!IMPORTANT]  
 > Requirements </br>
 > - C compiler (clang)</br>
-> - Python 3.10 &#8593;, python3-dev, pip</br>
+> - Python3.10 &#8593;, python3-dev, pip</br>
 > - GPU & Cuda12 on Linux/WSL2(Ubuntu22.04 &#8593;) (recommended)</br>
 > - With GPU, Pre-trained [models](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/models/README.md) (recommended)</br>
 
