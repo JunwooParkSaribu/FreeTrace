@@ -4,13 +4,13 @@
 > [!IMPORTANT]  
 > Requirements </br>
 > - C compiler (clang)</br>
-> - Python 3.10/11, python-dev, pip</br>
-> - GPU & Cuda12 on Linux/WSL2(Ubuntu22.04) (recommended)</br>
-> - With GPU, Pre-trained [models](https://drive.google.com/file/d/1uPLtL9USZPIJtYvaBSYN-xGyDR6k1ifl/view?usp=drive_link) (recommended)</br>
+> - Python 3.10 &#8593;, python3-dev, pip</br>
+> - GPU & Cuda12 on Linux/WSL2(Ubuntu22.04 &#8593;) (recommended)</br>
+> - With GPU, Pre-trained [models](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/models/README.md) (recommended)</br>
 
 > [!NOTE]  
 > PRE-REQUISITE: package installation by running installation.py</br>
-> The versions of python and Ubuntu is fixed due to the compatibility of tensorflow 2.14</br>
+> Check [compatibilities](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/models/README.md) of python, Ubuntu and Tensorflow.</br>
 > with GPU off on tracking, FreeTrace only considers standard brownian motion for inferences.</br>
 > on MacOS, FreeTrace can inference in tracking with tensorflow-metal, however the speed is slower.</br>
 
