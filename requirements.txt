@@ -11,4 +11,4 @@ tifffile
 pillow
 tqdm
 cupy-cuda12x
-tensorflow[and-cuda]==2.14.1
+tensorflow
