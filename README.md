@@ -29,7 +29,7 @@
         </tr>  
 </table>
 
-[Brief description of the method](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/tmps/method_description.pdf)
+[Brief description of the method] will be available soon.
 
 <h3> Contacts </h3>
 
