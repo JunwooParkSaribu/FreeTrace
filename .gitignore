@@ -48,6 +48,7 @@ err_test*.tiff
 *_traces.tiff
 *_cps.tiff
 *_hconcat.tiff
+scratch*.py
 
 # OS generated files #
 ######################
