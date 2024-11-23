@@ -8,7 +8,7 @@ from module.ImageModule import read_tif
 author_emails = [f'junwoo.park@sorbonne-universite.fr']
 
 
-def read_trajectory(file: str, andi_gt=False) -> dict | list:
+def read_trajectory(file: str, andi_gt=False, pixel_microns=1.0, frame_rate=1.0) -> dict | list:
     """
     @params : filename(String), cutoff value(Integer)
     @return : dictionary of H2B objects(Dict)
@@ -17,7 +17,6 @@ def read_trajectory(file: str, andi_gt=False) -> dict | list:
     Dict only keeps the histones which have the trajectory length longer than cutoff value.
     """
     filetypes = ['trxyt', 'trx', 'csv']
-
     # Check filetype.
     assert file.strip().split('.')[-1].lower() in filetypes
     # Read file and store the trajectory and time information in H2B object
@@ -30,10 +29,10 @@ def read_trajectory(file: str, andi_gt=False) -> dict | list:
             lines = input.strip().split('\n')
             for line in lines:
                 temp = line.split('\t')
-                x_pos = float(temp[1].strip())
-                y_pos = float(temp[2].strip())
-                z_pos = 0.
-                time_step = float(temp[3].strip())
+                x_pos = float(temp[1].strip()) * pixel_microns
+                y_pos = float(temp[2].strip()) * pixel_microns
+                z_pos = 0. * pixel_microns
+                time_step = float(temp[3].strip()) * frame_rate
                 if time_step in tmp:
                     tmp[time_step].append([x_pos, y_pos, z_pos])
                 else:
@@ -76,9 +75,9 @@ def read_trajectory(file: str, andi_gt=False) -> dict | list:
                 if index != old_index:
                     nb_traj += 1
                     trajectory_list.append(TrajectoryObj(index=index, max_pause=5))
-                    trajectory_list[nb_traj - 1].add_trajectory_position(frame, x_pos, y_pos, z_pos)
+                    trajectory_list[nb_traj - 1].add_trajectory_position(frame * frame_rate, x_pos * pixel_microns, y_pos * pixel_microns, z_pos * pixel_microns)
                 else:
-                    trajectory_list[nb_traj - 1].add_trajectory_position(frame, x_pos, y_pos, z_pos)
+                    trajectory_list[nb_traj - 1].add_trajectory_position(frame * frame_rate, x_pos * pixel_microns, y_pos * pixel_microns, z_pos * pixel_microns)
                 old_index = index
             return trajectory_list
         except Exception as e:
@@ -92,7 +91,7 @@ def write_trajectory(file: str, trajectory_list: list):
             input_str = 'traj_idx,frame,x,y,z\n'
             for trajectory_obj in trajectory_list:
                 for (xpos, ypos, zpos), time in zip(trajectory_obj.get_positions(), trajectory_obj.get_times()):
-                    input_str += f'{trajectory_obj.get_index()},{time-1},{xpos},{ypos},{zpos}\n'
+                    input_str += f'{trajectory_obj.get_index()},{time},{xpos},{ypos},{zpos}\n'
             f.write(input_str)
     except Exception as e:
         print(f"Unexpected error, check the file: {file}")
