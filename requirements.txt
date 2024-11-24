@@ -2,7 +2,9 @@ numpy
 numba
 networkx
 pandas
+tables
 scikit-learn
+scikit-image
 scipy
 opencv-python
 matplotlib
