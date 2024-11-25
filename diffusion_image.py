@@ -54,7 +54,7 @@ def make_image(trajectory_list, output, cutoff=2, scale_factor=3, margins=(200, 
 
 if __name__ == '__main__':
     args = sys.argv[1:]
-    if len(args) == 0:
+    if len(args) < 3:
         print('example of use:')
         print('python diffusion_image.py filename.csv pixelmicrons framerate')
         exit(1)
