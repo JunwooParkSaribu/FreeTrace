@@ -18,11 +18,10 @@ def crop_ROI(csv_file, start_x, start_y, end_x, end_y):
         y_cond = np.sum((y >= start_y) * (y<=end_y)) == len(y)
         if x_cond and y_cond:
             filtered_trajectory_list.append(trajectory)
-    write_trajectory(f'{".".join(csv_file.split('.')[:-1])}_cropped.csv', filtered_trajectory_list)
+    write_trajectory(f'{".".join(csv_file.split('traces.csv')[:-1])}cropped_traces.csv', filtered_trajectory_list)
 
 
 if __name__ == '__main__':
-    print(sys.argv)
     if len(sys.argv) != 6:
         sys.exit('Example of command: python3 crop.py file_traces.csv start x start y end x end y')
     else:
