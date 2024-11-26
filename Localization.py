@@ -332,28 +332,31 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                 h_maps.append(h_map)
             h_maps = np.array(h_maps)
             #print(f'{"h_map calcul":<35}:{(timer() - total_before_time):.2f}s')
-
             """
+            get = 0
+            print('threshold:, ',single_thresholds)
+            
+            plt.close('all')
             plt.figure()
-            plt.imshow(extended_imgs[0])
+            plt.imshow(extended_imgs[get])
             for hm in h_maps:
                 plt.figure()
-                plt.imshow(hm[0], vmin=0., vmax=1.)
+                plt.imshow(hm[get], vmin=0., vmax=1.)
             fig, ax = plt.subplots(subplot_kw=dict(projection='3d'))
             from matplotlib.colors import LightSource
             from matplotlib import cbook, cm
             ls = LightSource(270, 45)
-            x = np.arange(hm[0].shape[0])
-            y = np.arange(hm[0].shape[1])
+            x = np.arange(hm[get].shape[0])
+            y = np.arange(hm[get].shape[1])
             x, y = np.meshgrid(x, y)
-            z = hm[0][x, y]
+            z = hm[get][x, y]
             # To use a custom hillshading mode, override the built-in shading and pass
             # in the rgb colors of the shaded surface calculated from "shade".
             rgb = ls.shade(z, cmap=cm.gist_earth, vert_exag=0.1, blend_mode='soft')
             surf = ax.plot_surface(x, y, z, rstride=1, cstride=1, facecolors=rgb,
                                 linewidth=0, antialiased=True, shade=False)
-            plt.show()
             """
+            
             
             indices = region_max_filter(h_maps, single_winsizes, single_thresholds, detect_range=shift)
             if len(indices) != 0:
@@ -409,10 +412,27 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                         del_indices = np.round(np.array([ns, rs+ys, cs+xs])).astype(int).T
 
                         extended_imgs_copy = extended_imgs.copy()
+                        """
+                        print('\ntreshold:', single_thresholds)
+                        plt.figure('before subtraction', figsize=(8, 8))
+                        #print(del_indices)
+                        for n, x, y in del_indices:
+                            if n==get:
+                                #print(n, x, y, extend)
+                        
+                                plt.scatter(y +int(extend/2), x+int(extend/2) ,c='red')
+       
+                        plt.imshow(extended_imgs_copy[get])
                         extended_imgs = subtract_pdf(extended_imgs, pdfs, del_indices, (ws, ws), bg_means, extend)
-
-            if np.allclose(extended_imgs_copy, extended_imgs, atol=1e-2) or len(indices) == 0 or single_winsizes[0][0] not in indices[:, 3]:
-                pass_to_multi = True
+                        plt.figure('after subtraction', figsize=(8, 8))
+                        plt.imshow(extended_imgs[get])
+                        plt.show()
+                        """
+                        extended_imgs = subtract_pdf(extended_imgs, pdfs, del_indices, (ws, ws), bg_means, extend)
+                        
+            pass_to_multi = True  # forbid deflation loop.
+            #if np.allclose(extended_imgs_copy, extended_imgs, atol=1e-2) or len(indices) == 0 or single_winsizes[0][0] not in indices[:, 3]:
+            #    pass_to_multi = True
 
 
 @lru_cache(maxsize=8)
@@ -527,7 +547,8 @@ def background(imgs, window_sizes, alpha):
         bg = np.ones((bg_intensities.shape[0], window_size[0] * window_size[1]), dtype=np.float32)
         bg *= bg_means.reshape(-1, 1)
         bgs[window_size[0]] = bg
-    return bgs, (bg_stds / bg_means / alpha).astype(np.float32)
+    thresholds = (bg_means**2 / bg_stds / alpha) * 1
+    return bgs, np.maximum(thresholds, np.ones_like(thresholds) * 0.25)
 
 
 def intensity_distribution(images, reg_pdfs, xyz_coords, reg_infos, sigma=3.5):
