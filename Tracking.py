@@ -180,6 +180,7 @@ def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
         sample = np.random.normal(loc=mean, scale=cov, size=10000)
         kde = KernelDensity(kernel="gaussian", bandwidth=0.75).fit(sample.reshape(-1, 1))
         kdes.append(kde)
+        cov = min(2, cov)  # diffraction light limit
         if weight > 0.1:
             max_diffusive = max(max_diffusive, mean + 2*cov)
 
