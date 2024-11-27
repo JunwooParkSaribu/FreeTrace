@@ -76,8 +76,8 @@ def background(imgs, window_sizes, alpha):
         bg *= bg_means.reshape(-1, 1)
         bgs[window_size[0]] = cp.asnumpy(bg)
 
-    thresholds = cp.asnumpy(1/(bg_means**2 / bg_stds**2) / alpha) * 1.5
-    return bgs, np.maximum(thresholds, np.ones_like(thresholds) * 0.175)
+    thresholds = cp.asnumpy(1/(bg_means**2 / bg_stds**2) / alpha) * 2.0
+    return bgs, np.maximum(thresholds, np.ones_like(thresholds) * 1.0)
 
 
 def image_cropping(extended_imgs, extend, window_size0, window_size1, shift):
