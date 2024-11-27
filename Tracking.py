@@ -219,6 +219,8 @@ def approximation(real_distribution, conf, bin_size, approx='metropolis_hastings
     #########################
     if thresholds == None:
         max_length_0 = approx_distribution[0][0]
+        if max_length_0 <= 0:
+            max_length_0 = 1
         alpha = min(4, 4 / max_length_0)  # TODO: consideration
         for index, lag in enumerate(real_distribution.keys()):
             approx_distribution[lag][0] = max_length_0 * np.power(index + 1, (1/3)) + alpha  # TODO: consideration
