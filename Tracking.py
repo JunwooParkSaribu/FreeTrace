@@ -72,8 +72,7 @@ def greedy_shortest(srcs, dests, lag):
             linked_src[src] = True
             distribution.append(linkage[src][dest])
 
-    # TODO: Eliminate the speed bigger than diffraction ligth limit.
-    diffraction_light_limit = 15.0 * np.power(lag + 1, (1/4))
+    diffraction_light_limit = 15.0 * np.power(lag + 1, (1/4))  #TODO: diffraction light limit
     filtered_distrib = []
     if len(distribution) > 2:
         for jump_d in distribution[:-1]:
@@ -144,7 +143,7 @@ def gmm_bic_score(estimator, x):
 
 
 def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
-    resample_nb = 1000
+    resample_nb = 3000
     resampled = distribution[np.random.randint(0, len(distribution), min(resample_nb, len(distribution)))]
 
     bin_size *= 2
@@ -180,7 +179,7 @@ def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
         sample = np.random.normal(loc=mean, scale=cov, size=10000)
         kde = KernelDensity(kernel="gaussian", bandwidth=0.75).fit(sample.reshape(-1, 1))
         kdes.append(kde)
-        if cov > 3.5: # diffraction light limit
+        if cov > 2.5:  #TODO: diffraction light limit
             continue
 
         if weight > 0.1:
