@@ -53,6 +53,8 @@ def read_tif(filepath, andi2=False):
         normalized_imgs.append(img)
 
     normalized_imgs = np.array(normalized_imgs, dtype=np.float32).reshape(-1, y_size, x_size)
+    normalized_imgs /= np.max(normalized_imgs, axis=(1, 2)).reshape(-1, 1, 1)  # normalize local
+    
     if andi2:
         return normalized_imgs, indice_image
     else:
