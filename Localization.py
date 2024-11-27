@@ -411,7 +411,8 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                             reg_infos[n].append([x_var, y_var, rho, amp])
                         del_indices = np.round(np.array([ns, rs+ys, cs+xs])).astype(int).T
 
-                        extended_imgs_copy = extended_imgs.copy()
+                        #extended_imgs_copy = extended_imgs.copy()
+                        extended_imgs = subtract_pdf(extended_imgs, pdfs, del_indices, (ws, ws), bg_means, extend)
                         """
                         print('\ntreshold:', single_thresholds)
                         plt.figure('before subtraction', figsize=(8, 8))
@@ -428,7 +429,7 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                         plt.imshow(extended_imgs[get])
                         plt.show()
                         """
-                        extended_imgs = subtract_pdf(extended_imgs, pdfs, del_indices, (ws, ws), bg_means, extend)
+                        
                         
             pass_to_multi = True  # forbid deflation loop.
             #if np.allclose(extended_imgs_copy, extended_imgs, atol=1e-2) or len(indices) == 0 or single_winsizes[0][0] not in indices[:, 3]:
@@ -549,8 +550,8 @@ def background(imgs, window_sizes, alpha):
         bg *= bg_means.reshape(-1, 1)
         bgs[window_size[0]] = bg
 
-    thresholds = np.asnumpy(1/(bg_means**2 / bg_stds**2) / alpha) * 1.5
-    return bgs, np.maximum(thresholds, np.ones_like(thresholds) * 0.175)
+    thresholds = np.array(1/(bg_means**2 / bg_stds**2) / alpha) * 2.0
+    return bgs, np.maximum(thresholds, np.ones_like(thresholds) * 1.0)
 
 
 def intensity_distribution(images, reg_pdfs, xyz_coords, reg_infos, sigma=3.5):
@@ -655,7 +656,6 @@ def main():
     WINSIZE = params['localization']['WINSIZE']
     THRES_ALPHA = params['localization']['THRES_ALPHA']
     DEFLATION_LOOP_IN_BACKWARD = params['localization']['DEFLATION_LOOP_IN_BACKWARD']
-
     SHIFT = params['localization']['SHIFT']
     VISUALIZATION = params['localization']['LOC_VISUALIZATION']
     GPU_AVAIL = params['localization']['GPU']
@@ -665,6 +665,7 @@ def main():
     PARALLEL = False
     BINARY_THRESHOLDS = None
     MULTI_THRESHOLDS = None
+    
     CUDA, _ = initialization(GPU_AVAIL, ptype=0, verbose=VERBOSE, batch=BATCH)
     if CUDA:
         from module import gpu_module
@@ -672,6 +673,7 @@ def main():
         DIV_Q = int(64 * 512 * 512 / images.shape[1] / images.shape[2] * (7**2 / WINSIZE**2) * MEM_SIZE / 24 * SHIFT**2) 
     else:
         DIV_Q = min(25, int(2.7 * 4194304 / images.shape[1] / images.shape[2] * (7**2 / WINSIZE**2)))
+
 
     xyz_coords = []
     reg_pdfs = []
