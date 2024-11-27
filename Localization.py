@@ -332,10 +332,10 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                 h_maps.append(h_map)
             h_maps = np.array(h_maps)
             #print(f'{"h_map calcul":<35}:{(timer() - total_before_time):.2f}s')
+            
             """
             get = 0
             print('threshold:, ',single_thresholds)
-            
             plt.close('all')
             plt.figure()
             plt.imshow(extended_imgs[get])
@@ -355,8 +355,8 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
             rgb = ls.shade(z, cmap=cm.gist_earth, vert_exag=0.1, blend_mode='soft')
             surf = ax.plot_surface(x, y, z, rstride=1, cstride=1, facecolors=rgb,
                                 linewidth=0, antialiased=True, shade=False)
+            plt.show()
             """
-            
             
             indices = region_max_filter(h_maps, single_winsizes, single_thresholds, detect_range=shift)
             if len(indices) != 0:
@@ -520,6 +520,7 @@ def visualilzation(output_dir, images, localized_xys):
 
 
 def background(imgs, window_sizes, alpha):
+    imgs = imgs / np.max(imgs, axis= (1,2)).reshape(-1, 1, 1)
     bins = 0.01
     bgs = {}
     bg_means = []
@@ -547,8 +548,9 @@ def background(imgs, window_sizes, alpha):
         bg = np.ones((bg_intensities.shape[0], window_size[0] * window_size[1]), dtype=np.float32)
         bg *= bg_means.reshape(-1, 1)
         bgs[window_size[0]] = bg
-    thresholds = (bg_means**2 / bg_stds / alpha) * 1
-    return bgs, np.maximum(thresholds, np.ones_like(thresholds) * 0.25)
+
+    thresholds = np.asnumpy(1/(bg_means**2 / bg_stds**2) / alpha) * 1.5
+    return bgs, np.maximum(thresholds, np.ones_like(thresholds) * 0.175)
 
 
 def intensity_distribution(images, reg_pdfs, xyz_coords, reg_infos, sigma=3.5):

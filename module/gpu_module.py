@@ -37,6 +37,7 @@ def likelihood(crop_imgs, gauss_grid, bg_squared_sums, bg_means, window_size1, w
 
 def background(imgs, window_sizes, alpha):
     imgs = cp.asarray(imgs)
+    imgs = imgs / cp.max(imgs, axis= (1,2)).reshape(-1, 1, 1)
     bins = 0.01
     nb_imgs = imgs.shape[0]
     img_flat_length = imgs.shape[1] * imgs.shape[2]
@@ -74,8 +75,9 @@ def background(imgs, window_sizes, alpha):
         bg = cp.ones((bg_intensities.shape[0], window_size[0] * window_size[1]), dtype=cp.float32)
         bg *= bg_means.reshape(-1, 1)
         bgs[window_size[0]] = cp.asnumpy(bg)
-    thresholds = cp.asnumpy(bg_means**2 / bg_stds / alpha) * 1
-    return bgs, np.maximum(thresholds, np.ones_like(thresholds) * 0.25)
+
+    thresholds = cp.asnumpy(1/(bg_means**2 / bg_stds**2) / alpha) * 1.5
+    return bgs, np.maximum(thresholds, np.ones_like(thresholds) * 0.175)
 
 
 def image_cropping(extended_imgs, extend, window_size0, window_size1, shift):
