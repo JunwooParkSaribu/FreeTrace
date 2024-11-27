@@ -1,6 +1,7 @@
     VIDEO=./inputs/sample0.tiff
     OUTPUT_DIR=./outputs
     
+    
     # LOCALIZATION
     WINDOW_SIZE = 9
     THRESHOLD_ALPHA = 1.0
