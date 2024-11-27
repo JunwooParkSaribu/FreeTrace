@@ -45,14 +45,20 @@ def background(imgs, window_sizes, alpha):
     bg_means = []
     bg_stds = []
     bg_intensities = (imgs.reshape(nb_imgs, img_flat_length) * 100).astype(cp.uint8) / 100
+
     for idx in range(nb_imgs):
         if cp.sum(bg_intensities[idx]) <= 0:
-            bg_intensities[idx] = bg_intensities[idx+1].copy()
-    post_mask_args = cp.array([cp.arange(img_flat_length) for _ in range(nb_imgs)], dtype=cp.int32)
+            dummy_intensities = 0.1
+            bg_intensities[idx][0] = dummy_intensities
+
+    post_mask_args = cp.array([cp.arange(img_flat_length) for _ in range(nb_imgs)], dtype=cp.int64)
     mask_sums_modes = cp.zeros(nb_imgs)
     mask_stds = cp.empty(nb_imgs)
     for repeat in range(3):
         for i in range(nb_imgs):
+            if len(post_mask_args[i]) <= 0:
+                print('Errors on images, please check images again whether it contains an empty black-image. If not, contact the author.')
+                continue
             it_hist, bin_width = cp.histogram(bg_intensities[i, post_mask_args[i]], bins=cp.arange(0, cp.max(bg_intensities[i, post_mask_args[i]]) + bins, bins))
             if len(it_hist) < 1:
                 print('Errors on images, please check images again whether it contains an empty black-image. If not, contact the author.')
@@ -77,6 +83,9 @@ def background(imgs, window_sizes, alpha):
         bgs[window_size[0]] = cp.asnumpy(bg)
 
     thresholds = cp.asnumpy(1/(bg_means**2 / bg_stds**2) / alpha) * 2.0
+    for th_i in range(len(thresholds)):
+        if np.isnan(thresholds[th_i]):
+            thresholds[th_i] = 1.0
     return bgs, np.maximum(thresholds, np.ones_like(thresholds) * 1.0)
 
 
