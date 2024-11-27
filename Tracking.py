@@ -170,7 +170,7 @@ def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
         }
     )
     opt_nb_component = np.argmin(cluster_df["BIC score"]) + param_grid['n_components'][0]
-    cluster = BayesianGaussianMixture(n_components=opt_nb_component, max_iter=1000, n_init=10,
+    cluster = BayesianGaussianMixture(n_components=opt_nb_component, max_iter=1000, n_init=20,
                                       mean_precision_prior=1e-7,
                                       covariance_type='diag').fit(resampled.reshape(-1, 1))
     #print('MEANS: ', cluster.means_, '\nCOVS: ', cluster.covariances_, '\nWEIGHTS: ', cluster.weights_)
@@ -180,9 +180,11 @@ def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
         sample = np.random.normal(loc=mean, scale=cov, size=10000)
         kde = KernelDensity(kernel="gaussian", bandwidth=0.75).fit(sample.reshape(-1, 1))
         kdes.append(kde)
-        cov = min(2, cov)  # diffraction light limit
+        if cov > 3.5: # diffraction light limit
+            continue
+
         if weight > 0.1:
-            max_diffusive = max(max_diffusive, mean + 2*cov)
+            max_diffusive = max(max_diffusive, mean + 3.5*cov)
 
     hist = np.histogram(resampled, bins=bins)
     hist_dist = rv_histogram(hist)
