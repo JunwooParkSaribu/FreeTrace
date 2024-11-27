@@ -30,6 +30,7 @@ def write_config(filename):
     VIDEO=./inputs/{filename}\n\
     OUTPUT_DIR=./outputs\n\
     \n\
+    \n\
     # LOCALIZATION\n\
     WINDOW_SIZE = {WINDOW_SIZE}\n\
     THRESHOLD_ALPHA = {THRESHOLD_ALPHA}\n\
