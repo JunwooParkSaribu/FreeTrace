@@ -471,6 +471,8 @@ def make_loc_depth_image(output_dir, coords, winsize=7, resolution=1, dim=2):
             for coord in coords[t]:
                 all_coords.append(coord)
         all_coords = np.array(all_coords)
+        if len(all_coords) == 0:
+            return
         x_min = np.min(all_coords[:, 0])
         x_max = np.max(all_coords[:, 0])
         y_min = np.min(all_coords[:, 1])
