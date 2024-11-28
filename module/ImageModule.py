@@ -517,7 +517,7 @@ def quantification(window_size):
 
 
 def to_gif(image_stack_path, save_path, fps=10, loop=30):
-    images = read_tif_unnormalized(image_stack_path)
+    images = read_tif_unnormalized(image_stack_path).astype(np.uint8)
     with imageio.get_writer(f'{save_path}.gif', mode='I', fps=fps, loop=loop) as writer:
         for i in range(len(images)):
             writer.append_data(np.array(images[i]))
@@ -539,5 +539,5 @@ def to_mp4(image_stack_path, save_path, fps=10, resolution='high'):
 #vis_cps_file_name = ''
 #cps_visualization(f'./{vis_cps_file_name}_cps.tiff', f'./inputs/{vis_cps_file_name}.tiff', f'./{vis_cps_file_name}_traces.txt', f'./outputs/{vis_cps_file_name}_traces.csv')
 #concatenate_image_stack(f'{vis_cps_file_name}', f'./{vis_cps_file_name}.tiff', f'./{vis_cps_file_name}_cps.tiff')
-#to_gif(f'{vis_cps_file_name}', f'./outputs/{vis_cps_file_name}.tiff', fps=10)
+#to_gif(f'./outputs/3.tif', f'./outputs/3', fps=20, loop=2)
 #to_mp4('outputs/alpha_test10_locvideo.tiff', 'outputs/vid')
