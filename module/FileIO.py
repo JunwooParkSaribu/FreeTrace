@@ -140,7 +140,10 @@ def read_localization(input_file, video=None):
     try:
         with open(input_file, 'r') as f:
             lines = f.readlines()
+            if len(lines) == 1 or len(lines) == 2:
+                raise Exception('Cannot track on zero localization OR single localization.')
             for line in lines[1:]:
+                print(line)
                 line = line.strip().split('\n')[0].split(',')
                 if int(line[0]) not in locals:
                     locals[int(line[0])] = []
@@ -168,10 +171,9 @@ def read_localization(input_file, video=None):
         for t in locals.keys():
             ret_locals[t] = np.array(locals[t])
             ret_locals_info[t] = np.array(locals_info[t])
+        return ret_locals, ret_locals_info
     except Exception as e:
         sys.exit(f'Err msg: {e}')
-    finally:    
-        return ret_locals, ret_locals_info
 
 
 def read_andi2_trajectory_label(input_file, index=None):
