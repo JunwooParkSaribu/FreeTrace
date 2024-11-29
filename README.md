@@ -11,7 +11,7 @@
 > [!NOTE]  
 > PRE-REQUISITE: package installation by running installation.py</br>
 > Check [compatibilities](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/models/README.md) of Python, Ubuntu and Tensorflow to run FreeTrace with source code.</br>
-> with GPU off on tracking, FreeTrace only considers standard brownian motion for inferences.</br>
+> with GPU off on tracking, FreeTrace only considers standard Brownian motion for inferences.</br>
 > on MacOS, FreeTrace can inference in tracking with tensorflow-metal, however the speed is slower.</br>
 
 ------------------------------------------------------------------------------------------------------------------</br>
