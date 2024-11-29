@@ -86,6 +86,7 @@ def greedy_shortest(srcs, dests, lag):
 
 
 def segmentation(localization: dict, time_steps: np.ndarray, lag=2):
+    lag = min(lag, len(time_steps) - 2)
     seg_distribution = {}
     for i in range(lag + 1):
         seg_distribution[i] = []
