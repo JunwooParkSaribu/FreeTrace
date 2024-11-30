@@ -677,7 +677,7 @@ def main():
         DIV_Q = int(64 * 512 * 512 / images.shape[1] / images.shape[2] * (7**2 / WINSIZE**2) * MEM_SIZE / 24 * SHIFT**2) 
     else:
         DIV_Q = min(25, int(2.7 * 4194304 / images.shape[1] / images.shape[2] * (7**2 / WINSIZE**2)))
-
+    DIV_Q = max(DIV_Q, 1)
 
     xyz_coords = []
     reg_pdfs = []
