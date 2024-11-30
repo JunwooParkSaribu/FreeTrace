@@ -143,7 +143,6 @@ def read_localization(input_file, video=None):
             if len(lines) == 1 or len(lines) == 2:
                 raise Exception('Cannot track on zero localization OR single localization.')
             for line in lines[1:]:
-                print(line)
                 line = line.strip().split('\n')[0].split(',')
                 if int(line[0]) not in locals:
                     locals[int(line[0])] = []
