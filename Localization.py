@@ -550,7 +550,7 @@ def background(imgs, window_sizes, alpha):
         bg *= bg_means.reshape(-1, 1)
         bgs[window_size[0]] = bg
 
-    thresholds = np.asnumpy(1/(bg_means**2 / bg_stds**2)) * 2.0
+    thresholds = np.array(1/(bg_means**2 / bg_stds**2)) * 2.0
     thresholds = np.maximum(thresholds, np.ones_like(thresholds) * 1.0)
     for th_i in range(len(thresholds)):
         if np.isnan(thresholds[th_i]):
