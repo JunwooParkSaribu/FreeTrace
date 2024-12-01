@@ -27,6 +27,10 @@
             <td><img src="https://github.com/JunwooParkSaribu/FreeTrace/blob/main/tmps/trjs1.gif" width="230" height="230"></td>
             <td><img src="https://github.com/JunwooParkSaribu/FreeTrace/blob/main/tmps/trjs2.gif" width="285" height="230"></td>
         </tr>  
+        <tr> 
+            <td><img src="https://github.com/JunwooParkSaribu/FreeTrace/blob/main/tmps/firework.gif" width="230" height="230"></td> 
+            <td><img src="https://github.com/JunwooParkSaribu/FreeTrace/blob/main/tmps/stars.gif" width="460" height="230"></td>
+        </tr>  
 </table>
 
 [Brief description of the method] will be available soon.
