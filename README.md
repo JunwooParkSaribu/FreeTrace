@@ -22,7 +22,6 @@
 
 <h2>Visualized result of FreeTrace</h2>
 <img src="https://github.com/JunwooParkSaribu/FreeTrace/blob/main/tmps/stars.gif">
-<img src="https://github.com/JunwooParkSaribu/FreeTrace/blob/main/tmps/firework.gif">
 <table border="0"> 
         <tr> 
             <td><img src="https://github.com/JunwooParkSaribu/FreeTrace/blob/main/tmps/trjs0.gif" width="230" height="230"></td> 
