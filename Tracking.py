@@ -144,8 +144,9 @@ def gmm_bic_score(estimator, x):
 
 
 def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
-    resample_nb = 3000
-    resampled = distribution[np.random.randint(0, len(distribution), min(resample_nb, len(distribution)))]
+    #resample_nb = 3000
+    #resampled = distribution[np.random.randint(0, len(distribution), min(resample_nb, len(distribution)))]
+    resampled = distribution
 
     bin_size *= 2
     length_max_val = np.max(resampled)
@@ -184,7 +185,7 @@ def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
             continue
 
         if weight > 0.1:
-            max_diffusive = max(max_diffusive, mean + 3.5*cov)
+            max_diffusive = max(max_diffusive, mean + 2.5*cov)
 
     hist = np.histogram(resampled, bins=bins)
     hist_dist = rv_histogram(hist)
