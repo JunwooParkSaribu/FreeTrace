@@ -40,6 +40,9 @@ error_log.txt
 # Result Files #
 ######################
 old
+receptor*
+vesicle*
+test_samples
 outputs
 *.html
 alpha_test*.tiff
