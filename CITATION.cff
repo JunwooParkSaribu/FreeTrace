@@ -7,6 +7,10 @@ authors:
   - family-names: Cabriel
     given-names: Clément
     orcid: https://orcid.org/0000-0002-0316-0312
+  - family-names: Izeddin
+    given-names: Ignacio
+    orcid: https://orcid.org/0000-0002-8476-3915
+    
 title: "FreeTrace"
 version: v1.1.4
 identifiers:
