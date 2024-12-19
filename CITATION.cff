@@ -10,7 +10,9 @@ authors:
   - family-names: Izeddin
     given-names: Ignacio
     orcid: https://orcid.org/0000-0002-8476-3915
-    
+  - family-names: Miné-Hattab
+    given-names: Judith
+    orcid: https://orcid.org/0000-0001-9986-4092
 title: "FreeTrace"
 version: v1.1.4
 identifiers:
