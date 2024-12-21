@@ -31,21 +31,10 @@
 
     "title": "FreeTrace: Localization of light sources and tracking with fBm",
 
-    "description": "FreeTrace localizes light sources at sub-pixel accuracy from low-resolution and retraces under the assumption of fBm" ,
-
-    "notes": {
-        "description": "If you use this software, please cite it as below.",
-        "type": "string"
-      },
-
     "keywords": ["fBm", "SPT", "microscopy", "ML", "segmentation"],
 
     "communities": [
         {"identifier": "https://lcqb.fr/"},
         {"identifier": "https://github.com/JunwooParkSaribu/FreeTrace"}
-    ],
-
-    "language": ["Python", "C"],
-
-    "upload_type": "software"
+    ]
 }
