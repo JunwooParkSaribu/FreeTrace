@@ -1,4 +1,4 @@
-cff-version: 1.1.4
+cff-version: 1.1.5
 message: "If you use this software, please cite it as below."
 authors:
   - family-names: Park
@@ -17,9 +17,9 @@ authors:
     given-names: Judith
     orcid: https://orcid.org/0000-0001-9986-4092
 title: "FreeTrace"
-version: v1.1.4
+version: v1.1.5
 identifiers:
   - type: doi
     value: 10.5281/zenodo.13336251
-date-released: 2024-12-11
+date-released: 2024-12-21
 url: "https://github.com/JunwooParkSaribu/FreeTrace"
