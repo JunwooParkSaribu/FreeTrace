@@ -1,0 +1,47 @@
+{
+    "creators": [
+        {
+            "orcid": "0009-0000-6126-2125",
+            "affiliation": "Sorbonne Université, CNRS, Laboratoire de Biologie Computationnelle et Quantitative, LCQB, F-75005 Paris, France",
+            "name": "Park, Junwoo"
+        },
+        {
+            "orcid": "0000-0001-8841-1725",
+            "affiliation": "Sorbonne Université, CNRS, Laboratoire de Biologie Computationnelle et Quantitative, LCQB, F-75005 Paris, France",
+            "name": "Sokolovska, Nataliya"
+        },
+        {
+            "orcid": "0000-0002-0316-0312",
+            "affiliation": "Institut Langevin, ESPCI Paris, Université PSL, CNRS, 75005 Paris, France",
+            "name": "Cabriel, Clément" 
+        },
+        {
+            "orcid": "0000-0002-8476-3915",
+            "affiliation": "Institut Langevin, ESPCI Paris, Université PSL, CNRS, 75005 Paris, France",
+            "name": "Izeddin, Ignacio" 
+        },
+        {
+            "orcid": "0000-0001-9986-4092",
+            "affiliation": "Sorbonne Université, CNRS, Laboratoire de Biologie Computationnelle et Quantitative, LCQB, F-75005 Paris, France",
+            "name": "Miné-Hattab, Judith" 
+        }
+    ],
+
+    "license": "GPL-3.0",
+
+    "title": "FreeTrace: Localization of light sources and tracking with fBm",
+
+    "description": "FreeTrace localizes light sources at sub-pixel accuracy from low-resolution and retraces under the assumption of fBm" ,
+
+    "notes": {
+        "description": "If you use this software, please cite it as below.",
+        "type": "string"
+      },
+
+    "keywords": ["fBm", "SPT", "microscopy", "ML", "segmentation"],
+
+    "communities": [
+        {"identifier": "https://lcqb.fr/"},
+        {"identifier": "https://github.com/JunwooParkSaribu/FreeTrace"}
+    ]
+}
