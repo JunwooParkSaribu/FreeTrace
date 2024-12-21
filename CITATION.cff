@@ -17,7 +17,6 @@ authors:
     given-names: Judith
     orcid: https://orcid.org/0000-0001-9986-4092
 title: "FreeTrace"
-version: v1.1.5
 identifiers:
   - type: doi
     value: 10.5281/zenodo.13336251
