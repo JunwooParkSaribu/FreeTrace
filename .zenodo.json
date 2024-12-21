@@ -43,5 +43,9 @@
     "communities": [
         {"identifier": "https://lcqb.fr/"},
         {"identifier": "https://github.com/JunwooParkSaribu/FreeTrace"}
-    ]
+    ],
+
+    "language": ["Python", "C"],
+
+    "upload_type": "software"
 }
