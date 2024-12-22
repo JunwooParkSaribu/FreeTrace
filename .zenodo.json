@@ -29,7 +29,9 @@
 
     "license": "GPL-3.0",
 
-    "title": "FreeTrace: Localization of light sources and tracking with fBm",
+    "title": "FreeTrace",
+
+    "description": "Localization of light sources and tracking with fBm",
 
     "keywords": ["fBm", "SPT", "microscopy", "ML", "segmentation"],
 
