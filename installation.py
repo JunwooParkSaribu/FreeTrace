@@ -6,6 +6,7 @@ import subprocess
 non_installed_packages = {}
 include_path = None
 found_head_file = 0
+distrib_path = __file__.split('/installation.py')[0]
 #include_path = '/usr/include/python3.10'
 #include_path = '/Library/Frameworks/Python.framework/Versions/3.10/include/python3.10'
 
@@ -23,6 +24,29 @@ else:
     sys.exit('***** python version 3.10/11/12 required *****')
 
 
+subprocess.run(['sudo', 'apt-get', 'update'])
+subprocess.run(['sudo', 'apt-get', 'install', 'unzip'])
+subprocess.run(['sudo', 'apt', 'install', 'clang'])
+subprocess.run(['sudo', 'apt', 'install', 'python3-dev'])
+subprocess.run(['sudo', 'apt', 'install', 'python3-pip'])
+
+
+if python_version == 3.10:
+    subprocess.run(['rm', '-r', f'{distrib_path}/models'])
+    subprocess.run(['wget', 'https://psilo.sorbonne-universite.fr/index.php/s/WqoCoFBc99A3Xbc/download/models_2_14.zip', '-P' f'{distrib_path}'])
+    subprocess.run(['unzip', f'{distrib_path}/models_2_14.zip', '-d', f'{distrib_path}', '-o'])
+    subprocess.run(['cp', '-r', f'{distrib_path}/models_2_14', f'{distrib_path}/models'])
+    subprocess.run(['rm', '-r', f'{distrib_path}/models_2_14'])
+    subprocess.run(['rm', f'{distrib_path}/models_2_14.zip'])
+else:
+    subprocess.run(['rm', '-r', f'{distrib_path}/models'])
+    subprocess.run(['wget', 'https://psilo.sorbonne-universite.fr/index.php/s/9W2pby29MGkQLDd/download/models_2_17.zip', '-P' f'{distrib_path}'])
+    subprocess.run(['unzip', '-o', f'{distrib_path}/models_2_17.zip', '-d', f'{distrib_path}'])
+    subprocess.run(['cp', '-r', f'{distrib_path}/models_2_17', f'{distrib_path}/models'])
+    subprocess.run(['rm', '-r', f'{distrib_path}/models_2_17'])
+    subprocess.run(['rm', f'{distrib_path}/models_2_17.zip'])
+    
+
 for root, dirs, files in os.walk("/usr", topdown=False):
     for name in files:
         if 'Python.h' in name:
@@ -39,47 +63,48 @@ if found_head_file == 0 :
 
 if include_path is None and found_head_file == 0:
     sys.exit(f'***** Please install python-dev to install modules, Python.h header file was not found. *****')
-
-if not os.path.exists(f'./models/theta_hat.npz'):
+    
+if not os.path.exists(f'{distrib_path}/models/theta_hat.npz'):
     print(f'***** Parmeters[theta_hat.npz] are not found for trajectory inference, please contact author for the pretrained models. *****\n')
     sys.exit()
     
 
-with open('./requirements.txt', 'r') as f:
-    lines = f.readlines()
-    for line in lines:
-        package = line.strip().split('\n')[0]
-        if 'tensorflow' in package:
-            package = tf_version
-        try:
-            pid = subprocess.run([sys.executable, '-m', 'pip', 'install', package])
-            if pid.returncode != 0:
-                non_installed_packages[package] = pid.returncode
-        except:
-            pass
+if os.path.exists(f'{distrib_path}/requirements.txt'):
+    with open(f'{distrib_path}/requirements.txt', 'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            package = line.strip().split('\n')[0]
+            if 'tensorflow' in package:
+                package = tf_version
+            try:
+                pid = subprocess.run([sys.executable, '-m', 'pip', 'install', package])
+                if pid.returncode != 0:
+                    non_installed_packages[package] = pid.returncode
+            except:
+                pass
 
 try:
     if python_version == 3.10:
         subprocess.run(['clang', '-Wno-unused-result', '-Wsign-compare', '-Wunreachable-code', '-fno-common', '-dynamic', '-DNDEBUG', '-g', '-fwrapv', '-O3', '-Wall', '-arch', 'arm64', '-arch', 'x86_64', '-g', '-fPIC', '-I', f'{include_path}',
-                        '-c', './module/image_pad.c', '-o', './module/image_pad.o'])
+                        '-c', f'{distrib_path}/module/image_pad.c', '-o', f'{distrib_path}/module/image_pad.o'])
         subprocess.run(['clang', '-shared', '-g', '-fwrapv', '-undefined', 'dynamic_lookup', '-arch', 'arm64', '-arch', 'x86_64',
-                        '-g', './module/image_pad.o', '-o', './module/image_pad.so'])
+                        '-g', f'{distrib_path}/module/image_pad.o', '-o', f'{distrib_path}/module/image_pad.so'])
         subprocess.run(['clang', '-Wno-unused-result', '-Wsign-compare', '-Wunreachable-code', '-fno-common', '-dynamic', '-DNDEBUG', '-g', '-fwrapv', '-O3', '-Wall', '-arch', 'arm64', '-arch', 'x86_64', '-g', '-fPIC', '-I', f'{include_path}',
-                        '-c', './module/regression.c', '-o', './module/regression.o'])
+                        '-c', f'{distrib_path}/module/regression.c', '-o', f'{distrib_path}/module/regression.o'])
         subprocess.run(['clang', '-shared', '-g', '-fwrapv', '-undefined', 'dynamic_lookup', '-arch', 'arm64', '-arch', 'x86_64',
-                        '-g', './module/regression.o', '-o', './module/regression.so'])
+                        '-g', f'{distrib_path}/module/regression.o', '-o', f'{distrib_path}/module/regression.so'])
     else:
         subprocess.run(['clang', '-Wno-unused-result', '-Wsign-compare', '-Wunreachable-code', '-fno-common', '-dynamic', '-DNDEBUG', '-g', '-fwrapv', '-O3', '-Wall', '-g', '-fPIC', '-I', f'{include_path}',
-                        '-c', './module/image_pad.c', '-o', './module/image_pad.o'])
+                        '-c', f'{distrib_path}/module/image_pad.c', '-o', f'{distrib_path}/module/image_pad.o'])
         subprocess.run(['clang', '-shared', '-g', '-fwrapv', '-undefined', 'dynamic_lookup',
-                        '-g', './module/image_pad.o', '-o', './module/image_pad.so'])
+                        '-g', f'{distrib_path}/module/image_pad.o', '-o', f'{distrib_path}/module/image_pad.so'])
         subprocess.run(['clang', '-Wno-unused-result', '-Wsign-compare', '-Wunreachable-code', '-fno-common', '-dynamic', '-DNDEBUG', '-g', '-fwrapv', '-O3', '-Wall', '-g', '-fPIC', '-I', f'{include_path}',
-                        '-c', './module/regression.c', '-o', './module/regression.o'])
+                        '-c', f'{distrib_path}/module/regression.c', '-o', f'{distrib_path}/module/regression.o'])
         subprocess.run(['clang', '-shared', '-g', '-fwrapv', '-undefined', 'dynamic_lookup',
-                        '-g', './module/regression.o', '-o', './module/regression.so'])
+                        '-g', f'{distrib_path}/module/regression.o', '-o', f'{distrib_path}/module/regression.so'])
 
-    subprocess.run(['rm', './module/image_pad.o', './module/regression.o'])
-    if os.path.exists(f'./module/image_pad.so') and os.path.exists(f'./module/regression.so'):
+    subprocess.run(['rm', f'{distrib_path}/module/image_pad.o', f'{distrib_path}/module/regression.o'])
+    if os.path.exists(f'{distrib_path}/module/image_pad.so') and os.path.exists(f'{distrib_path}/module/regression.so'):
         print('')
         print(f'***** module compiling finished successfully. *****')
 except Exception as e:
