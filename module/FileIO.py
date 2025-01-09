@@ -326,9 +326,8 @@ def check_video_ext(args, andi2=False):
 def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False, batch=False):
     TF = False
     cuda = False
-    if not os.path.exists('./outputs'):
-        os.mkdir('./outputs')
-    if not os.path.exists(f'./models/theta_hat.npz'):
+
+    if not os.path.exists(f'{__file__.split('FreeTrace')[0]}/FreeTrace/models/theta_hat.npz'):
         print(f'\n***** Parmeters[theta_hat.npz] are not found for trajectory inference, please contact author for the pretrained models. *****\n')
         print(f'***********  Contacts  ***********')
         for author in author_emails:
@@ -356,7 +355,7 @@ def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False, batch=False)
 
     if TF and ptype==1:
         for reg_model_num in reg_model_nums:
-            if not os.path.exists(f'./models/reg_model_{reg_model_num}.keras'):
+            if not os.path.exists(f'{__file__.split('FreeTrace')[0]}/FreeTrace/models/reg_model_{reg_model_num}.keras'):
                 print(f'\n***** reg_model_{reg_model_num}.keras is not found, contact author for the pretrained models. *****')
                 print(f'***********  Contacts  ***********')
                 for author in author_emails:
