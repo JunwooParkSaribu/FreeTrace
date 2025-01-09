@@ -3,20 +3,33 @@ import sys
 import subprocess
 from datetime import datetime
 from tqdm import tqdm
-from module.FileIO import initialization
+import Tracking
+import Localization
+from module.FileIO import initialization, read_parameters
+
 
 """
-Configuration file settings for the parameters of FreeTrace.
+Configurations of FreeTrace.
 """
+input_folder_name = 'inputs'
 
-WINDOW_SIZE = 9
-THRESHOLD_ALPHA = 1.0
-GPU_LOC = True
+params = read_parameters('./config.txt')
+OUTPUT_DIR = params['localization']['OUTPUT_DIR']
 
-CUTOFF = 2
-PIXEL_MICRONS = 0.16
-FRAME_RATE = 0.01
-GPU_TRACK = True
+WINSIZE = params['localization']['WINSIZE']
+THRES_ALPHA = params['localization']['THRES_ALPHA']
+DEFLATION_LOOP_IN_BACKWARD = params['localization']['DEFLATION_LOOP_IN_BACKWARD']
+SIGMA = params['localization']['SIGMA']
+SHIFT = params['localization']['SHIFT']
+LOC_VISUALIZATION = params['localization']['LOC_VISUALIZATION']
+LOC_GPU_AVAIL = params['localization']['GPU']
+
+BLINK_LAG = params['tracking']['BLINK_LAG']
+CUTOFF = params['tracking']['CUTOFF']
+TRACK_VISUALIZATION = params['tracking']['TRACK_VISUALIZATION']
+PIXEL_MICRONS = params['tracking']['PIXEL_MICRONS']
+FRAME_RATE = params['tracking']['FRAME_PER_SEC']
+TRACK_GPU_AVAIL = params['tracking']['GPU']
 
 
 def run_command(cmd):
@@ -24,72 +37,41 @@ def run_command(cmd):
     return process
 
 
-def write_config(filename):
-    content = \
-    f"\
-    VIDEO=./inputs/{filename}\n\
-    OUTPUT_DIR=./outputs\n\
-    \n\
-    \n\
-    # LOCALIZATION\n\
-    WINDOW_SIZE = {WINDOW_SIZE}\n\
-    THRESHOLD_ALPHA = {THRESHOLD_ALPHA}\n\
-    DEFLATION_LOOP_IN_BACKWARD = 0\n\
-    SIGMA = 4.0\n\
-    LOC_VISUALIZATION = False\n\
-    GPU_LOC = {GPU_LOC}\n\
-    \n\
-    \n\
-    # TRACKING\n\
-    CUTOFF = {CUTOFF}\n\
-    BLINK_LAG = 2\n\
-    PIXEL_MICRONS = {PIXEL_MICRONS}\n\
-    FRAME_PER_SEC = {FRAME_RATE}\n\
-    TRACK_VISUALIZATION = False\n\
-    GPU_TRACK = {GPU_TRACK}\n\
-    \n\
-    \n\
-    # SUPP\n\
-    SHIFT = 1\n\
-    "
-    with open("./config.txt", 'w') as config:
-        config.write(content)
-
-
 failed_tasks = []
-if not os.path.exists('./outputs'):
-    os.makedirs('./outputs')
-file_list = os.listdir('./inputs')
+if not os.path.exists(f'{OUTPUT_DIR}'):
+    os.makedirs(f'{OUTPUT_DIR}')
+file_list = os.listdir(f'{input_folder_name}')
 print(f'\n*****  Batch processing on {len(file_list)} files. ({len(file_list)*2} tasks: Localizations + Trackings)  *****')
 initialization(gpu=True, verbose=True, batch=True)
 PBAR = tqdm(total=len(file_list)*2, desc="Batch", unit="task", ncols=120, miniters=1)
-
-
 for idx in range(len(file_list)):
     file = file_list[idx]
     if file.strip().split('.')[-1] == 'tif' or file.strip().split('.')[-1] == 'tiff':
-        write_config(file)
         PBAR.set_postfix(File=file, refresh=True)
         try:
-            pid = subprocess.run([sys.executable, 'Localization.py', '0' ,'1'], capture_output=True)
-            if pid.returncode != 0:
-                raise Exception(pid)
+            loc = Localization.run(input_video=f'{input_folder_name}/{file}', outpur_dir=OUTPUT_DIR,
+                                   window_size=WINSIZE, threshold=THRES_ALPHA,
+                                   deflation=DEFLATION_LOOP_IN_BACKWARD, sigma=SIGMA, shift=SHIFT,
+                                   gpu_on=LOC_GPU_AVAIL, visualization=True, verbose=0, batch=True)
             PBAR.update(1)
-            pid = subprocess.run([sys.executable, 'Tracking.py', '0', '1'], capture_output=True)
-            if pid.returncode != 0:
-                raise Exception(pid)
+            if loc:
+                track = Tracking.run(input_video=f'{input_folder_name}/{file}', outpur_dir=OUTPUT_DIR,
+                                     blink_lag=BLINK_LAG, cutoff=CUTOFF,
+                                     pixel_microns=PIXEL_MICRONS, frame_rate=FRAME_RATE,
+                                     gpu_on=TRACK_GPU_AVAIL, visualization=TRACK_VISUALIZATION, verbose=0, batch=True)
             PBAR.update(1)
-            if os.path.exists('diffusion_image.py') and pid.returncode==0:
-                proc = run_command([sys.executable.split('/')[-1], f'diffusion_image.py', f'./outputs/{file.strip().split(".tif")[0]}_traces.csv', str(PIXEL_MICRONS), str(FRAME_RATE)])
+
+            if os.path.exists('diffusion_image.py') and track:
+                proc = run_command([sys.executable.split('/')[-1], f'diffusion_image.py', f'{OUTPUT_DIR}/{file.strip().split(".tif")[0]}_traces.csv', str(PIXEL_MICRONS), str(FRAME_RATE)])
                 proc.wait()
                 if not proc.poll() == 0:
                     print(f'diffusion map -> failed with status:{proc.poll()}')
-        except:
+        except Exception as e:
             failed_tasks.append(file)
-            print(f"ERROR on {file}, code:{pid.returncode}")
+            print(f"ERROR on {file}, code:{e}")
             with open('./outputs/error_log.txt', 'a') as error_log:
                 dt_string = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-                input_str = f'{file} has an err[{pid.stderr.decode("utf-8")}]. DATE: {dt_string}\n'        
+                input_str = f'{file} has an err[{e}]. DATE: {dt_string}\n'        
                 error_log.write(input_str)
 PBAR.close()
 if len(failed_tasks) > 0:

@@ -1,7 +1,32 @@
 import os
 import sys
 import subprocess
+import Tracking
+import Localization
 from module.FileIO import read_parameters, initialization
+
+
+"""
+Configurations of FreeTrace.
+"""
+params = read_parameters('./config.txt')
+video_name = params['localization']['VIDEO']
+OUTPUT_DIR = params['localization']['OUTPUT_DIR']
+
+WINSIZE = params['localization']['WINSIZE']
+THRES_ALPHA = params['localization']['THRES_ALPHA']
+DEFLATION_LOOP_IN_BACKWARD = params['localization']['DEFLATION_LOOP_IN_BACKWARD']
+SIGMA = params['localization']['SIGMA']
+SHIFT = params['localization']['SHIFT']
+LOC_VISUALIZATION = params['localization']['LOC_VISUALIZATION']
+LOC_GPU_AVAIL = params['localization']['GPU']
+
+BLINK_LAG = params['tracking']['BLINK_LAG']
+CUTOFF = params['tracking']['CUTOFF']
+TRACK_VISUALIZATION = params['tracking']['TRACK_VISUALIZATION']
+PIXEL_MICRONS = params['tracking']['PIXEL_MICRONS']
+FRAME_RATE = params['tracking']['FRAME_PER_SEC']
+TRACK_GPU_AVAIL = params['tracking']['GPU']
 
 
 def run_command(cmd):
@@ -9,20 +34,26 @@ def run_command(cmd):
     return process
 
 
-params = read_parameters('./config.txt')
-video_name = params['localization']['VIDEO']
-PIXEL_MICRONS = params['tracking']['PIXEL_MICRONS']
-FRAME_RATE = params['tracking']['FRAME_PER_SEC']
-
 try:
+    if not os.path.exists(f'{OUTPUT_DIR}'):
+        os.makedirs(f'{OUTPUT_DIR}')
+
+    loc = False
+    track = False
+
     initialization(False, verbose=False, batch=False)
-    proc = subprocess.run([sys.executable, 'Localization.py', '1', '0'])
-    if proc.returncode != 0:
-        raise Exception(proc)
-    proc = subprocess.run([sys.executable, 'Tracking.py', '1', '0'])
-    if proc.returncode != 0:
-        raise Exception(proc)
-    if os.path.exists('diffusion_image.py') and proc.returncode == 0:
+    loc = Localization.run(input_video=video_name, outpur_dir=OUTPUT_DIR,
+                           window_size=WINSIZE, threshold=THRES_ALPHA,
+                           deflation=DEFLATION_LOOP_IN_BACKWARD, sigma=SIGMA, shift=SHIFT,
+                           gpu_on=LOC_GPU_AVAIL, visualization=LOC_VISUALIZATION, verbose=1, batch=False)
+    
+    if loc:
+        track = Tracking.run(input_video=video_name, outpur_dir=OUTPUT_DIR,
+                             blink_lag=BLINK_LAG, cutoff=CUTOFF,
+                             pixel_microns=PIXEL_MICRONS, frame_rate=FRAME_RATE,
+                             gpu_on=TRACK_GPU_AVAIL, visualization=TRACK_VISUALIZATION, verbose=1, batch=False)
+
+    if os.path.exists('diffusion_image.py') and track:
         proc = run_command([sys.executable.split('/')[-1], f'diffusion_image.py', f'./outputs/{video_name.strip().split("/")[-1].split(".tif")[0]}_traces.csv', str(PIXEL_MICRONS), str(FRAME_RATE)])
         proc.wait()
         if proc.poll() == 0:

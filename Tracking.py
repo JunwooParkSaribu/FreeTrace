@@ -638,7 +638,7 @@ def trajectory_inference(localization: dict, time_steps: np.ndarray, distributio
     return trajectory_list
 
 
-def main():
+def run(input_video, outpur_dir, blink_lag=1, cutoff=0, pixel_microns=1, frame_rate=1, gpu_on=True, visualization=False, verbose=False, batch=False):
     global VERBOSE
     global BATCH
     global INPUT_TIFF 
@@ -661,21 +661,20 @@ def main():
     global REG_MODEL
     global MULTI_NORMALS
 
-    VERBOSE = eval(f'{eval(sys.argv[1])} == 1') if len(sys.argv) > 1 else False
-    BATCH = eval(f'{eval(sys.argv[2])} == 1') if len(sys.argv) > 2 else False
-    params = read_parameters('./config.txt')
-    INPUT_TIFF = params['tracking']['VIDEO']
-    OUTPUT_DIR = params['tracking']['OUTPUT_DIR']
-    BLINK_LAG = params['tracking']['BLINK_LAG']
-    CUTOFF = params['tracking']['CUTOFF']
-    VISUALIZATION = params['tracking']['TRACK_VISUALIZATION']
-    PIXEL_MICRONS = params['tracking']['PIXEL_MICRONS']
-    FRAME_RATE = params['tracking']['FRAME_PER_SEC']
-    GPU_AVAIL = params['tracking']['GPU']
+    VERBOSE = verbose
+    BATCH = batch
+    INPUT_TIFF = input_video
+    OUTPUT_DIR = outpur_dir
+    BLINK_LAG = blink_lag
+    CUTOFF = cutoff
+    VISUALIZATION = visualization
+    PIXEL_MICRONS = pixel_microns
+    FRAME_RATE = frame_rate
+    GPU_AVAIL = gpu_on
     REG_LEGNTHS = [5, 8, 12]
     ALPHA_MAX_LENGTH = 8
     CUDA, TF = initialization(GPU_AVAIL, REG_LEGNTHS, ptype=1, verbose=VERBOSE, batch=BATCH)
-    POLY_FIT_DATA = np.load('./models/theta_hat.npz')
+    POLY_FIT_DATA = np.load(f'{__file__.split('/Tracking.py')[0]}/models/theta_hat.npz')
 
     output_xml = f'{OUTPUT_DIR}/{INPUT_TIFF.split("/")[-1].split(".tif")[0]}_traces.xml'
     output_trj = f'{OUTPUT_DIR}/{INPUT_TIFF.split("/")[-1].split(".tif")[0]}_traces.csv'
@@ -755,7 +754,3 @@ def main():
         print(f'Visualizing trajectories...')
         make_image_seqs(final_trajectories, output_dir=output_imgstack, img_stacks=images, time_steps=TIME_STEPS, cutoff=CUTOFF,
                         add_index=False, local_img=None, gt_trajectory=None)
-
-
-if __name__ == '__main__':
-    main()

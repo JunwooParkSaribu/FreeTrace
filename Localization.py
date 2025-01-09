@@ -625,7 +625,7 @@ def main_process(imgs, forward_gauss_grids, backward_gauss_grids, *args):
     return xyz_coord, pdf, info
 
 
-def main():
+def run(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigma=4.0, shift=1, gpu_on=True, visualization=False, verbose=False, batch=False):
     global VERBOSE
     global BATCH
     global MEM_SIZE 
@@ -649,27 +649,29 @@ def main():
     global MULTI_THRESHOLDS
     global gpu_module
 
-    VERBOSE = eval(f'{eval(sys.argv[1])} == 1') if len(sys.argv) > 1 else False
-    BATCH = eval(f'{eval(sys.argv[2])} == 1') if len(sys.argv) > 2 else False
-    params = read_parameters('./config.txt')
-    images = check_video_ext(params['localization']['VIDEO'], andi2=False)
 
-    OUTPUT_DIR = params['localization']['OUTPUT_DIR']
-    OUTPUT_LOC = f'{OUTPUT_DIR}/{params["localization"]["VIDEO"].split("/")[-1].split(".tif")[0]}'
-    SIGMA = params['localization']['SIGMA']
-    WINSIZE = params['localization']['WINSIZE']
-    THRES_ALPHA = params['localization']['THRES_ALPHA']
-    DEFLATION_LOOP_IN_BACKWARD = params['localization']['DEFLATION_LOOP_IN_BACKWARD']
-    SHIFT = params['localization']['SHIFT']
-    VISUALIZATION = params['localization']['LOC_VISUALIZATION']
-    GPU_AVAIL = params['localization']['GPU']
+    images = check_video_ext(input_video, andi2=False)
+
+
+    OUTPUT_DIR = outpur_dir
+    OUTPUT_LOC = f'{OUTPUT_DIR}/{input_video.split("/")[-1].split(".tif")[0]}'
+    SIGMA = sigma
+    WINSIZE = window_size
+    THRES_ALPHA = threshold
+    DEFLATION_LOOP_IN_BACKWARD = deflation
+    SHIFT = shift
+    VISUALIZATION = visualization
+    GPU_AVAIL = gpu_on
     P0 = [1.5, 0., 1.5, 0., 0., 0.5]
     GAUSS_SEIDEL_DECOMP = 1
     CORE = 4
     PARALLEL = False
     BINARY_THRESHOLDS = None
     MULTI_THRESHOLDS = None
+    VERBOSE = verbose
+    BATCH = batch
     
+
     CUDA, _ = initialization(GPU_AVAIL, ptype=0, verbose=VERBOSE, batch=BATCH)
     if CUDA:
         from module import gpu_module
@@ -732,6 +734,4 @@ def main():
         print(f'Visualizing localizations...')
         visualilzation(OUTPUT_LOC, images, xyz_coords)
 
-
-if __name__ == '__main__':
-    main()
+    return True
