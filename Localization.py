@@ -1,4 +1,12 @@
 import sys
+distrib_path = f'{__file__.split('FreeTrace')[0]}/FreeTrace/module'
+model_path = f'{__file__.split('FreeTrace')[0]}/FreeTrace/models'
+if distrib_path not in sys.path:
+    sys.path.append(distrib_path)
+if model_path not in sys.path:
+    sys.path.append(model_path)
+
+    
 import numpy as np
 import tifffile
 import concurrent.futures
