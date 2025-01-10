@@ -40,7 +40,7 @@ subprocess.run(['sudo', 'apt', 'install', 'python3-pip'])
 if python_version == 3.10:
     subprocess.run(['rm', '-r', f'{distrib_path}/models'])
     subprocess.run(['wget', 'https://psilo.sorbonne-universite.fr/index.php/s/WqoCoFBc99A3Xbc/download/models_2_14.zip', '-P' f'{distrib_path}'])
-    subprocess.run(['unzip', f'{distrib_path}/models_2_14.zip', '-d', f'{distrib_path}', '-o'])
+    subprocess.run(['unzip', '-o', f'{distrib_path}/models_2_14.zip', '-d', f'{distrib_path}'])
     subprocess.run(['cp', '-r', f'{distrib_path}/models_2_14', f'{distrib_path}/models'])
     subprocess.run(['rm', '-r', f'{distrib_path}/models_2_14'])
     subprocess.run(['rm', f'{distrib_path}/models_2_14.zip'])
