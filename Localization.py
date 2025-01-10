@@ -670,7 +670,7 @@ def run(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigm
 
     CUDA, _ = initialization(GPU_AVAIL, ptype=0, verbose=VERBOSE, batch=BATCH)
     if CUDA:
-        from module import gpu_module
+        from FreeTrace.module import gpu_module
         MEM_SIZE = gpu_module.get_gpu_mem_size()
         DIV_Q = int(64 * 512 * 512 / images.shape[1] / images.shape[2] * (7**2 / WINSIZE**2) * MEM_SIZE / 24 * SHIFT**2) 
     else:
