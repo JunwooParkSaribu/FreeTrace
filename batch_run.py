@@ -52,16 +52,16 @@ else:
         if file.strip().split('.')[-1] == 'tif' or file.strip().split('.')[-1] == 'tiff':
             PBAR.set_postfix(File=file, refresh=True)
             try:
-                loc = Localization.run(input_video=f'{batch_folder}/{file}', outpur_dir=OUTPUT_DIR,
-                                       window_size=WINSIZE, threshold=THRES_ALPHA,
-                                       deflation=DEFLATION_LOOP_IN_BACKWARD, sigma=SIGMA, shift=SHIFT,
-                                       gpu_on=LOC_GPU_AVAIL, visualization=True, verbose=0, batch=True)
+                loc = Localization.run_process(input_video=f'{batch_folder}/{file}', outpur_dir=OUTPUT_DIR,
+                                               window_size=WINSIZE, threshold=THRES_ALPHA,
+                                               deflation=DEFLATION_LOOP_IN_BACKWARD, sigma=SIGMA, shift=SHIFT,
+                                               gpu_on=LOC_GPU_AVAIL, visualization=True, verbose=0, batch=True)
                 PBAR.update(1)
                 if loc:
-                    track = Tracking.run(input_video=f'{batch_folder}/{file}', outpur_dir=OUTPUT_DIR,
-                                         blink_lag=BLINK_LAG, cutoff=CUTOFF,
-                                         pixel_microns=PIXEL_MICRONS, frame_rate=FRAME_RATE,
-                                         gpu_on=TRACK_GPU_AVAIL, visualization=TRACK_VISUALIZATION, verbose=0, batch=True)
+                    track = Tracking.run_process(input_video=f'{batch_folder}/{file}', outpur_dir=OUTPUT_DIR,
+                                                 blink_lag=BLINK_LAG, cutoff=CUTOFF,
+                                                 pixel_microns=PIXEL_MICRONS, frame_rate=FRAME_RATE,
+                                                 gpu_on=TRACK_GPU_AVAIL, visualization=TRACK_VISUALIZATION, verbose=0, batch=True)
                 PBAR.update(1)
 
                 if os.path.exists('diffusion_image.py') and track:
