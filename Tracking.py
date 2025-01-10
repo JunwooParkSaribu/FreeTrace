@@ -1,13 +1,5 @@
 import os
 import sys
-distrib_path = f'{__file__.split('FreeTrace')[0]}/FreeTrace/module'
-model_path = f'{__file__.split('FreeTrace')[0]}/FreeTrace/models'
-if distrib_path not in sys.path:
-    sys.path.append(distrib_path)
-if model_path not in sys.path:
-    sys.path.append(model_path)
-
-
 import math
 import numpy as np
 import pandas as pd
@@ -15,16 +7,15 @@ from tqdm import tqdm
 from functools import lru_cache
 from itertools import product
 import networkx as nx
-import matplotlib.pyplot as plt
 from sklearn.neighbors import KernelDensity
 from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
 from sklearn.model_selection import GridSearchCV
 from scipy.stats import multivariate_normal
 from scipy.stats import rv_histogram
-from module.TrajectoryObject import TrajectoryObj
-from module.ImageModule import read_tif, make_image_seqs, make_whole_img
-from module.XmlModule import write_xml
-from module.FileIO import write_trajectory, read_localization, read_parameters, write_trxyt, initialization
+from FreeTrace.module.TrajectoryObject import TrajectoryObj
+from FreeTrace.module.ImageModule import read_tif, make_image_seqs, make_whole_img
+from FreeTrace.module.XmlModule import write_xml
+from FreeTrace.module.FileIO import write_trajectory, read_localization, read_parameters, write_trxyt, initialization
 from timeit import default_timer as timer
 
 
@@ -710,7 +701,7 @@ def run(input_video, outpur_dir, blink_lag=1, cutoff=0, pixel_microns=1, frame_r
             os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
         else:
             os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  
-        from module.load_models import RegModel
+        from FreeTrace.module.load_models import RegModel
         REG_MODEL = RegModel(REG_LEGNTHS)
 
     TIME_STEPS, mean_nb_per_time, xyz_min, xyz_max = count_localizations(loc)
@@ -762,3 +753,5 @@ def run(input_video, outpur_dir, blink_lag=1, cutoff=0, pixel_microns=1, frame_r
         print(f'Visualizing trajectories...')
         make_image_seqs(final_trajectories, output_dir=output_imgstack, img_stacks=images, time_steps=TIME_STEPS, cutoff=CUTOFF,
                         add_index=False, local_img=None, gt_trajectory=None)
+        
+    return True

@@ -3,11 +3,11 @@ import sys
 import subprocess
 import Tracking
 import Localization
-from module.FileIO import read_parameters, initialization
+from FreeTrace.module.FileIO import read_parameters, initialization
 
 
 """
-Configurations of FreeTrace.
+Read configuration file.
 """
 params = read_parameters('./config.txt')
 video_name = params['localization']['VIDEO']
@@ -37,7 +37,6 @@ def run_command(cmd):
 try:
     if not os.path.exists(f'{OUTPUT_DIR}'):
         os.makedirs(f'{OUTPUT_DIR}')
-
     loc = False
     track = False
 
@@ -54,7 +53,7 @@ try:
                              gpu_on=TRACK_GPU_AVAIL, visualization=TRACK_VISUALIZATION, verbose=1, batch=False)
 
     if os.path.exists('diffusion_image.py') and track:
-        proc = run_command([sys.executable.split('/')[-1], f'diffusion_image.py', f'./outputs/{video_name.strip().split("/")[-1].split(".tif")[0]}_traces.csv', str(PIXEL_MICRONS), str(FRAME_RATE)])
+        proc = run_command([sys.executable.split('/')[-1], f'diffusion_image.py', f'./{OUTPUT_DIR}/{video_name.strip().split("/")[-1].split(".tif")[0]}_traces.csv', str(PIXEL_MICRONS), str(FRAME_RATE)])
         proc.wait()
         if proc.poll() == 0:
             print(f'diffusion map -> successfully finished')

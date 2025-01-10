@@ -1,4 +1,4 @@
-from module.TrajectoryObject import TrajectoryObj as trajobj
+from FreeTrace.module.TrajectoryObject import TrajectoryObj as trajobj
 import numpy as np
 
 
