@@ -621,7 +621,7 @@ def main_process(imgs, forward_gauss_grids, backward_gauss_grids, *args):
     return xyz_coord, pdf, info
 
 
-def run(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigma=4.0, shift=1, gpu_on=True, visualization=False, verbose=False, batch=False):
+def run(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigma=4.0, shift=1, gpu_on=True, visualization=False, verbose=False, batch=False, return_state=0):
     global VERBOSE
     global BATCH
     global MEM_SIZE 
@@ -729,5 +729,17 @@ def run(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigm
     if VISUALIZATION:
         print(f'Visualizing localizations...')
         visualilzation(OUTPUT_LOC, images, xyz_coords)
-
+    
+    if return_state != 0:
+        return_state.value = 1
     return True
+
+
+def run_process(*args, **kwargs):
+    from multiprocessing import Process, Value
+    return_state = Value('b', 0)
+    kwargs['return_state'] = return_state
+    p = Process(target=run, args=args, kwargs=kwargs)
+    p.start()
+    p.join()
+    return return_state.value

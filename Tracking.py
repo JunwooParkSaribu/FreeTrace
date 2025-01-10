@@ -3,6 +3,7 @@ import sys
 import math
 import numpy as np
 import pandas as pd
+import tensorflow as tf
 from tqdm import tqdm
 from functools import lru_cache
 from itertools import product
@@ -637,7 +638,7 @@ def trajectory_inference(localization: dict, time_steps: np.ndarray, distributio
     return trajectory_list
 
 
-def run(input_video, outpur_dir, blink_lag=1, cutoff=0, pixel_microns=1, frame_rate=1, gpu_on=True, visualization=False, verbose=False, batch=False):
+def run(input_video, outpur_dir, blink_lag=1, cutoff=0, pixel_microns=1, frame_rate=1, gpu_on=True, visualization=False, verbose=False, batch=False, return_state=0):
     global VERBOSE
     global BATCH
     global INPUT_TIFF 
@@ -736,6 +737,7 @@ def run(input_video, outpur_dir, blink_lag=1, cutoff=0, pixel_microns=1, frame_r
     plt.show()
     """
 
+
     trajectory_list = trajectory_inference(localization=loc, time_steps=TIME_STEPS,
                                            distribution=jump_distribution, blink_lag=BLINK_LAG)
     for trajectory in trajectory_list:
@@ -753,5 +755,17 @@ def run(input_video, outpur_dir, blink_lag=1, cutoff=0, pixel_microns=1, frame_r
         print(f'Visualizing trajectories...')
         make_image_seqs(final_trajectories, output_dir=output_imgstack, img_stacks=images, time_steps=TIME_STEPS, cutoff=CUTOFF,
                         add_index=False, local_img=None, gt_trajectory=None)
-        
+    
+    if return_state != 0:
+        return_state.value = 1
     return True
+
+
+def run_process(*args, **kwargs):
+    from multiprocessing import Process, Value
+    return_state = Value('b', 0)
+    kwargs['return_state'] = return_state
+    p = Process(target=run, args=args, kwargs=kwargs)
+    p.start()
+    p.join()
+    return return_state.value
