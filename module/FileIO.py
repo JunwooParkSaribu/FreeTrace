@@ -1,8 +1,8 @@
 import os
 import sys
 import numpy as np
-from module.TrajectoryObject import TrajectoryObj
-from module.ImageModule import read_tif
+from FreeTrace.module.TrajectoryObject import TrajectoryObj
+from FreeTrace.module.ImageModule import read_tif
 
 
 author_emails = [f'junwoo.park@sorbonne-universite.fr']

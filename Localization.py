@@ -1,24 +1,12 @@
-import sys
-distrib_path = f'{__file__.split('FreeTrace')[0]}/FreeTrace/module'
-model_path = f'{__file__.split('FreeTrace')[0]}/FreeTrace/models'
-if distrib_path not in sys.path:
-    sys.path.append(distrib_path)
-if model_path not in sys.path:
-    sys.path.append(model_path)
-
-    
 import numpy as np
 import tifffile
 import concurrent.futures
-from timeit import default_timer as timer
 from functools import lru_cache
-from module import image_pad
-from module import regression
-from module.FileIO import write_localization, read_parameters, check_video_ext, initialization
-from module.ImageModule import draw_cross, make_loc_depth_image
+from FreeTrace.module import image_pad
+from FreeTrace.module import regression
+from FreeTrace.module.FileIO import write_localization, read_parameters, check_video_ext, initialization
+from FreeTrace.module.ImageModule import draw_cross, make_loc_depth_image
 from tqdm import tqdm
-from timeit import default_timer as timer
-import matplotlib.pyplot as plt
 
 
 def region_max_filter2(maps, window_size, thresholds, detect_range=0):

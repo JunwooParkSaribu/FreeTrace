@@ -8,7 +8,7 @@ import tifffile
 from tifffile import TiffFile
 import matplotlib.pyplot as plt
 from itertools import product
-from module.TrajectoryObject import TrajectoryObj
+from FreeTrace.module.TrajectoryObject import TrajectoryObj
 
 
 def read_tif(filepath, andi2=False):
