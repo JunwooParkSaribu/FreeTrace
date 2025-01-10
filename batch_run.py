@@ -3,8 +3,7 @@ import sys
 import subprocess
 from datetime import datetime
 from tqdm import tqdm
-import Tracking
-import Localization
+from FreeTrace import Tracking, Localization
 from FreeTrace.module.FileIO import initialization, read_parameters
 
 
