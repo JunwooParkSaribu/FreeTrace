@@ -33,6 +33,7 @@ else:
 subprocess.run(['sudo', 'apt-get', 'update'])
 subprocess.run(['sudo', 'apt-get', 'install', 'unzip'])
 subprocess.run(['sudo', 'apt', 'install', 'clang'])
+subprocess.run(['sudo', 'apt-get', 'install', 'python3-tk'])
 subprocess.run(['sudo', 'apt', 'install', 'python3-dev'])
 subprocess.run(['sudo', 'apt', 'install', 'python3-pip'])
 
