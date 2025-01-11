@@ -621,7 +621,7 @@ def main_process(imgs, forward_gauss_grids, backward_gauss_grids, *args):
     return xyz_coord, pdf, info
 
 
-def run(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigma=4.0, shift=1, gpu_on=True, visualization=False, verbose=False, batch=False, return_state=0):
+def run(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigma=4.0, shift=1, gpu_on=True, save_video=False, verbose=False, batch=False, realtime_vis=False, return_state=0):
     global VERBOSE
     global BATCH
     global MEM_SIZE 
@@ -656,7 +656,7 @@ def run(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigm
     THRES_ALPHA = threshold
     DEFLATION_LOOP_IN_BACKWARD = deflation
     SHIFT = shift
-    VISUALIZATION = visualization
+    VISUALIZATION = save_video
     GPU_AVAIL = gpu_on
     P0 = [1.5, 0., 1.5, 0., 0., 0.5]
     GAUSS_SEIDEL_DECOMP = 1
@@ -666,6 +666,7 @@ def run(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigm
     MULTI_THRESHOLDS = None
     VERBOSE = verbose
     BATCH = batch
+    REALTIME_VIS = realtime_vis
     
 
     CUDA, _ = initialization(GPU_AVAIL, ptype=0, verbose=VERBOSE, batch=BATCH)
@@ -685,6 +686,14 @@ def run(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigm
     SINGLE_WINSIZES, SINGLE_RADIUS, MULTI_WINSIZES, MULTI_RADIUS = params_gen(WINSIZE)
     forward_gauss_grids = gauss_psf(SINGLE_WINSIZES,SINGLE_RADIUS)
     backward_gauss_grids = gauss_psf(MULTI_WINSIZES, MULTI_RADIUS)
+
+
+    realtime_obj = None
+    if REALTIME_VIS:
+        from module.ImageModule import RealPlot
+        realtime_obj = RealPlot()
+        realtime_obj.turn_on()
+
 
     if VERBOSE:
         PBAR = tqdm(total=len(images), desc="Localization", unit=f"frame", ncols=120)
@@ -716,30 +725,50 @@ def run(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigm
             reg_pdfs.extend(pdf)
             reg_infos.extend(info)
 
+            if REALTIME_VIS:
+                for q_idx, img in enumerate(images[div_q:div_q+DIV_Q]):
+                   if q_idx % 2 == 0: realtime_obj.queue.put(img) 
+
             if VERBOSE and len(images[div_q:div_q+DIV_Q]) == DIV_Q:
                 PBAR.update(DIV_Q)
             elif VERBOSE:
                 PBAR.update(len(images) % DIV_Q)
+
     if VERBOSE:
         PBAR.close()
 
     #reg_pdfs, xyz_coords, reg_infos = intensity_distribution(images, reg_pdfs, xyz_coords, reg_infos, sigma=SIGMA)
     write_localization(OUTPUT_LOC, xyz_coords, reg_pdfs, reg_infos)
     make_loc_depth_image(OUTPUT_LOC, xyz_coords, winsize=WINSIZE, resolution=1, dim=2)
+
     if VISUALIZATION:
         print(f'Visualizing localizations...')
         visualilzation(OUTPUT_LOC, images, xyz_coords)
-    
+    if realtime_obj is not None:
+        realtime_obj.turn_off()
+        del realtime_obj
     if return_state != 0:
         return_state.value = 1
     return True
 
 
-def run_process(*args, **kwargs):
+def run_process(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigma=4.0, shift=1, gpu_on=True, save_video=False, verbose=False, batch=False, realtime_vis=False):
     from multiprocessing import Process, Value
     return_state = Value('b', 0)
-    kwargs['return_state'] = return_state
-    p = Process(target=run, args=args, kwargs=kwargs)
+    options = {
+        'window_size': window_size,
+        'threshold': threshold,
+        'deflation': deflation,
+        'sigma': sigma,
+        'shift': shift,
+        'gpu_on': gpu_on,
+        'save_video': save_video,
+        'verbose': verbose,
+        'batch': batch,
+        'realtime_vis': realtime_vis,
+        'return_state': return_state
+    }
+    p = Process(target=run, args=(input_video, outpur_dir),  kwargs=options)
     p.start()
     p.join()
     return return_state.value

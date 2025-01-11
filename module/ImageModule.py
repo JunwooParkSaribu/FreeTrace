@@ -9,6 +9,59 @@ from tifffile import TiffFile
 import matplotlib.pyplot as plt
 from itertools import product
 from FreeTrace.module.TrajectoryObject import TrajectoryObj
+import tkinter as tk
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from multiprocessing import Queue, Process, Value, active_children
+
+ 
+class RealPlot(tk.Tk):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.queue = Queue()
+        self.force_terminate = Value('b', 0)
+        self.img_process = Process(target=self.start_main_loop)
+ 
+    def update_plot(self):
+        if self.force_terminate.value == 1:
+            self.destroy()
+            del self.plt
+            del self.canvas
+            del self.figure
+            self.force_terminate.value = 0
+            exit(0)
+        try:
+            self.plt.clear()
+            self.plt.margins(x=0)
+            self.plt.imshow(self.queue.get(timeout=1))
+            self.figure.canvas.draw()
+        except:
+            pass
+        self.after(50, self.update_plot)
+
+    def turn_on(self):
+        self.img_process.start()
+
+    def turn_off(self):
+        self.force_terminate.value = 1
+        while True:
+            if self.force_terminate.value == 0:
+                self.img_process.terminate()
+                self.queue.cancel_join_thread()
+                del self.queue
+                del self.force_terminate
+                del self.img_process
+                break
+ 
+    def start_main_loop(self):
+        self.queue.get()
+        self.figure = Figure(figsize=(6, 4))
+        self.plt = self.figure.add_subplot(111)
+        self.canvas = FigureCanvasTkAgg(self.figure, self)
+        self.canvas.draw()
+        self.canvas.get_tk_widget().pack()
+        self.update_plot()
+        self.mainloop()
 
 
 def read_tif(filepath, andi2=False):
@@ -535,6 +588,18 @@ def to_mp4(image_stack_path, save_path, fps=10, resolution='high'):
         v_out.write(video_frame)
     v_out.release()
 
+
+def animation(image_stack_path, save_path, fps=10, resolution='high'):
+    images = read_tif_unnormalized(image_stack_path)
+    if resolution == 'high':
+        fourcc = cv2.VideoWriter_fourcc(*'HFYU') #lossless
+    else:
+        fourcc = cv2.VideoWriter_fourcc(*'avc1')
+    v_out = cv2.VideoWriter(f'{save_path}.avi', fourcc, fps, (images.shape[2], images.shape[1]))
+    for idx in range(images.shape[0]):
+        video_frame = cv2.cvtColor(images[idx], cv2.COLOR_BGR2RGB)
+        v_out.write(video_frame)
+    v_out.release()
 
 #vis_cps_file_name = ''
 #cps_visualization(f'./{vis_cps_file_name}_cps.tiff', f'./inputs/{vis_cps_file_name}.tiff', f'./{vis_cps_file_name}_traces.txt', f'./outputs/{vis_cps_file_name}_traces.csv')

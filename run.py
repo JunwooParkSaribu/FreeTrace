@@ -1,7 +1,8 @@
 import os
 import sys
 import subprocess
-from FreeTrace import Tracking, Localization
+#from FreeTrace import Tracking, Localization
+import Localization, Tracking
 from FreeTrace.module.FileIO import read_parameters, initialization
 
 
@@ -40,17 +41,15 @@ try:
     track = False
 
     initialization(False, verbose=False, batch=False)
-
     loc = Localization.run_process(input_video=video_name, outpur_dir=OUTPUT_DIR,
                                    window_size=WINSIZE, threshold=THRES_ALPHA,
                                    deflation=DEFLATION_LOOP_IN_BACKWARD, sigma=SIGMA, shift=SHIFT,
-                                   gpu_on=LOC_GPU_AVAIL, visualization=LOC_VISUALIZATION, verbose=1, batch=False)
-    
+                                   gpu_on=LOC_GPU_AVAIL, save_video=LOC_VISUALIZATION, realtime_vis=True, verbose=1, batch=False)
     if loc:
         track = Tracking.run_process(input_video=video_name, outpur_dir=OUTPUT_DIR,
                                     blink_lag=BLINK_LAG, cutoff=CUTOFF,
                                     pixel_microns=PIXEL_MICRONS, frame_rate=FRAME_RATE,
-                                    gpu_on=TRACK_GPU_AVAIL, visualization=TRACK_VISUALIZATION, verbose=1, batch=False)
+                                    gpu_on=TRACK_GPU_AVAIL, save_video=TRACK_VISUALIZATION, verbose=1, batch=False)
 
     if os.path.exists('diffusion_image.py') and track:
         proc = run_command([sys.executable.split('/')[-1], f'diffusion_image.py', f'./{OUTPUT_DIR}/{video_name.strip().split("/")[-1].split(".tif")[0]}_traces.csv', str(PIXEL_MICRONS), str(FRAME_RATE)])

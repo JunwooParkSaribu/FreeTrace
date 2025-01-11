@@ -638,7 +638,7 @@ def trajectory_inference(localization: dict, time_steps: np.ndarray, distributio
     return trajectory_list
 
 
-def run(input_video, outpur_dir, blink_lag=1, cutoff=0, pixel_microns=1, frame_rate=1, gpu_on=True, visualization=False, verbose=False, batch=False, return_state=0):
+def run(input_video, outpur_dir, blink_lag=1, cutoff=0, pixel_microns=1, frame_rate=1, gpu_on=True, save_video=False, verbose=False, batch=False, return_state=0):
     global VERBOSE
     global BATCH
     global INPUT_TIFF 
@@ -667,7 +667,7 @@ def run(input_video, outpur_dir, blink_lag=1, cutoff=0, pixel_microns=1, frame_r
     OUTPUT_DIR = outpur_dir
     BLINK_LAG = blink_lag
     CUTOFF = cutoff
-    VISUALIZATION = visualization
+    VISUALIZATION = save_video
     PIXEL_MICRONS = pixel_microns
     FRAME_RATE = frame_rate
     GPU_AVAIL = gpu_on
@@ -761,11 +761,21 @@ def run(input_video, outpur_dir, blink_lag=1, cutoff=0, pixel_microns=1, frame_r
     return True
 
 
-def run_process(*args, **kwargs):
+def run_process(input_video, outpur_dir, blink_lag=1, cutoff=0, pixel_microns=1, frame_rate=1, gpu_on=True, save_video=False, verbose=False, batch=False):
     from multiprocessing import Process, Value
     return_state = Value('b', 0)
-    kwargs['return_state'] = return_state
-    p = Process(target=run, args=args, kwargs=kwargs)
+    options = {
+        'blink_lag': blink_lag,
+        'cutoff': cutoff,
+        'pixel_microns': pixel_microns,
+        'frame_rate': frame_rate,
+        'gpu_on': gpu_on,
+        'save_video': save_video,
+        'verbose': verbose,
+        'batch': batch,
+        'return_state': return_state
+    }
+    p = Process(target=run, args=(input_video, outpur_dir),  kwargs=options)
     p.start()
     p.join()
     return return_state.value
