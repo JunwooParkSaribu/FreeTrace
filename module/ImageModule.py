@@ -5,14 +5,12 @@ import cv2
 import imageio
 from PIL import Image
 import tifffile
-from tifffile import TiffFile
-import matplotlib.pyplot as plt
-from itertools import product
-from FreeTrace.module.TrajectoryObject import TrajectoryObj
 import tkinter as tk
+import matplotlib.pyplot as plt
+from FreeTrace.module.TrajectoryObject import TrajectoryObj
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from multiprocessing import Queue, Process, Value, active_children
+from multiprocessing import Queue, Process, Value
 
  
 class RealPlot(tk.Tk):
@@ -80,7 +78,7 @@ def read_tif(filepath, andi2=False):
                 pass
         imgs = np.array(imgs)
     else:
-        with TiffFile(filepath) as tif:
+        with tifffile.TiffFile(filepath) as tif:
             imgs = tif.asarray()
             axes = tif.series[0].axes
             imagej_metadata = tif.imagej_metadata
@@ -116,7 +114,7 @@ def read_tif(filepath, andi2=False):
 
 def read_tif_unnormalized(filepath):
     imgs = []
-    with TiffFile(filepath) as tif:
+    with tifffile.TiffFile(filepath) as tif:
         imgs = (tif.asarray()).astype(np.float32)
         axes = tif.series[0].axes
         imagej_metadata = tif.imagej_metadata
@@ -124,7 +122,7 @@ def read_tif_unnormalized(filepath):
 
 
 def read_single_tif(filepath, ch3=True):
-    with TiffFile(filepath) as tif:
+    with tifffile.TiffFile(filepath) as tif:
         imgs = tif.asarray()
         if len(imgs.shape) >= 3:
             imgs = imgs[0]
