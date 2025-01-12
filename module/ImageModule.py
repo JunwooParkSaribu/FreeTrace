@@ -12,7 +12,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from multiprocessing import Queue, Process, Value
 
  
-class RealPlot(tk.Tk):
+class RealTimePlot(tk.Tk):
     def __init__(self, title='', *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.wm_title(string=title)
