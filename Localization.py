@@ -721,6 +721,7 @@ def run(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigm
                                                SINGLE_WINSIZES, SINGLE_RADIUS, BINARY_THRESHOLDS,
                                                MULTI_WINSIZES, MULTI_RADIUS, MULTI_THRESHOLDS,
                                                P0, SHIFT, GAUSS_SEIDEL_DECOMP, THRES_ALPHA, DEFLATION_LOOP_IN_BACKWARD)
+            # Coord date is stored as y, x, z
             xyz_coords.extend(xyz_coord)
             reg_pdfs.extend(pdf)
             reg_infos.extend(info)
