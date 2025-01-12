@@ -691,7 +691,7 @@ def run(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigm
     realtime_obj = None
     if REALTIME_VIS:
         from module.ImageModule import RealPlot
-        realtime_obj = RealPlot()
+        realtime_obj = RealPlot(input_video)
         realtime_obj.turn_on()
 
 
@@ -725,10 +725,8 @@ def run(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigm
             xyz_coords.extend(xyz_coord)
             reg_pdfs.extend(pdf)
             reg_infos.extend(info)
-
             if REALTIME_VIS:
-                for q_idx, img in enumerate(images[div_q:div_q+DIV_Q]):
-                   if q_idx % 2 == 0: realtime_obj.queue.put(img) 
+                realtime_obj.put_into_queue((images[div_q:div_q+DIV_Q], xyz_coord), mod_n=2) 
 
             if VERBOSE and len(images[div_q:div_q+DIV_Q]) == DIV_Q:
                 PBAR.update(DIV_Q)
@@ -769,7 +767,14 @@ def run_process(input_video, outpur_dir, window_size=9, threshold=1.0, deflation
         'realtime_vis': realtime_vis,
         'return_state': return_state
     }
+
     p = Process(target=run, args=(input_video, outpur_dir),  kwargs=options)
-    p.start()
-    p.join()
+    try:
+        p.start()
+        p.join()
+    except KeyboardInterrupt:
+        print("Caught KeyboardInterrupt, terminating childs")
+        p.terminate()
+    else:
+        p.close()
     return return_state.value

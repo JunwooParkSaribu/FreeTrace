@@ -774,7 +774,14 @@ def run_process(input_video, outpur_dir, blink_lag=1, cutoff=0, pixel_microns=1,
         'batch': batch,
         'return_state': return_state
     }
+    
     p = Process(target=run, args=(input_video, outpur_dir),  kwargs=options)
-    p.start()
-    p.join()
+    try:
+        p.start()
+        p.join()
+    except KeyboardInterrupt:
+        print("Caught KeyboardInterrupt, terminating childs")
+        p.terminate()
+    else:
+        p.close()
     return return_state.value

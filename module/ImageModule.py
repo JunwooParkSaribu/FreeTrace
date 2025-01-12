@@ -8,18 +8,18 @@ import tifffile
 import tkinter as tk
 import matplotlib.pyplot as plt
 from FreeTrace.module.TrajectoryObject import TrajectoryObj
-from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from multiprocessing import Queue, Process, Value
 
  
 class RealPlot(tk.Tk):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, title='', *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.wm_title(string=title)
         self.queue = Queue()
         self.force_terminate = Value('b', 0)
-        self.img_process = Process(target=self.start_main_loop)
- 
+        self.img_process = Process(target=self.start_main_loop, daemon=True)
+
     def update_plot(self):
         if self.force_terminate.value == 1:
             self.destroy()
@@ -30,8 +30,10 @@ class RealPlot(tk.Tk):
             exit(0)
         try:
             self.plt.clear()
-            self.plt.margins(x=0)
-            self.plt.imshow(self.queue.get(timeout=1))
+            self.plt.margins(x=0, y=0)
+            img, coords = self.queue.get(timeout=1)
+            self.plt.imshow(img, cmap='gist_gray')
+            self.plt.scatter(coords[:, 1], coords[:, 0], marker='+', c='red', alpha=0.7)
             self.figure.canvas.draw()
         except:
             pass
@@ -53,13 +55,21 @@ class RealPlot(tk.Tk):
  
     def start_main_loop(self):
         self.queue.get()
-        self.figure = Figure(figsize=(6, 4))
+        self.figure = plt.figure(figsize=(8, 8))
         self.plt = self.figure.add_subplot(111)
         self.canvas = FigureCanvasTkAgg(self.figure, self)
         self.canvas.draw()
-        self.canvas.get_tk_widget().pack()
+        self.canvas.get_tk_widget().pack(padx=0, pady=0)
         self.update_plot()
         self.mainloop()
+
+    def put_into_queue(self, data_zip, mod_n=1):
+        data_idx = 0
+        imgs = data_zip[0]
+        coords_in_t = data_zip[1]
+        for data_idx, (img, coords) in enumerate(zip(imgs, coords_in_t)):
+            if data_idx % mod_n == 0:
+                self.queue.put((img, np.array(coords)))
 
 
 def read_tif(filepath, andi2=False):
