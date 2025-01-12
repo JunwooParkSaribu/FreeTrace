@@ -690,8 +690,8 @@ def run(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigm
 
     realtime_obj = None
     if REALTIME_VIS:
-        from module.ImageModule import RealPlot
-        realtime_obj = RealPlot(input_video)
+        from FreeTrace.module.ImageModule import RealTimePlot
+        realtime_obj = RealTimePlot(input_video)
         realtime_obj.turn_on()
 
 

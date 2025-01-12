@@ -1,8 +1,7 @@
 import os
 import sys
 import subprocess
-#from FreeTrace import Tracking, Localization
-import Localization, Tracking
+from FreeTrace import Tracking, Localization
 from FreeTrace.module.FileIO import read_parameters, initialization
 
 
