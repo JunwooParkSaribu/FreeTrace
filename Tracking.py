@@ -3,7 +3,6 @@ import sys
 import math
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 from tqdm import tqdm
 from functools import lru_cache
 from itertools import product
