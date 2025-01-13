@@ -551,7 +551,7 @@ def background(imgs, window_sizes, alpha):
     for th_i in range(len(thresholds)):
         if np.isnan(thresholds[th_i]):
             thresholds[th_i] = 1.0
-    return bgs, thresholds / alpha
+    return bgs, thresholds * alpha
 
 
 def intensity_distribution(images, reg_pdfs, xyz_coords, reg_infos, sigma=3.5):
@@ -753,6 +753,7 @@ def run(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigm
 
 def run_process(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigma=4.0, shift=1, gpu_on=True, save_video=False, verbose=False, batch=False, realtime_vis=False):
     from multiprocessing import Process, Value
+    from signal import SIGINT
     return_state = Value('b', 0)
     options = {
         'window_size': window_size,
@@ -775,6 +776,7 @@ def run_process(input_video, outpur_dir, window_size=9, threshold=1.0, deflation
     except KeyboardInterrupt:
         print("Caught KeyboardInterrupt, terminating childs")
         p.terminate()
-    else:
+        p.join()
+    finally:
         p.close()
     return return_state.value

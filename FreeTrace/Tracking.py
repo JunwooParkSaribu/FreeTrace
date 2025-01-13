@@ -782,6 +782,7 @@ def run_process(input_video, outpur_dir, blink_lag=1, cutoff=0, pixel_microns=1,
     except KeyboardInterrupt:
         print("Caught KeyboardInterrupt, terminating childs")
         p.terminate()
-    else:
+        p.join()
+    finally:
         p.close()
     return return_state.value
