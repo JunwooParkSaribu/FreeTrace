@@ -10,8 +10,12 @@ class RegModel:
         self.load_models(self.reg_model_nums)
 
     def load_models(self, model_nums):
-        self.alpha_models = {n: load_model(f'{__file__.split("FreeTrace")[0]}/FreeTrace/models/reg_model_{n}.keras') for n in model_nums}
-        self.k_model = load_model(f'{__file__.split("FreeTrace")[0]}/FreeTrace/models/reg_k_model.keras')
+        freetrace_path = ""
+        for it in __file__.split("FreeTrace")[:-1]:
+            freetrace_path += it
+            freetrace_path += 'FreeTrace/'
+        self.alpha_models = {n: load_model(f'{freetrace_path}/models/reg_model_{n}.keras') for n in model_nums}
+        self.k_model = load_model(f'{freetrace_path}/models/reg_k_model.keras')
 
         for n in model_nums:
             self.alpha_models[n].compile()

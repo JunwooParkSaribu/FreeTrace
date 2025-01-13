@@ -1,7 +1,7 @@
 import sys
 import os
 import numpy as np
-from module.FileIO import read_trajectory, write_trajectory
+from FreeTrace.module.FileIO import read_trajectory, write_trajectory
 
 
 """
