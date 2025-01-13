@@ -87,7 +87,7 @@ def background(imgs, window_sizes, alpha):
     for th_i in range(len(thresholds)):
         if np.isnan(thresholds[th_i]):
             thresholds[th_i] = 1.0
-    return bgs, thresholds / alpha
+    return bgs, thresholds * alpha
 
 
 def image_cropping(extended_imgs, extend, window_size0, window_size1, shift):

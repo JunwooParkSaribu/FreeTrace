@@ -1,4 +1,6 @@
 import sys
+import signal
+import atexit
 import pandas as pd
 import numpy as np
 import cv2
@@ -11,16 +13,25 @@ from FreeTrace.module.TrajectoryObject import TrajectoryObj
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from multiprocessing import Queue, Process, Value
 
- 
+
 class RealTimePlot(tk.Tk):
     def __init__(self, title='', *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.wm_title(string=title)
         self.queue = Queue()
         self.force_terminate = Value('b', 0)
-        self.img_process = Process(target=self.start_main_loop, daemon=True)
-
+        cahced_img_process = Process(target=self.start_main_loop, daemon=True)
+        self.img_process = cahced_img_process
+        
+        def cleanup():
+            print('clean-up phase')
+            cahced_img_process.terminate()
+            cahced_img_process.join()
+            cahced_img_process.close()
+        atexit.register(cleanup)
+          
     def update_plot(self):
+        print(self.queue.qsize())
         if self.force_terminate.value == 1:
             self.destroy()
             del self.plt
@@ -31,13 +42,18 @@ class RealTimePlot(tk.Tk):
         try:
             self.plt.clear()
             self.plt.margins(x=0, y=0)
-            img, coords = self.queue.get(timeout=1)
+            img, coords = self.queue.get(timeout=5)
             self.plt.imshow(img, cmap='gist_gray')
-            self.plt.scatter(coords[:, 1], coords[:, 0], marker='+', c='red', alpha=0.7)
+            if len(coords) > 0:
+                self.plt.scatter(coords[:, 1], coords[:, 0], marker='+', c='red', alpha=0.7)
             self.figure.canvas.draw()
-        except:
-            pass
-        self.after(50, self.update_plot)
+        except Exception:
+            self.destroy()
+            self.img_process.terminate()
+            self.queue.cancel_join_thread()
+            self.img_process.join()
+            self.img_process.close()
+        self.after(1, self.update_plot)
 
     def turn_on(self):
         self.img_process.start()
@@ -48,6 +64,8 @@ class RealTimePlot(tk.Tk):
             if self.force_terminate.value == 0:
                 self.img_process.terminate()
                 self.queue.cancel_join_thread()
+                self.img_process.join()
+                self.img_process.close()
                 del self.queue
                 del self.force_terminate
                 del self.img_process
@@ -55,7 +73,7 @@ class RealTimePlot(tk.Tk):
  
     def start_main_loop(self):
         self.queue.get()
-        self.figure = plt.figure(figsize=(8, 8))
+        self.figure = plt.figure(figsize=(12, 12))
         self.plt = self.figure.add_subplot(111)
         self.canvas = FigureCanvasTkAgg(self.figure, self)
         self.canvas.draw()
@@ -64,12 +82,13 @@ class RealTimePlot(tk.Tk):
         self.mainloop()
 
     def put_into_queue(self, data_zip, mod_n=1):
-        data_idx = 0
+        if self.queue.qsize() > 500:
+            return
         imgs = data_zip[0]
         coords_in_t = data_zip[1]
-        for data_idx, (img, coords) in enumerate(zip(imgs, coords_in_t)):
+        for data_idx in range(len(imgs)):
             if data_idx % mod_n == 0:
-                self.queue.put((img, np.array(coords)))
+                self.queue.put((imgs[data_idx], np.array(coords_in_t[data_idx])))
 
 
 def read_tif(filepath, andi2=False):
