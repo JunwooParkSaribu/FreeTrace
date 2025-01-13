@@ -2,8 +2,8 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
-from module.FileIO import read_trajectory
-from module import TrajectoryObject
+from FreeTrace.module.FileIO import read_trajectory
+from FreeTrace.module import TrajectoryObject
 
 
 def make_image(trajectory_list, output, cutoff=2, scale_factor=3, margins=(200, 200), color_seq=None, thickness=5, scale_bar_in_log10=None, background='black'):
