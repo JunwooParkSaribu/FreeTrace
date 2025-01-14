@@ -48,10 +48,12 @@ class RealTimePlot(tk.Tk):
             self.figure.canvas.draw()
         except Exception:
             self.destroy()
-            self.img_process.terminate()
             self.queue.cancel_join_thread()
-            self.img_process.join()
-            self.img_process.close()
+            if self.img_process is not None:
+                self.img_process.terminate()
+                self.img_process.join()
+                self.img_process.close()
+            exit(0)
         self.after(1, self.update_plot)
 
     def turn_on(self):

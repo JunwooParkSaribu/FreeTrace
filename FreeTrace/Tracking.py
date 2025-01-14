@@ -692,7 +692,7 @@ def select_opt_graph2(saved_graph:nx.graph, next_graph:nx.graph, localizations, 
         #if 9 in next_times:
             #print(next_graph.edges)
             #print(trajectories_costs)
-            #exit()
+        #    exit()
         next_graph.remove_nodes_from(lowest_cost_traj[1:])
         pop_cost = trajectories_costs.pop(tuple(lowest_cost_traj))
 
