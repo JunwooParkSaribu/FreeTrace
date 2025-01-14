@@ -40,10 +40,12 @@ if __name__ == "__main__":
         track = False
 
         initialization(False, verbose=False, batch=False)
+        
         loc = Localization.run_process(input_video=video_name, outpur_dir=OUTPUT_DIR,
                                     window_size=WINSIZE, threshold=THRES_ALPHA,
                                     deflation=DEFLATION_LOOP_IN_BACKWARD, sigma=SIGMA, shift=SHIFT,
                                     gpu_on=LOC_GPU_AVAIL, save_video=LOC_VISUALIZATION, realtime_vis=True, verbose=1, batch=False)
+        
         if loc:
             track = Tracking.run_process(input_video=video_name, outpur_dir=OUTPUT_DIR,
                                         blink_lag=BLINK_LAG, cutoff=CUTOFF,
