@@ -1,4 +1,4 @@
-    VIDEO=./inputs/sample0.tiff
+    VIDEO=./inputs/receptor_7_low.tiff
     OUTPUT_DIR=./outputs
     
     
