@@ -31,7 +31,6 @@ class RealTimePlot(tk.Tk):
         atexit.register(cleanup)
           
     def update_plot(self):
-        print(self.queue.qsize())
         if self.force_terminate.value == 1:
             self.destroy()
             del self.plt
