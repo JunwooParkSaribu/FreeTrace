@@ -31,6 +31,39 @@ def pdf_std_measure(alpha):
     return POLY_FIT_DATA['std'][idx]
 
 
+@lru_cache
+def indice_fetch(alpha, k):
+    alpha_index = 0
+    k_index = 0
+    for alpha_i, reg_alpha in enumerate(STD_FIT_DATA['alpha_space']):
+        if alpha < reg_alpha:
+            alpha_index = alpha_i
+            break
+    for k_i, reg_k in enumerate(STD_FIT_DATA['logD_space']):
+        if k < reg_k:
+            k_index = k_i
+            break
+    return alpha_index, k_index
+
+
+@lru_cache
+def std_fetch(alpha_i, k_i):
+    return STD_FIT_DATA['std_grid'][alpha_i, k_i]
+
+
+def predict_multinormal(relativ_coord, alpha, k, lag):
+    log_pdf = -1000
+    multinormal_hash = {}
+    alpha_index, k_index = indice_fetch(alpha, k)
+    mean_std = std_fetch(alpha_index, k_index)
+    if (mean_std, lag) not in multinormal_hash:
+        multinormal_hash[(mean_std, lag)] = multivariate_normal(mean=[0, 0, 0], cov=[[mean_std*(lag+1), 0, 0],
+                                                                                     [0, mean_std*(lag+1), 0],
+                                                                                     [0, 0, mean_std*(lag+1)]], allow_singular=False)
+    log_pdf = multinormal_hash[(mean_std, lag)].logpdf(relativ_coord)   
+    return log_pdf
+
+
 def log_p_multi(relativ_coord, alpha, lag):
     idx = int((alpha / POLY_FIT_DATA['alpha'][-1]) * (len(POLY_FIT_DATA['alpha']) - 1))
     return MULTI_NORMALS[lag][idx].logpdf(relativ_coord)
@@ -353,7 +386,12 @@ def predict_alphas(x, y):
     return pred_alpha
 
 
-def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, initial_cost, next_times):
+def predict_ks(x, y):
+    pred_logk = REG_MODEL.k_predict([np.array([x, y])])
+    return pred_logk[0]
+
+
+def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, initial_cost, next_times):
     for idx in range(1, len(next_path) - 1):
         if (next_path[idx+1][0] - next_path[idx][0]) > TIME_FORECAST:
             return
@@ -370,16 +408,51 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, i
             time_gap = next_node[0] - before_node[0] - 1
             next_coord = localizations[next_node[0]][next_node[1]]
             cur_coord = localizations[before_node[0]][before_node[1]]
-            dir_vec_before = np.array([0, 0, 0])
+            dir_vec_before = np.array([1, 1, 1])
             estim_mu = (time_gap + 1) * pdf_mu_measure(prev_alpha) * dir_vec_before + cur_coord
             input_mu = next_coord - estim_mu
-            log_p0 = log_p_multi(input_mu, prev_alpha, time_gap)
+            #log_p0 = log_p_multi(input_mu, prev_alpha, time_gap)
+            log_p0 = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
             log_p0 = abs(log_p0) + time_gap * 100
             trajectories_costs[next_path] = log_p0
         elif len(next_path) == 3 and next_path[2][0] not in next_times:
             trajectories_costs[next_path] = initial_cost
         else:
-            if len(next_path) >= 4:
+            if len(next_path) == 4 and next_path[2][0] in next_times:
+                traj_cost = []
+
+                before_node = next_path[1]
+                next_node = next_path[2]
+                time_gap = next_node[0] - before_node[0] - 1
+                next_coord = localizations[next_node[0]][next_node[1]]
+                cur_coord = localizations[before_node[0]][before_node[1]]
+                dir_vec_before = np.array([1, 1, 1])
+                estim_mu = (time_gap + 1) * pdf_mu_measure(prev_alpha) * dir_vec_before + cur_coord
+                input_mu = next_coord - estim_mu
+                #log_p0 = log_p_multi(input_mu, prev_alpha, time_gap)
+                log_p0 = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
+                log_p0 = abs(log_p0) + time_gap * 100
+                traj_cost.append(log_p0)
+
+                for edge_index in range(3, len(next_path)):
+                    bebefore_node = next_path[edge_index - 2]
+                    before_node = next_path[edge_index - 1]
+                    next_node = next_path[edge_index]
+                    time_gap = next_node[0] - before_node[0] - 1
+                    next_coord = localizations[next_node[0]][next_node[1]]
+                    cur_coord = localizations[before_node[0]][before_node[1]]
+                    before_coord = localizations[bebefore_node[0]][bebefore_node[1]]
+                    dir_vec_before = cur_coord - before_coord
+                    estim_mu = (time_gap + 1) * pdf_mu_measure(prev_alpha) * dir_vec_before + cur_coord
+                    input_mu = next_coord - estim_mu
+                    #log_p0 = log_p_multi(input_mu, prev_alpha, time_gap)
+                    log_p0 = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
+                    log_p0 = abs(log_p0) + time_gap * 100
+                    traj_cost.append(log_p0)
+                    
+                traj_cost = np.mean(traj_cost)
+                trajectories_costs[next_path] = traj_cost
+            elif len(next_path) == 4 and next_path[2][0] not in next_times:
                 traj_cost = []
                 for edge_index in range(3, len(next_path)):
                     bebefore_node = next_path[edge_index - 2]
@@ -392,7 +465,29 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, i
                     dir_vec_before = cur_coord - before_coord
                     estim_mu = (time_gap + 1) * pdf_mu_measure(prev_alpha) * dir_vec_before + cur_coord
                     input_mu = next_coord - estim_mu
-                    log_p0 = log_p_multi(input_mu, prev_alpha, time_gap)
+                    #log_p0 = log_p_multi(input_mu, prev_alpha, time_gap)
+                    log_p0 = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
+                    log_p0 = abs(log_p0) + time_gap * 100
+                    traj_cost.append(log_p0)
+                    
+                traj_cost = np.mean(traj_cost)
+                trajectories_costs[next_path] = traj_cost
+            elif len(next_path) > 4:
+                traj_cost = []
+                for edge_index in range(3, len(next_path)):
+                    bebefore_node = next_path[edge_index - 2]
+                    before_node = next_path[edge_index - 1]
+                    next_node = next_path[edge_index]
+                    time_gap = next_node[0] - before_node[0] - 1
+                    next_coord = localizations[next_node[0]][next_node[1]]
+                    cur_coord = localizations[before_node[0]][before_node[1]]
+                    before_coord = localizations[bebefore_node[0]][bebefore_node[1]]
+                    dir_vec_before = cur_coord - before_coord
+                    estim_mu = (time_gap + 1) * pdf_mu_measure(prev_alpha) * dir_vec_before + cur_coord
+                    input_mu = next_coord - estim_mu
+                    #log_p0 = log_p_multi(input_mu, prev_alpha, time_gap)
+                    log_p0 = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
+                    #print(next_path, prev_alpha, prev_k, before_coord, cur_coord, next_coord, input_mu, next_coord, estim_mu, log_p0)
                     log_p0 = abs(log_p0) + time_gap * 100
                     traj_cost.append(log_p0)
                 traj_cost = np.mean(traj_cost)
@@ -406,6 +501,7 @@ def select_opt_graph(saved_graph:nx.graph, next_graph:nx.graph, localizations, n
     selected_graph = nx.DiGraph()
     source_node = (0, 0)
     alpha_values = {}
+    k_values = {}
 
     if not first_step:
         prev_paths = find_paths(saved_graph, source=source_node)
@@ -415,11 +511,15 @@ def select_opt_graph(saved_graph:nx.graph, next_graph:nx.graph, localizations, n
                 prev_x_pos = prev_xys[:, 0]
                 prev_y_pos = prev_xys[:, 1]
                 prev_alpha = predict_alphas(prev_x_pos, prev_y_pos)
+                prev_k = predict_ks(prev_x_pos, prev_y_pos)
                 alpha_values[tuple(prev_paths[path_idx])] = prev_alpha
+                k_values[tuple(prev_paths[path_idx])] = prev_k
                 prev_paths[path_idx] = tuple(prev_paths[path_idx])
         else:
             for path_idx in range(len(prev_paths)):
                 alpha_values[tuple(prev_paths[path_idx])] = 1.0
+                prev_k = predict_ks(prev_x_pos, prev_y_pos)
+                k_values[tuple(prev_paths[path_idx])] = prev_k
                 prev_paths[path_idx] = tuple(prev_paths[path_idx])
 
     while True:
@@ -477,13 +577,15 @@ def select_opt_graph(saved_graph:nx.graph, next_graph:nx.graph, localizations, n
 
         if first_step:
             for next_path in next_paths:
-                predict_long_seq(next_path, trajectories_costs, localizations, 1.0, initial_cost, next_times)
+                prev_k = k_values[prev_path]
+                predict_long_seq(next_path, trajectories_costs, localizations, 1.0,  prev_k, initial_cost, next_times)
         else:
             for prev_path in prev_paths:
+                prev_k = k_values[prev_path]
                 prev_alpha = alpha_values[prev_path]
                 for next_path in next_paths:
                     if prev_path[-1] in next_path:
-                        predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, initial_cost, next_times)
+                        predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, initial_cost, next_times)
 
         trajs = [path for path in trajectories_costs.keys()]
         costs = [trajectories_costs[path] for path in trajectories_costs.keys()]
@@ -542,6 +644,7 @@ def select_opt_graph2(saved_graph:nx.graph, next_graph:nx.graph, localizations, 
     selected_graph = nx.DiGraph()
     source_node = (0, 0)
     alpha_values = {}
+    k_values = {}
 
     if not first_step:
         prev_paths = list(find_paths(saved_graph, source=source_node))
@@ -551,11 +654,15 @@ def select_opt_graph2(saved_graph:nx.graph, next_graph:nx.graph, localizations, 
                 prev_x_pos = prev_xys[:, 0]
                 prev_y_pos = prev_xys[:, 1]
                 prev_alpha = predict_alphas(prev_x_pos, prev_y_pos)
+                prev_k = predict_ks(prev_x_pos, prev_y_pos)
                 alpha_values[tuple(prev_paths[path_idx])] = prev_alpha
+                k_values[tuple(prev_paths[path_idx])] = prev_k
                 prev_paths[path_idx] = tuple(prev_paths[path_idx])
         else:
             for path_idx in range(len(prev_paths)):
                 alpha_values[tuple(prev_paths[path_idx])] = 1.0
+                prev_k = predict_ks(prev_x_pos, prev_y_pos)
+                k_values[tuple(prev_paths[path_idx])] = prev_k
                 prev_paths[path_idx] = tuple(prev_paths[path_idx])
 
     while True:
@@ -608,14 +715,11 @@ def select_opt_graph2(saved_graph:nx.graph, next_graph:nx.graph, localizations, 
 
         if start_g_len == end_g_len:
             break
-    print("TIMESTEP:", next_times)
+
     t_time = timer()
     trajectories_costs = {tuple(next_path):initial_cost for next_path in find_paths(next_graph, source=source_node)}
-    for path in paths_dfs(next_graph, source=source_node):
-        print(path)
-    print(next_graph.edges)
-    for path in find_paths(next_graph, source=source_node):
-        print(path)
+    #for path in find_paths(next_graph, source=source_node):
+    #    print(path)
     while True:
         cost_copy = {}
         next_paths = list(find_paths(next_graph, source=source_node))
@@ -628,14 +732,14 @@ def select_opt_graph2(saved_graph:nx.graph, next_graph:nx.graph, localizations, 
 
         if first_step:
             for next_path in next_paths:
-                predict_long_seq(next_path, trajectories_costs, localizations, 1.0, initial_cost, next_times)
+                predict_long_seq(next_path, trajectories_costs, localizations, 1.0, 1.0, initial_cost, next_times)
         else:
             for prev_path in prev_paths:
                 prev_alpha = alpha_values[prev_path]
+                prev_k = k_values[prev_path]
                 for next_path in next_paths:
                     if prev_path[-1] in next_path:
-                        print(next_path)
-                        predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, initial_cost, next_times)
+                        predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, initial_cost, next_times)
 
         trajs = [path for path in trajectories_costs.keys()]
         costs = [trajectories_costs[path] for path in trajectories_costs.keys()]
@@ -686,9 +790,9 @@ def select_opt_graph2(saved_graph:nx.graph, next_graph:nx.graph, localizations, 
                                             print('@@', pred, rm_node, suc)
                                         next_graph.add_edge(pred, suc, jump_d=jump_d)
                     """
-        print('@_@:', list(nx.isolates(next_graph)))
-        print('lowest cost: ', lowest_cost_traj)
-        print(trajectories_costs)
+        #print('@_@:', list(nx.isolates(next_graph)))
+        #print('lowest cost: ', lowest_cost_traj)
+        #print(trajectories_costs)
         #if 9 in next_times:
             #print(next_graph.edges)
             #print(trajectories_costs)
@@ -881,7 +985,8 @@ def run(input_video, outpur_dir, blink_lag=1, cutoff=0, pixel_microns=1, frame_r
     global ALPHA_MAX_LENGTH
     global CUDA
     global TF
-    global POLY_FIT_DATA 
+    global POLY_FIT_DATA
+    global STD_FIT_DATA 
     global TIME_FORECAST
     global THRESHOLDS 
     global TIME_STEPS
@@ -903,6 +1008,7 @@ def run(input_video, outpur_dir, blink_lag=1, cutoff=0, pixel_microns=1, frame_r
     ALPHA_MAX_LENGTH = 8
     CUDA, TF = initialization(GPU_AVAIL, REG_LEGNTHS, ptype=1, verbose=VERBOSE, batch=BATCH)
     POLY_FIT_DATA = np.load(f'{__file__.split("/Tracking.py")[0]}/models/theta_hat.npz')
+    STD_FIT_DATA = np.load(f'{__file__.split("/Tracking.py")[0]}/models/std_sets.npz')
 
     output_xml = f'{OUTPUT_DIR}/{INPUT_TIFF.split("/")[-1].split(".tif")[0]}_traces.xml'
     output_trj = f'{OUTPUT_DIR}/{INPUT_TIFF.split("/")[-1].split(".tif")[0]}_traces.csv'
@@ -911,14 +1017,43 @@ def run(input_video, outpur_dir, blink_lag=1, cutoff=0, pixel_microns=1, frame_r
     output_img = f'{OUTPUT_DIR}/{INPUT_TIFF.split("/")[-1].split(".tif")[0]}_traces.png'
 
     MULTI_NORMALS = {}
+    #REGISTERED_STDS = np.linspace(0.01, 20, 100)
+    """
+    REGISTERED_STDS = [1]
     for lag in range(BLINK_LAG+1):
-        MULTI_NORMALS[lag] = [multivariate_normal(mean=[0, 0, 0], cov=[[pdf_std_measure(alpha)*(lag+1), 0, 0],
-                                                                       [0, pdf_std_measure(alpha)*(lag+1), 0],
-                                                                       [0, 0, pdf_std_measure(alpha)*(lag+1)]], allow_singular=False) for alpha in POLY_FIT_DATA['alpha']]
+        MULTI_NORMALS[lag] = {}
+        for reg_std in REGISTERED_STDS:
+            MULTI_NORMALS[lag] = [multivariate_normal(mean=[0, 0, 0], cov=[[pdf_std_measure(alpha)*(lag+1) * reg_std, 0, 0],
+                                                                           [0, pdf_std_measure(alpha)*(lag+1) * reg_std, 0],
+                                                                           [0, 0, pdf_std_measure(alpha)*(lag+1) * reg_std]], allow_singular=False) for alpha in POLY_FIT_DATA['alpha']]
+    """
+    """
+
+    print(predict_multinormal([-6.75551491, -3.02468359,  0.        ], 1.8237162, 0.37273076, 0))
+    print(predict_multinormal([0, 0,  0.        ], 1.8237162, 0.37273076, 0))
+
+    print(predict_multinormal([-2.980245111, 0.85127431,  0.        ], 1.5048046, -0.024738438, 0))
+    print(predict_multinormal([0, 0,  0.        ], 1.5048046, -0.024738438, 0))
+    print(predict_multinormal([0, 0,  0.        ], 1.0, -0.024738438, 0))
+    print('----------------------------------')
+
+    alpha_index, k_index = indice_fetch(1.8237162, 0.37273076)
+    mean_std = std_fetch(alpha_index, k_index)
+    print(mean_std)
+    alpha_index, k_index = indice_fetch(1.5048046, -0.024738438)
+    mean_std = std_fetch(alpha_index, k_index)
+    print(mean_std)
+    import matplotlib.pyplot as plt
+    plt.figure()
+    plt.imshow(STD_FIT_DATA['std_grid'])
+    plt.show()
+    exit()
+    """
     final_trajectories = []
     confidence = 0.95
     TIME_FORECAST = 2
     THRESHOLDS = None
+
 
     images = read_tif(INPUT_TIFF)
     if images.shape[0] <= 1:
