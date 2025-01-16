@@ -1,4 +1,4 @@
-    VIDEO=./inputs/receptor_7_low.tiff
+    VIDEO=./test_samples/h2b_3d_sample0.tiff
     OUTPUT_DIR=./outputs
     
     

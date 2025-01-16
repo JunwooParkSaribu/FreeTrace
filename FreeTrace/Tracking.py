@@ -1213,7 +1213,7 @@ def run(input_video, outpur_dir, blink_lag=1, cutoff=0, pixel_microns=1, frame_r
     if images.shape[0] <= 1:
         sys.exit('Image squence length error: Cannot track on a single image.')
     loc, loc_infos = read_localization(f'{OUTPUT_DIR}/{INPUT_TIFF.split("/")[-1].split(".tif")[0]}_loc.csv', images)
-    loc2, loc_infos2 = read_localization(f'/home/junwoo/FreeTrace/outputs/receptor_7_low_loc.csv', images)
+    #loc2, loc_infos2 = read_localization(f'/home/junwoo/FreeTrace/outputs/receptor_7_low_loc.csv', images)
 
     if TF:
         if VERBOSE:
@@ -1224,7 +1224,7 @@ def run(input_video, outpur_dir, blink_lag=1, cutoff=0, pixel_microns=1, frame_r
         REG_MODEL = RegModel(REG_LEGNTHS)
 
     TIME_STEPS, mean_nb_per_time, xyz_min, xyz_max = count_localizations(loc)
-    raw_jump_distribution = segmentation(loc2, time_steps=TIME_STEPS, lag=BLINK_LAG)
+    raw_jump_distribution = segmentation(loc, time_steps=TIME_STEPS, lag=BLINK_LAG)
     bin_size = np.mean(xyz_max - xyz_min) / 5000. 
     jump_distribution = approximation(raw_jump_distribution, confidence, bin_size, n_iter=1e3, burn=0, approx=None, thresholds=THRESHOLDS)
 
