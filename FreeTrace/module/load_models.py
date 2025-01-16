@@ -64,6 +64,9 @@ class RegModel:
         for input_ in inputs:
             log_disps.append(self.log_displacements(input_[0], input_[1]))
         k_preds = self.k_model.predict_on_batch(np.array(log_disps))
+        for k_idx in range(len(k_preds)):
+            if np.isnan(k_preds[k_idx]):
+                k_preds[k_idx] = 1.0
         return k_preds.flatten()
 
     def model_selection(self, length):

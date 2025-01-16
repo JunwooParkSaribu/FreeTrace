@@ -56,6 +56,7 @@ def predict_multinormal(relativ_coord, alpha, k, lag):
     multinormal_hash = {}
     alpha_index, k_index = indice_fetch(alpha, k)
     mean_std = std_fetch(alpha_index, k_index)
+    print(mean_std, alpha_index, k_index)
     if (mean_std, lag) not in multinormal_hash:
         multinormal_hash[(mean_std, lag)] = multivariate_normal(mean=[0, 0, 0], cov=[[mean_std*(lag+1), 0, 0],
                                                                                      [0, mean_std*(lag+1), 0],
@@ -392,11 +393,19 @@ def predict_ks(x, y):
 
 
 def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, initial_cost, next_times):
+    time_penalty = 100
+    abnormal_penalty = 1000
+    time_score = 0
+    abnomral_jump_score = 0
+    abnormal_threshold = -25
+    cutting_threshold = 3*time_penalty + 1*abnormal_penalty
+    ab_index = []
+
     for idx in range(1, len(next_path) - 1):
         if (next_path[idx+1][0] - next_path[idx][0]) > TIME_FORECAST:
-            return
+            return ab_index
     if next_path in trajectories_costs and trajectories_costs[next_path] < initial_cost - 1:
-        return
+        return ab_index
     else:
         if len(next_path) <= 1:
             raise Exception
@@ -413,8 +422,14 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
             input_mu = next_coord - estim_mu
             #log_p0 = log_p_multi(input_mu, prev_alpha, time_gap)
             log_p0 = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
-            log_p0 = abs(log_p0) + time_gap * 100
-            trajectories_costs[next_path] = log_p0
+
+            if log_p0 < abnormal_threshold:
+                abnomral_jump_score += abnormal_penalty
+                ab_index.append(1)
+            time_score += time_gap * time_penalty
+            final_score = abs(log_p0) + abnomral_jump_score + time_score
+
+            trajectories_costs[next_path] = final_score
         elif len(next_path) == 3 and next_path[2][0] not in next_times:
             trajectories_costs[next_path] = initial_cost
         else:
@@ -431,8 +446,12 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
                 input_mu = next_coord - estim_mu
                 #log_p0 = log_p_multi(input_mu, prev_alpha, time_gap)
                 log_p0 = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
-                log_p0 = abs(log_p0) + time_gap * 100
-                traj_cost.append(log_p0)
+
+                if log_p0 < abnormal_threshold:
+                    abnomral_jump_score += abnormal_penalty
+                    ab_index.append(1)
+                time_score += time_gap * time_penalty
+                traj_cost.append(abs(log_p0))
 
                 for edge_index in range(3, len(next_path)):
                     bebefore_node = next_path[edge_index - 2]
@@ -447,11 +466,15 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
                     input_mu = next_coord - estim_mu
                     #log_p0 = log_p_multi(input_mu, prev_alpha, time_gap)
                     log_p0 = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
-                    log_p0 = abs(log_p0) + time_gap * 100
-                    traj_cost.append(log_p0)
                     
-                traj_cost = np.mean(traj_cost)
-                trajectories_costs[next_path] = traj_cost
+                    if log_p0 < abnormal_threshold:
+                        abnomral_jump_score += abnormal_penalty
+                        ab_index.append(edge_index - 1)
+                    time_score += time_gap * time_penalty
+                    traj_cost.append(abs(log_p0))
+
+                final_score = np.mean(traj_cost) + abnomral_jump_score + time_score
+                trajectories_costs[next_path] = final_score
             elif len(next_path) == 4 and next_path[2][0] not in next_times:
                 traj_cost = []
                 for edge_index in range(3, len(next_path)):
@@ -467,11 +490,16 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
                     input_mu = next_coord - estim_mu
                     #log_p0 = log_p_multi(input_mu, prev_alpha, time_gap)
                     log_p0 = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
-                    log_p0 = abs(log_p0) + time_gap * 100
-                    traj_cost.append(log_p0)
+
+                    if log_p0 < abnormal_threshold:
+                        abnomral_jump_score += abnormal_penalty
+                        ab_index.append(edge_index - 1)
+                    time_score += time_gap * time_penalty
+                    traj_cost.append(abs(log_p0))
                     
-                traj_cost = np.mean(traj_cost)
-                trajectories_costs[next_path] = traj_cost
+                final_score = np.mean(traj_cost) + abnomral_jump_score + time_score
+                trajectories_costs[next_path] = final_score
+
             elif len(next_path) > 4:
                 traj_cost = []
                 for edge_index in range(3, len(next_path)):
@@ -488,14 +516,25 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
                     #log_p0 = log_p_multi(input_mu, prev_alpha, time_gap)
                     log_p0 = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
                     #print(next_path, prev_alpha, prev_k, before_coord, cur_coord, next_coord, input_mu, next_coord, estim_mu, log_p0)
-                    log_p0 = abs(log_p0) + time_gap * 100
-                    traj_cost.append(log_p0)
-                traj_cost = np.mean(traj_cost)
-                trajectories_costs[next_path] = traj_cost
+
+                    if log_p0 < abnormal_threshold:
+                        abnomral_jump_score += abnormal_penalty
+                        ab_index.append(edge_index - 1)
+                    time_score += time_gap * time_penalty
+                    traj_cost.append(abs(log_p0))
+
+                final_score = np.mean(traj_cost) + abnomral_jump_score + time_score
+                trajectories_costs[next_path] = final_score
+
             else:
                 sys.exit("Untreated exception, check trajectory inference method again.")
 
+    if trajectories_costs[next_path] > cutting_threshold:
+        return ab_index
+    else:
+        return []
 
+"""
 def select_opt_graph(saved_graph:nx.graph, next_graph:nx.graph, localizations, next_times, distribution, first_step, most_probable_jump_d):
     initial_cost = 1000
     selected_graph = nx.DiGraph()
@@ -637,6 +676,7 @@ def select_opt_graph(saved_graph:nx.graph, next_graph:nx.graph, localizations, n
 
     #print(f'\n{"cost calcul":<35}:{(timer() - t_time):.2f}s')
     return selected_graph
+"""
 
 
 def select_opt_graph2(saved_graph:nx.graph, next_graph:nx.graph, localizations, next_times, distribution, first_step, most_probable_jump_d):
@@ -716,11 +756,14 @@ def select_opt_graph2(saved_graph:nx.graph, next_graph:nx.graph, localizations, 
         if start_g_len == end_g_len:
             break
 
+
     t_time = timer()
     trajectories_costs = {tuple(next_path):initial_cost for next_path in find_paths(next_graph, source=source_node)}
-    #for path in find_paths(next_graph, source=source_node):
-    #    print(path)
+    print('--------------------- before --------------------')
+    for path in find_paths(next_graph, source=source_node):
+        print(path)
     while True:
+        ab_detect = 0
         cost_copy = {}
         next_paths = list(find_paths(next_graph, source=source_node))
         for path_idx in range(len(next_paths)):
@@ -732,14 +775,37 @@ def select_opt_graph2(saved_graph:nx.graph, next_graph:nx.graph, localizations, 
 
         if first_step:
             for next_path in next_paths:
-                predict_long_seq(next_path, trajectories_costs, localizations, 1.0, 1.0, initial_cost, next_times)
-        else:
+                ab_index = predict_long_seq(next_path, trajectories_costs, localizations, 1.0, 1.0, initial_cost, next_times)
+                if len(ab_index) > 0:
+                    ab_detect = 1
+                    print(ab_index, next_path)
+                    for ab_i in ab_index:
+                        if (next_path[ab_i], next_path[ab_i+1]) in next_graph.edges:
+                            next_graph.remove_edge(next_path[ab_i], next_path[ab_i+1])
+                        if (source_node, next_path[ab_i]) not in next_graph.edges:
+                            next_graph.add_edge(source_node, next_path[ab_i])
+                        if (source_node, next_path[ab_i+1]) not in next_graph.edges:
+                            next_graph.add_edge(source_node, next_path[ab_i+1])
+        else:       
             for prev_path in prev_paths:
                 prev_alpha = alpha_values[prev_path]
                 prev_k = k_values[prev_path]
                 for next_path in next_paths:
                     if prev_path[-1] in next_path:
-                        predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, initial_cost, next_times)
+                        ab_index = predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, initial_cost, next_times)
+                        if len(ab_index) > 0:
+                            print(ab_index, next_path)
+                            ab_detect = 1
+                            for ab_i in ab_index:
+                                if (next_path[ab_i], next_path[ab_i+1]) in next_graph.edges:
+                                    next_graph.remove_edge(next_path[ab_i], next_path[ab_i+1])
+                                if (source_node, next_path[ab_i]) not in next_graph.edges:
+                                    next_graph.add_edge(source_node, next_path[ab_i])
+                                if (source_node, next_path[ab_i+1]) not in next_graph.edges:
+                                    next_graph.add_edge(source_node, next_path[ab_i+1])
+        if ab_detect == 1:
+            trajectories_costs = {tuple(next_path):initial_cost for next_path in find_paths(next_graph, source=source_node)}
+            continue
 
         trajs = [path for path in trajectories_costs.keys()]
         costs = [trajectories_costs[path] for path in trajectories_costs.keys()]
@@ -797,6 +863,13 @@ def select_opt_graph2(saved_graph:nx.graph, next_graph:nx.graph, localizations, 
             #print(next_graph.edges)
             #print(trajectories_costs)
         #    exit()
+        print('----------------- after -----------------------')
+        for path in find_paths(next_graph, source=source_node):
+            print(path)
+        print(trajectories_costs)
+        print(lowest_cost_traj)
+        print('-------------------------------------------------')
+
         next_graph.remove_nodes_from(lowest_cost_traj[1:])
         pop_cost = trajectories_costs.pop(tuple(lowest_cost_traj))
 
