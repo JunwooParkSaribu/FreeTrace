@@ -1,4 +1,4 @@
-    VIDEO=./test_samples/h2b_3d_sample0.tiff
+    VIDEO=./test_samples/h2b_3d_sample1.tiff
     OUTPUT_DIR=./outputs
     
     
