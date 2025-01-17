@@ -1,9 +1,9 @@
-    VIDEO=./inputs/h2b_3d_sample3.tiff
+    VIDEO=./inputs/receptor_7_low.tiff
     OUTPUT_DIR=./outputs
     
     
     # LOCALIZATION
-    WINDOW_SIZE = 9
+    WINDOW_SIZE = 7
     THRESHOLD_ALPHA = 1.0
     DEFLATION_LOOP_IN_BACKWARD = 0
     SIGMA = 4.0
