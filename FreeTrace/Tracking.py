@@ -396,7 +396,7 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
     abnormal_penalty = 1000
     time_score = 0
     abnomral_jump_score = 0
-    abnormal_threshold = -25
+    abnormal_threshold = -7
     cutting_threshold = 3*time_penalty + 1*abnormal_penalty
     ab_index = []
 
@@ -894,26 +894,30 @@ def select_opt_graph2(saved_graph:nx.graph, next_graph:nx.graph, localizations, 
             #print(trajectories_costs)
         #    exit()
         print('----------------- after -----------------------')
-        for path in find_paths(next_graph, source=source_node):
-            print(path)
+        #for path in find_paths(next_graph, source=source_node):
+        #    print(path)
         print(next_times)
-        print(trajectories_costs)
-        print(lowest_cost_traj)
+        for k in trajectories_costs:
+            print(k, ' : ',trajectories_costs[k])
+        #print(trajectories_costs)
+        print(lowest_cost_traj, trajectories_costs[tuple(lowest_cost_traj)])
         print('-------------------------------------------------')
-
+        #if 27 in next_times:
+        #    exit()
         if tuple(lowest_cost_traj) in ab_indice:
-            for ab_i in ab_indice[lowest_cost_traj]:
-                if (next_path[ab_i], next_path[ab_i+1]) in next_graph.edges:
-                    next_graph.remove_edge(next_path[ab_i], next_path[ab_i+1])
-                if (source_node, next_path[ab_i+1]) not in next_graph.edges:
-                    next_graph.add_edge(source_node, next_path[ab_i+1])
+            print(ab_indice[tuple(lowest_cost_traj)], next_path, lowest_cost_traj)
+            for ab_i in ab_indice[tuple(lowest_cost_traj)]:
+                if (lowest_cost_traj[ab_i], lowest_cost_traj[ab_i+1]) in next_graph.edges:
+                    next_graph.remove_edge(lowest_cost_traj[ab_i], lowest_cost_traj[ab_i+1])
+                if (source_node, lowest_cost_traj[ab_i+1]) not in next_graph.edges:
+                    next_graph.add_edge(source_node, lowest_cost_traj[ab_i+1])
                 added_path = [source_node]
-                for path in next_path[ab_i+1:]:
+                for path in lowest_cost_traj[ab_i+1:]:
                     added_path.append(path)
                 added_path = tuple(added_path)
                 trajectories_costs[added_path] = initial_cost
                 added_path = [source_node]
-                for path in next_path[:ab_i+1]:
+                for path in lowest_cost_traj[:ab_i+1]:
                     added_path.append(path)
                 added_path = tuple(added_path)
                 trajectories_costs[added_path] = initial_cost
@@ -981,7 +985,7 @@ def forecast(localization: dict, t_avail_steps, distribution, blink_lag):
     last_time = t_avail_steps[-1]
     source_node = (0, 0)
     time_forecast = TIME_FORECAST
-    max_pause_time = blink_lag + 1
+    max_pause_time = TIME_FORECAST
     final_graph = nx.DiGraph()
     light_prev_graph = nx.DiGraph()
     next_graph = nx.DiGraph()
@@ -1014,7 +1018,8 @@ def forecast(localization: dict, t_avail_steps, distribution, blink_lag):
         #if incr == 1:
         #    exit()
         #incr += 1
-
+        #if 20 in selected_time_steps:
+        #    exit()
         light_prev_graph = nx.DiGraph()
         light_prev_graph.add_node(source_node)
         last_nodes = []
@@ -1026,14 +1031,19 @@ def forecast(localization: dict, t_avail_steps, distribution, blink_lag):
 
 
         for path in find_paths(selected_sub_graph, source=source_node):
-            if len(path) <= 3:
-                for i in range(1, len(path)):
+            if len(path) == 2:
+                before_node = path[0]
+                next_node = path[1]
+                if next_node not in final_graph.nodes:
+                    final_graph.add_edge(before_node, next_node)
+            if len(path) == 3:
+                for i in range(1, len(path) - 1):
                     before_node = path[i-1]
                     next_node = path[i]
                     if next_node not in final_graph.nodes:
                         final_graph.add_edge(before_node, next_node)
             else:
-                for edge_index in range(start_index, len(path)):
+                for edge_index in range(start_index, len(path) - 1):
                     before_node = path[edge_index - 1]
                     next_node = path[edge_index]
                     if before_node in final_graph:
@@ -1041,20 +1051,20 @@ def forecast(localization: dict, t_avail_steps, distribution, blink_lag):
                     else:
                         final_graph.add_edge(source_node, before_node)
                         final_graph.add_edge(before_node, next_node)
-            if selected_time_steps[-1] - path[-1][0] < max_pause_time: 
-                last_nodes.append(path[-1])
-                second_last_nodes.append(path[-2])
+            if selected_time_steps[-1] - path[-2][0] < max_pause_time: 
+                last_nodes.append(path[-2])
+                second_last_nodes.append(path[-3])
 
-                ancestors = list(nx.ancestors(final_graph, path[-1]))
+                ancestors = list(nx.ancestors(final_graph, path[-2]))
                 sorted_ancestors = sorted(ancestors, key=lambda tup: tup[0], reverse=True)
-                light_prev_graph.add_edge(sorted_ancestors[0], path[-1])
+                light_prev_graph.add_edge(sorted_ancestors[0], path[-2])
                 if len(sorted_ancestors) > 1:
                     for idx in range(len(sorted_ancestors[:ALPHA_MAX_LENGTH+3]) - 1):
                         light_prev_graph.add_edge(sorted_ancestors[idx+1], sorted_ancestors[idx])
                     if sorted_ancestors[idx+1] != source_node:
                         light_prev_graph.add_edge(source_node, sorted_ancestors[idx+1])
 
-        if last_time in selected_time_steps:
+        if last_time - 1 in selected_time_steps:
             if VERBOSE:
                 PBAR.update(TIME_STEPS[-1] - mysum)
             break
@@ -1073,7 +1083,7 @@ def forecast(localization: dict, t_avail_steps, distribution, blink_lag):
             next_graph.add_edges_from([(source_node, (next_first_time, index), {'jump_d':most_probable_jump_d}) for index in range(len(localization[next_first_time]))])
         else:
             first_construction = False
-            selected_time_steps = [t for t in range(next_first_time, min(last_time + 1, next_first_time + time_forecast))]
+            selected_time_steps = [t - 1 for t in range(next_first_time, min(last_time + 1, next_first_time + time_forecast))]
 
             for last_node, second_last_node in zip(last_nodes, second_last_nodes):
                 if second_last_node == source_node:
