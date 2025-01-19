@@ -28,6 +28,7 @@ class RealTimePlot(tk.Tk):
             cahced_img_process.terminate()
             cahced_img_process.join()
             cahced_img_process.close()
+
         atexit.register(cleanup)
           
     def update_plot(self):
@@ -49,11 +50,9 @@ class RealTimePlot(tk.Tk):
         except Exception:
             self.destroy()
             self.queue.cancel_join_thread()
-            if self.img_process is not None:
-                self.img_process.terminate()
-                self.img_process.join()
-                self.img_process.close()
+            self.force_terminate.value = 0
             exit(0)
+
         self.after(1, self.update_plot)
 
     def turn_on(self):
@@ -63,10 +62,11 @@ class RealTimePlot(tk.Tk):
         self.force_terminate.value = 1
         while True:
             if self.force_terminate.value == 0:
-                self.img_process.terminate()
                 self.queue.cancel_join_thread()
-                self.img_process.join()
-                self.img_process.close()
+                if self.img_process is not None:
+                    self.img_process.terminate()
+                    self.img_process.join()
+                    self.img_process.close()
                 del self.queue
                 del self.force_terminate
                 del self.img_process

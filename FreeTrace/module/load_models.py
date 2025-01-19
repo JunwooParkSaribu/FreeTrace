@@ -36,7 +36,7 @@ class RegModel:
 
     def alpha_predict(self, inputs):
         if len(inputs) == 2:
-            if len(inputs[0]) < 5:
+            if len(inputs[0]) < 3:
                 return 1.0
             alpha_signal, model_num = self.call(inputs)
             pred_alphas = self.alpha_models[model_num].predict_on_batch(alpha_signal)
@@ -46,7 +46,7 @@ class RegModel:
                 pred_alpha = np.mean(pred_alphas)
             return pred_alpha
         elif len(inputs) == 3:
-            if len(inputs[0]) < 5:
+            if len(inputs[0]) < 3:
                 return 1.0
             alpha_preds = []
             for inputs_ in inputs:
@@ -71,13 +71,13 @@ class RegModel:
 
     def model_selection(self, length):
         index = 0
-        crits = [8, 12, 18, 36, 72, 140]
+        crits = [3, 5, 8, 999]
         while True:
-            if length < crits[index]:
+            if crits[index] <= length < crits[index+1]:
                 return self.reg_model_nums[index]
             index += 1
             if index >= len(crits):
-                return self.reg_model_nums[-1]
+                return self.reg_model_nums[-2]
 
     def log_displacements(self, xs, ys):
         disps = self.displacement(xs, ys)
