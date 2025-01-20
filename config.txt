@@ -1,25 +1,21 @@
-    VIDEO=./inputs/receptor_7_low.tiff
-    OUTPUT_DIR=./outputs
-    
-    
-    # LOCALIZATION
-    WINDOW_SIZE = 7
-    THRESHOLD_ALPHA = 1.0
-    DEFLATION_LOOP_IN_BACKWARD = 0
-    SIGMA = 4.0
-    LOC_VISUALIZATION = False
-    GPU_LOC = True
-    
-    
-    # TRACKING
-    CUTOFF = 2
-    BLINK_LAG = 2
-    PIXEL_MICRONS = 0.16
-    FRAME_PER_SEC = 0.01
-    TRACK_VISUALIZATION = False
-    GPU_TRACK = True
-    
-    
-    # SUPP
-    SHIFT = 1
-    
+VIDEO=./inputs/sample0.tiff
+OUTPUT_DIR=./outputs
+
+
+# LOCALIZATION
+WINDOW_SIZE = 7
+THRESHOLD_ALPHA = 1.0
+DEFLATION_LOOP_IN_BACKWARD = 0
+LOC_VISUALIZATION = False
+GPU_LOC = True
+
+
+# TRACKING
+CUTOFF = 2
+TIME_FORECAST = 5
+TRACK_VISUALIZATION = True
+GPU_TRACK = True
+
+
+# SUPP
+SHIFT = 1

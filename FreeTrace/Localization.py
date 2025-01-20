@@ -621,21 +621,16 @@ def main_process(imgs, forward_gauss_grids, backward_gauss_grids, *args):
     return xyz_coord, pdf, info
 
 
-def run(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigma=4.0, shift=1, gpu_on=True, save_video=False, verbose=False, batch=False, realtime_vis=False, return_state=0):
+def run(input_video_path:str, output_path:str, window_size=9, threshold=1.0, deflation=0, sigma=4.0, shift=1,
+        gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False, return_state=0):
+    
     global VERBOSE
     global BATCH
     global MEM_SIZE 
-    global OUTPUT_DIR 
-    global OUTPUT_LOC 
-    global SIGMA
-    global VISUALIZATION 
     global WINSIZE 
     global THRES_ALPHA 
-    global GPU_AVAIL
     global DEFLATION_LOOP_IN_BACKWARD
-    global SHIFT
     global CUDA
-    global GPU_AVAIL
     global P0 
     global GAUSS_SEIDEL_DECOMP
     global CORE 
@@ -646,34 +641,26 @@ def run(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigm
     global gpu_module
 
 
-    images = check_video_ext(input_video, andi2=False)
-
-
-    OUTPUT_DIR = outpur_dir
-    OUTPUT_LOC = f'{OUTPUT_DIR}/{input_video.split("/")[-1].split(".tif")[0]}'
-    SIGMA = sigma
+    loc_output_path = f'{output_path}/{input_video_path.split("/")[-1].split(".tif")[0]}'
     WINSIZE = window_size
     THRES_ALPHA = threshold
     DEFLATION_LOOP_IN_BACKWARD = deflation
-    SHIFT = shift
-    VISUALIZATION = save_video
-    GPU_AVAIL = gpu_on
+    VERBOSE = verbose
+    BATCH = batch
     P0 = [1.5, 0., 1.5, 0., 0., 0.5]
     GAUSS_SEIDEL_DECOMP = 1
     CORE = 4
     PARALLEL = False
     BINARY_THRESHOLDS = None
     MULTI_THRESHOLDS = None
-    VERBOSE = verbose
-    BATCH = batch
-    REALTIME_VIS = realtime_vis
-    
 
-    CUDA, _ = initialization(GPU_AVAIL, ptype=0, verbose=VERBOSE, batch=BATCH)
+
+    images = check_video_ext(input_video_path, andi2=False)
+    CUDA, _ = initialization(gpu_on, ptype=0, verbose=VERBOSE, batch=BATCH)
     if CUDA:
         from FreeTrace.module import gpu_module
         MEM_SIZE = gpu_module.get_gpu_mem_size()
-        DIV_Q = int(64 * 512 * 512 / images.shape[1] / images.shape[2] * (7**2 / WINSIZE**2) * MEM_SIZE / 24 * SHIFT**2) 
+        DIV_Q = int(64 * 512 * 512 / images.shape[1] / images.shape[2] * (7**2 / WINSIZE**2) * MEM_SIZE / 24 * shift**2) 
     else:
         DIV_Q = min(25, int(2.7 * 4194304 / images.shape[1] / images.shape[2] * (7**2 / WINSIZE**2)))
     DIV_Q = max(DIV_Q, 1)
@@ -689,9 +676,9 @@ def run(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigm
 
 
     realtime_obj = None
-    if REALTIME_VIS:
+    if realtime_visualization:
         from FreeTrace.module.ImageModule import RealTimePlot
-        realtime_obj = RealTimePlot(input_video)
+        realtime_obj = RealTimePlot(input_video_path)
         realtime_obj.turn_on()
 
 
@@ -707,7 +694,7 @@ def run(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigm
                                                  forward_gauss_grids, backward_gauss_grids,
                                                  SINGLE_WINSIZES, SINGLE_RADIUS, BINARY_THRESHOLDS,
                                                  MULTI_WINSIZES, MULTI_RADIUS, MULTI_THRESHOLDS,
-                                                 P0, SHIFT, GAUSS_SEIDEL_DECOMP, THRES_ALPHA, DEFLATION_LOOP_IN_BACKWARD)
+                                                 P0, shift, GAUSS_SEIDEL_DECOMP, THRES_ALPHA, DEFLATION_LOOP_IN_BACKWARD)
                         executors[cc] = future
                 for wait_ in executors:
                     if type(executors[wait_]) is concurrent.futures.Future:
@@ -720,12 +707,12 @@ def run(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigm
             xyz_coord, pdf, info = main_process(images[div_q:div_q+DIV_Q], forward_gauss_grids, backward_gauss_grids,
                                                SINGLE_WINSIZES, SINGLE_RADIUS, BINARY_THRESHOLDS,
                                                MULTI_WINSIZES, MULTI_RADIUS, MULTI_THRESHOLDS,
-                                               P0, SHIFT, GAUSS_SEIDEL_DECOMP, THRES_ALPHA, DEFLATION_LOOP_IN_BACKWARD)
+                                               P0, shift, GAUSS_SEIDEL_DECOMP, THRES_ALPHA, DEFLATION_LOOP_IN_BACKWARD)
             # Coord date is stored as y, x, z
             xyz_coords.extend(xyz_coord)
             reg_pdfs.extend(pdf)
             reg_infos.extend(info)
-            if REALTIME_VIS:
+            if realtime_visualization:
                 realtime_obj.put_into_queue((images[div_q:div_q+DIV_Q], xyz_coord), mod_n=2) 
 
             if VERBOSE and len(images[div_q:div_q+DIV_Q]) == DIV_Q:
@@ -736,13 +723,13 @@ def run(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigm
     if VERBOSE:
         PBAR.close()
 
-    #reg_pdfs, xyz_coords, reg_infos = intensity_distribution(images, reg_pdfs, xyz_coords, reg_infos, sigma=SIGMA)
-    write_localization(OUTPUT_LOC, xyz_coords, reg_pdfs, reg_infos)
-    make_loc_depth_image(OUTPUT_LOC, xyz_coords, winsize=WINSIZE, resolution=1, dim=2)
+    #reg_pdfs, xyz_coords, reg_infos = intensity_distribution(images, reg_pdfs, xyz_coords, reg_infos, sigma=sigma)
+    write_localization(loc_output_path, xyz_coords, reg_pdfs, reg_infos)
+    make_loc_depth_image(loc_output_path, xyz_coords, winsize=WINSIZE, resolution=1, dim=2)
 
-    if VISUALIZATION:
+    if save_video:
         print(f'Visualizing localizations...')
-        visualilzation(OUTPUT_LOC, images, xyz_coords)
+        visualilzation(loc_output_path, images, xyz_coords)
     if realtime_obj is not None:
         realtime_obj.turn_off()
         del realtime_obj
@@ -751,7 +738,9 @@ def run(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigm
     return True
 
 
-def run_process(input_video, outpur_dir, window_size=9, threshold=1.0, deflation=0, sigma=4.0, shift=1, gpu_on=True, save_video=False, verbose=False, batch=False, realtime_vis=False):
+def run_process(input_video_path:str, output_path:str, window_size=7, threshold=1.0, deflation=0, sigma=4.0, shift=1,
+                gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False):
+    
     from multiprocessing import Process, Value
     return_state = Value('b', 0)
     options = {
@@ -764,11 +753,11 @@ def run_process(input_video, outpur_dir, window_size=9, threshold=1.0, deflation
         'save_video': save_video,
         'verbose': verbose,
         'batch': batch,
-        'realtime_vis': realtime_vis,
+        'realtime_visualization': realtime_visualization,
         'return_state': return_state
     }
 
-    p = Process(target=run, args=(input_video, outpur_dir),  kwargs=options)
+    p = Process(target=run, args=(input_video_path, output_path),  kwargs=options)
     try:
         p.start()
         p.join()
