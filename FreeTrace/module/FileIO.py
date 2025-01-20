@@ -291,8 +291,8 @@ def read_parameters(param_file):
                 params['tracking']['PIXEL_MICRONS'] = float(eval(line.strip().split('=')[1]))
             if 'frame_per_sec' in line.lower():
                 params['tracking']['FRAME_PER_SEC'] = float(eval(line.strip().split('=')[1]))
-            if 'blink_lag' in line.lower():
-                params['tracking']['BLINK_LAG'] = int(eval(line.strip().split('=')[1]))
+            if 'time_forecast' in line.lower():
+                params['tracking']['TIME_FORECAST'] = int(eval(line.strip().split('=')[1]))
             if 'cutoff' in line.lower():
                 params['tracking']['CUTOFF'] = int(eval(line.strip().split('=')[1]))
             if 'track_visualization' in line.lower():
@@ -345,6 +345,7 @@ def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False, batch=False)
                 cuda = True
             else:
                 cuda = False
+            del cp
         except:
             cuda = False
         try:
@@ -354,6 +355,7 @@ def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False, batch=False)
                 TF = True
             else:
                 TF = False
+            del gpus
         except:
             TF = False
 
