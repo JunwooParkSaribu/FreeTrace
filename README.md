@@ -6,11 +6,11 @@
 > - C compiler (clang)</br>
 > - Python3.10 &#8593;, python3-dev, pip</br>
 > - GPU & Cuda12 on Linux/WSL2(Ubuntu22.04 &#8593;) (recommended)</br>
-> - With GPU, Pre-trained [models](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/models/README.md) (recommended)</br>
+> - With GPU, Pre-trained [models](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/FreeTrace/models/README.md) (recommended)</br>
 
 > [!NOTE]  
 > PRE-REQUISITE: pre-installation and compilation with installation.py</br>
-> Check [compatibilities](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/models/README.md) of Python, Ubuntu and Tensorflow to run FreeTrace with source code.</br>
+> Check [compatibilities](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/FreeTrace/models/README.md) of Python, Ubuntu and Tensorflow to run FreeTrace with source code.</br>
 > with GPU off on tracking, FreeTrace only considers standard Brownian motion for inferences.</br>
 
 
