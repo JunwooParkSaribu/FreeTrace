@@ -408,7 +408,10 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
                 traj_cost.append(abs(log_p0))
             time_score += (next_path[-1][0] - next_path[-2][0] - 1) * time_penalty
 
-            final_score = np.mean(traj_cost) + abnomral_jump_score + time_score
+            if len(traj_cost) > 0:
+                final_score = np.mean(traj_cost) + abnomral_jump_score + time_score
+            else:
+                final_score = abnomral_jump_score + time_score
             trajectories_costs[next_path] = final_score
         elif len(next_path) == 4 and next_path[2][0] not in next_times:
             traj_cost = []
@@ -435,7 +438,10 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
                 traj_cost.append(abs(log_p0))
             time_score += (next_path[-1][0] - next_path[-2][0] - 1) * time_penalty
 
-            final_score = np.mean(traj_cost) + abnomral_jump_score + time_score
+            if len(traj_cost) > 0:
+                final_score = np.mean(traj_cost) + abnomral_jump_score + time_score
+            else:
+                final_score = abnomral_jump_score + time_score
             trajectories_costs[next_path] = final_score
 
         elif len(next_path) > 4:
@@ -551,7 +557,10 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
                     time_score += time_gap * time_penalty
                     traj_cost.append(abs(log_p0))
                 time_score += (next_path[-1][0] - next_path[-2][0] - 1) * time_penalty
-            final_score = np.mean(traj_cost) + abnomral_jump_score + time_score
+            if len(traj_cost) > 0:
+                final_score = np.mean(traj_cost) + abnomral_jump_score + time_score
+            else:
+                final_score = abnomral_jump_score + time_score
             trajectories_costs[next_path] = final_score
 
         else:
@@ -1019,8 +1028,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, gpu_on
     make_whole_img(final_trajectories, output_dir=output_img, img_stacks=images)
     if save_video:
         print(f'Visualizing trajectories...')
-        make_image_seqs(final_trajectories, output_dir=output_imgstack, img_stacks=images, time_steps=t_steps, cutoff=CUTOFF,
-                        add_index=False, local_img=None, gt_trajectory=None)
+        make_image_seqs(final_trajectories, output_dir=output_imgstack, img_stacks=images, time_steps=t_steps)
     
     if return_state != 0:
         return_state.value = 1
