@@ -782,7 +782,7 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
     realtime_obj = None
     if realtime_visualization:
         from FreeTrace.module.ImageModule import RealTimePlot
-        realtime_obj = RealTimePlot('..', job_type='track', fps=100, show_frame=True)
+        realtime_obj = RealTimePlot('..', job_type='track', fps=75, show_frame=True)
         realtime_obj.turn_on()
 
     while True:
