@@ -761,7 +761,7 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
     return selected_graph
 
 
-def forecast(localization: dict, t_avail_steps, distribution, image_length):
+def forecast(localization: dict, t_avail_steps, distribution, image_length, realtime_visualization):
     first_construction = True
     last_time = image_length
     source_node = (0, 0)
@@ -778,6 +778,12 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length):
     selected_time_steps = np.arange(t_avail_steps[0] + 1, t_avail_steps[0] + 1 + time_forecast)
     saved_time_steps = 1
     mysum = 0
+
+    realtime_obj = None
+    if realtime_visualization:
+        from FreeTrace.module.ImageModule import RealTimePlot
+        realtime_obj = RealTimePlot('..', job_type='track', fps=100, show_frame=True)
+        realtime_obj.turn_on()
 
     while True:
         node_pairs = []
@@ -864,6 +870,9 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length):
             if VERBOSE:
                 PBAR.update(image_length - mysum)
             break
+
+        if realtime_visualization:
+            realtime_obj.put_into_queue((IMAGES, list(find_paths(final_graph, source=source_node)), selected_time_steps[:-1], localization), mod_n=1)
         
         saved_time_steps = selected_time_steps[-1]
         next_first_time = selected_time_steps[-1] + 1
@@ -889,6 +898,9 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length):
         if node_ not in final_graph:
             print('Missing node: ', node_, ' possible errors on tracking.')
 
+    if realtime_obj is not None:
+        realtime_obj.turn_off()
+
     trajectory_list = []
     for traj_idx, path in enumerate(find_paths(final_graph, source=source_node)):
         traj = TrajectoryObj(index=traj_idx, localizations=localization)
@@ -898,16 +910,17 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length):
     return trajectory_list
 
 
-def trajectory_inference(localization: dict, time_steps: np.ndarray, distribution: dict, image_length=None):
+def trajectory_inference(localization: dict, time_steps: np.ndarray, distribution: dict, image_length=None, realtime_visualization=False):
     t_avail_steps = []
     for time in np.sort(time_steps):
         if len(localization[time][0]) == 3:
             t_avail_steps.append(time)
-    trajectory_list = forecast(localization, t_avail_steps, distribution, image_length)
+    trajectory_list = forecast(localization, t_avail_steps, distribution, image_length, realtime_visualization=realtime_visualization)
     return trajectory_list
 
 
 def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False, return_state=0):
+    global IMAGES
     global VERBOSE
     global BATCH
     global CUTOFF
@@ -945,6 +958,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, gpu_on
     THRESHOLDS = None
 
     images = read_tif(input_video_path)
+    IMAGES = images
     if images.shape[0] <= 1:
         sys.exit('Image squence length error: Cannot track on a single image.')
     loc, loc_infos = read_localization(f'{output_path}/{input_video_path.split("/")[-1].split(".tif")[0]}_loc.csv', images)
@@ -991,7 +1005,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, gpu_on
 
 
     trajectory_list = trajectory_inference(localization=loc, time_steps=t_steps,
-                                           distribution=jump_distribution, image_length=images.shape[0])
+                                           distribution=jump_distribution, image_length=images.shape[0], realtime_visualization=realtime_visualization)
     for trajectory in trajectory_list:
         if not trajectory.delete(cutoff=CUTOFF):
             final_trajectories.append(trajectory)

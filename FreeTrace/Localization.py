@@ -678,7 +678,7 @@ def run(input_video_path:str, output_path:str, window_size=9, threshold=1.0, def
     realtime_obj = None
     if realtime_visualization:
         from FreeTrace.module.ImageModule import RealTimePlot
-        realtime_obj = RealTimePlot(input_video_path)
+        realtime_obj = RealTimePlot(input_video_path, show_frame=True)
         realtime_obj.turn_on()
 
 
@@ -713,7 +713,7 @@ def run(input_video_path:str, output_path:str, window_size=9, threshold=1.0, def
             reg_pdfs.extend(pdf)
             reg_infos.extend(info)
             if realtime_visualization:
-                realtime_obj.put_into_queue((images[div_q:div_q+DIV_Q], xyz_coord), mod_n=2) 
+                realtime_obj.put_into_queue((images[div_q:div_q+DIV_Q], xyz_coord, div_q), mod_n=2) 
 
             if VERBOSE and len(images[div_q:div_q+DIV_Q]) == DIV_Q:
                 PBAR.update(DIV_Q)

@@ -41,8 +41,8 @@ if __name__ == "__main__":
 
         if loc:
             track = Tracking.run_process(input_video_path=video_name, output_path=OUTPUT_DIR,
-                                         time_forecast=TIME_FORECAST, cutoff=CUTOFF,
-                                         gpu_on=TRACK_GPU_AVAIL, save_video=SAVE_VIDEO_TRACK, realtime_visualization=True, verbose=1, batch=False)
+                                            time_forecast=TIME_FORECAST, cutoff=CUTOFF,
+                                            gpu_on=TRACK_GPU_AVAIL, save_video=SAVE_VIDEO_TRACK, realtime_visualization=True, verbose=1, batch=False)
     except Exception as e:
         sys.exit(f'Err code:{e} on file:{video_name}')
 
