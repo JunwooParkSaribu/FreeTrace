@@ -1,5 +1,4 @@
 import sys
-import signal
 import atexit
 import pandas as pd
 import numpy as np
@@ -319,8 +318,8 @@ def make_image_seqs2(*trajectory_lists, output_dir, time_steps, cutoff=0, origin
     tifffile.imwrite(output_dir, data=result_stack, imagej=True)
 
 
-def make_image_seqs(trajectory_list, output_dir, img_stacks, time_steps, cutoff=2,
-                    add_index=True, local_img=None, gt_trajectory=None, cps_result=None):
+def make_image_seqs_old(trajectory_list, output_dir, img_stacks, time_steps, cutoff=2,
+                        add_index=True, local_img=None, gt_trajectory=None, cps_result=None):
     if np.mean(img_stacks) < 0.35:
         bright_ = 1
     else:
@@ -451,9 +450,34 @@ def make_image_seqs(trajectory_list, output_dir, img_stacks, time_steps, cutoff=
                         print(f'CPs containing frame: {init_time + frame}')
                         circle_overlay = cv2.circle(result_stack[init_time + frame], center=(int(np.around(cp_xs[frame] * upscailing_factor)), int(np.around(cp_ys[frame] * upscailing_factor))),
                                                     radius=cps_rad[frame], color=(255, 0, 0))
-                    
     tifffile.imwrite(output_dir, data=result_stack, imagej=True)
 
+
+def make_image_seqs(trajectory_list, output_dir, img_stacks, time_steps):
+    ret_img_stacks = []
+    for img, frame in zip(img_stacks, time_steps):
+        if img.ndim == 2:
+            img = np.array([img, img, img])
+            img = np.moveaxis(img, 0, 2)
+        img = np.ascontiguousarray(img)
+        for traj in trajectory_list:
+            times = traj.get_times()
+            if times[-1] < frame:
+                continue
+            indices = [i for i, time in enumerate(times) if time <= frame]
+            if traj.get_trajectory_length() >= 2:
+                xy = np.array([[int(np.around(x)), int(np.around(y))]
+                               for x, y, _ in traj.get_positions()[indices]], np.int32)
+                img_poly = cv2.polylines(img, [xy],
+                                         isClosed=False,
+                                         color=(traj.get_color()[0],
+                                                traj.get_color()[1],
+                                                traj.get_color()[2]),
+                                         thickness=1)
+        ret_img_stacks.append(img)
+    ret_img_stacks = (np.array(ret_img_stacks)*255).astype(np.uint8)
+    tifffile.imwrite(output_dir, data=ret_img_stacks, imagej=True)
+    
 
 def make_whole_img(trajectory_list, output_dir, img_stacks):
     if img_stacks.shape[1] * img_stacks.shape[2] < 1024 * 1024:
