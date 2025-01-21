@@ -49,14 +49,14 @@ class RealTimePlot(tk.Tk):
             self.plt.clear()
             self.plt.margins(x=0, y=0)
             if self.job_type == 'loc':
-                img, coords, frame = self.queue.get(timeout=5)
+                img, coords, frame = self.queue.get(timeout=10)
                 self.plt.imshow(img, cmap=self.cmap_plt)
                 if self.show_frame:
                     self.plt.text(10, 10, f'{frame}', self.text_kwargs)
                 if len(coords) > 0:
                     self.plt.scatter(coords[:, 1], coords[:, 0], marker='+', c='red', alpha=0.6)
             else:
-                img, trajs, frame = self.queue.get(timeout=5)
+                img, trajs, frame = self.queue.get(timeout=20)
                 self.plt.imshow(img, cmap=self.cmap_plt)
                 if self.show_frame:
                     self.plt.text(10, 10, f'{frame}', self.text_kwargs)
@@ -67,6 +67,7 @@ class RealTimePlot(tk.Tk):
 
             self.figure.canvas.draw()
         except Exception:
+            print(f'Video off due to max time limit (10s)')
             self.destroy()
             self.queue.cancel_join_thread()
             self.force_terminate.value = 0
@@ -110,7 +111,7 @@ class RealTimePlot(tk.Tk):
             t = data_zip[2]
             for data_idx in range(len(imgs)):
                 if data_idx % mod_n == 0:
-                    self.queue.put((imgs[data_idx], np.array(coords_in_t[data_idx]), t+data_idx))
+                    self.queue.put((imgs[data_idx], np.array(coords_in_t[data_idx]), t+data_idx+1))
         else:
             imgs = data_zip[0]
             paths = data_zip[1]
