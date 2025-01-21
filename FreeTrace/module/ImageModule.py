@@ -15,14 +15,20 @@ from multiprocessing import Queue, Process, Value
 
 
 class RealTimePlot(tk.Tk):
-    def __init__(self, title='', *args, **kwargs):
+    def __init__(self, title='', job_type='loc', fps=1, show_frame=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.wm_title(string=title)
         self.queue = Queue()
+        self.fps = fps
         self.force_terminate = Value('b', 0)
         cahced_img_process = Process(target=self.start_main_loop, daemon=True)
         self.img_process = cahced_img_process
-        
+        self.job_type = job_type
+        self.past_t_steps = []
+        self.text_kwargs = dict(ha='center', va='center', fontsize=20, color='C1')
+        self.cmap_plt = 'gist_gray'
+        self.show_frame = show_frame
+
         def cleanup():
             print('clean-up phase')
             cahced_img_process.terminate()
@@ -42,10 +48,23 @@ class RealTimePlot(tk.Tk):
         try:
             self.plt.clear()
             self.plt.margins(x=0, y=0)
-            img, coords = self.queue.get(timeout=5)
-            self.plt.imshow(img, cmap='gist_gray')
-            if len(coords) > 0:
-                self.plt.scatter(coords[:, 1], coords[:, 0], marker='+', c='red', alpha=0.7)
+            if self.job_type == 'loc':
+                img, coords, frame = self.queue.get(timeout=5)
+                self.plt.imshow(img, cmap=self.cmap_plt)
+                if self.show_frame:
+                    self.plt.text(10, 10, f'{frame}', self.text_kwargs)
+                if len(coords) > 0:
+                    self.plt.scatter(coords[:, 1], coords[:, 0], marker='+', c='red', alpha=0.6)
+            else:
+                img, trajs, frame = self.queue.get(timeout=5)
+                self.plt.imshow(img, cmap=self.cmap_plt)
+                if self.show_frame:
+                    self.plt.text(10, 10, f'{frame}', self.text_kwargs)
+                if len(trajs) > 0:
+                    for traj in trajs:
+                        if len(traj) > 1:
+                            self.plt.plot(traj[:, 0], traj[:, 1], c='red', alpha=0.6)
+
             self.figure.canvas.draw()
         except Exception:
             self.destroy()
@@ -53,7 +72,7 @@ class RealTimePlot(tk.Tk):
             self.force_terminate.value = 0
             exit(0)
 
-        self.after(1, self.update_plot)
+        self.after(self.fps, self.update_plot)
 
     def turn_on(self):
         self.img_process.start()
@@ -85,11 +104,32 @@ class RealTimePlot(tk.Tk):
     def put_into_queue(self, data_zip, mod_n=1):
         if self.queue.qsize() > 500:
             return
-        imgs = data_zip[0]
-        coords_in_t = data_zip[1]
-        for data_idx in range(len(imgs)):
-            if data_idx % mod_n == 0:
-                self.queue.put((imgs[data_idx], np.array(coords_in_t[data_idx])))
+        if self.job_type == 'loc':
+            imgs = data_zip[0]
+            coords_in_t = data_zip[1]
+            t = data_zip[2]
+            for data_idx in range(len(imgs)):
+                if data_idx % mod_n == 0:
+                    self.queue.put((imgs[data_idx], np.array(coords_in_t[data_idx]), t+data_idx))
+        else:
+            imgs = data_zip[0]
+            paths = data_zip[1]
+            time_steps = data_zip[2]
+            loc = data_zip[3]
+            for t in time_steps:
+                if t not in self.past_t_steps:
+                    tmp_coords = []
+                    for path in paths:
+                        tmp = []
+                        ast = np.array([x[0] for x in path])
+                        if t in ast:
+                            for node in path[1:]:
+                                if t-10 < node[0] <= t:
+                                    node_xyz = loc[node[0]][node[1]][:2]
+                                    tmp.append(node_xyz)
+                        tmp_coords.append(np.array(tmp))
+                    self.queue.put((imgs[t-1], tmp_coords, t))
+                self.past_t_steps.append(t)
 
 
 def read_tif(filepath, andi2=False):
