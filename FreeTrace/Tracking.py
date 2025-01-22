@@ -981,7 +981,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, gpu_on
         REG_MODEL = RegModel(REG_LEGNTHS)
 
     t_steps, mean_nb_per_time, xyz_min, xyz_max = count_localizations(loc)
-    raw_jump_distribution = segmentation(loc, time_steps=t_steps)
+    raw_jump_distribution = segmentation(loc, time_steps=t_steps, lag=time_forecast)
     bin_size = np.mean(xyz_max - xyz_min) / 5000. 
     jump_distribution = approximation(raw_jump_distribution, confidence, bin_size, n_iter=1e3, burn=0, approx=None, thresholds=THRESHOLDS)
 
