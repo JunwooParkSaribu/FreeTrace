@@ -14,11 +14,11 @@ from multiprocessing import Queue, Process, Value
 
 
 class RealTimePlot(tk.Tk):
-    def __init__(self, title='', job_type='loc', fps=1, show_frame=False, *args, **kwargs):
+    def __init__(self, title='', job_type='loc', fpms=10, show_frame=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.wm_title(string=title)
         self.queue = Queue()
-        self.fps = fps
+        self.fpms = fpms
         self.force_terminate = Value('b', 0)
         cahced_img_process = Process(target=self.start_main_loop, daemon=True)
         self.img_process = cahced_img_process
@@ -48,14 +48,14 @@ class RealTimePlot(tk.Tk):
             self.plt.clear()
             self.plt.margins(x=0, y=0)
             if self.job_type == 'loc':
-                img, coords, frame = self.queue.get(timeout=10)
+                img, coords, frame = self.queue.get(timeout=15)
                 self.plt.imshow(img, cmap=self.cmap_plt)
                 if self.show_frame:
                     self.plt.text(10, 10, f'{frame}', self.text_kwargs)
                 if len(coords) > 0:
                     self.plt.scatter(coords[:, 1], coords[:, 0], marker='+', c='red', alpha=0.6)
             else:
-                img, trajs, frame = self.queue.get(timeout=20)
+                img, trajs, frame = self.queue.get(timeout=30)
                 self.plt.imshow(img, cmap=self.cmap_plt)
                 if self.show_frame:
                     self.plt.text(10, 10, f'{frame}', self.text_kwargs)
@@ -72,7 +72,7 @@ class RealTimePlot(tk.Tk):
             self.force_terminate.value = 0
             exit(0)
 
-        self.after(self.fps, self.update_plot)
+        self.after(self.fpms, self.update_plot)
 
     def turn_on(self):
         self.img_process.start()
