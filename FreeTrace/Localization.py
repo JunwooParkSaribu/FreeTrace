@@ -678,7 +678,7 @@ def run(input_video_path:str, output_path:str, window_size=9, threshold=1.0, def
     realtime_obj = None
     if realtime_visualization:
         from FreeTrace.module.ImageModule import RealTimePlot
-        realtime_obj = RealTimePlot(f'Localization : {input_video_path}', show_frame=True)
+        realtime_obj = RealTimePlot(f'Localization : {input_video_path}', fpms=5, show_frame=True)
         realtime_obj.turn_on()
 
 
