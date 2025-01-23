@@ -33,15 +33,16 @@ if __name__ == "__main__":
         loc = False
         track = False
         initialization(False, verbose=False, batch=False)
-
+        """
         loc = Localization.run_process(input_video_path=video_name, output_path=OUTPUT_DIR,
                                        window_size=WINSIZE, threshold=THRES_ALPHA,
                                        deflation=DEFLATION_LOOP_IN_BACKWARD, shift=SHIFT,
                                        gpu_on=LOC_GPU_AVAIL, save_video=SAVE_VIDEO_LOC, realtime_visualization=True, verbose=1, batch=False)
         if loc:
-            track = Tracking.run_process(input_video_path=video_name, output_path=OUTPUT_DIR,
-                                            time_forecast=TIME_FORECAST, cutoff=CUTOFF,
-                                            gpu_on=TRACK_GPU_AVAIL, save_video=SAVE_VIDEO_TRACK, realtime_visualization=True, verbose=1, batch=False)
+        """
+        track = Tracking.run_process(input_video_path=video_name, output_path=OUTPUT_DIR,
+                                        time_forecast=TIME_FORECAST, cutoff=CUTOFF,
+                                        gpu_on=TRACK_GPU_AVAIL, save_video=SAVE_VIDEO_TRACK, realtime_visualization=True, verbose=1, batch=False)
             
     except Exception as e:
         sys.exit(f'Err code:{e} on file:{video_name}')
