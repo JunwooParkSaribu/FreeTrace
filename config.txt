@@ -1,4 +1,4 @@
-VIDEO=./test_samples/receptor_7_low.tiff
+VIDEO=./inputs/sample0.tiff
 OUTPUT_DIR=./outputs
 
 
@@ -12,8 +12,8 @@ GPU_LOC = True
 
 # TRACKING
 CUTOFF = 2
-TIME_FORECAST = 2
-TRACK_VISUALIZATION = True
+TIME_FORECAST = 5
+TRACK_VISUALIZATION = False
 GPU_TRACK = True
 
 
