@@ -66,7 +66,7 @@ class RealTimePlot(tk.Tk):
 
             self.figure.canvas.draw()
         except Exception:
-            print(f'Video off due to max time limit (10s)')
+            print(f'Video off due to max time limit (15s)')
             self.destroy()
             self.queue.cancel_join_thread()
             self.force_terminate.value = 0
