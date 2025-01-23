@@ -27,6 +27,7 @@ class RealTimePlot(tk.Tk):
         self.text_kwargs = dict(ha='center', va='center', fontsize=20, color='C1')
         self.cmap_plt = 'gist_gray'
         self.show_frame = show_frame
+        self.video_wait_max_time = 15 if job_type=='loc' else 30
 
         def cleanup():
             print('clean-up phase')
@@ -48,14 +49,14 @@ class RealTimePlot(tk.Tk):
             self.plt.clear()
             self.plt.margins(x=0, y=0)
             if self.job_type == 'loc':
-                img, coords, frame = self.queue.get(timeout=15)
+                img, coords, frame = self.queue.get(timeout=self.video_wait_max_time)
                 self.plt.imshow(img, cmap=self.cmap_plt)
                 if self.show_frame:
                     self.plt.text(10, 10, f'{frame}', self.text_kwargs)
                 if len(coords) > 0:
                     self.plt.scatter(coords[:, 1], coords[:, 0], marker='+', c='red', alpha=0.6)
             else:
-                img, trajs, frame = self.queue.get(timeout=30)
+                img, trajs, frame = self.queue.get(timeout=self.video_wait_max_time)
                 self.plt.imshow(img, cmap=self.cmap_plt)
                 if self.show_frame:
                     self.plt.text(10, 10, f'{frame}', self.text_kwargs)
@@ -66,7 +67,7 @@ class RealTimePlot(tk.Tk):
 
             self.figure.canvas.draw()
         except Exception:
-            print(f'Video off due to max time limit (15s)')
+            print(f'Video off due to max time limit ({self.video_wait_max_time}s)')
             self.destroy()
             self.queue.cancel_join_thread()
             self.force_terminate.value = 0
