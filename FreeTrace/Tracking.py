@@ -7,15 +7,13 @@ from tqdm import tqdm
 from functools import lru_cache
 from itertools import product
 import networkx as nx
-from sklearn.neighbors import KernelDensity
 from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
 from sklearn.model_selection import GridSearchCV
 from scipy.stats import multivariate_normal
-from scipy.stats import rv_histogram
 from FreeTrace.module.TrajectoryObject import TrajectoryObj
 from FreeTrace.module.ImageModule import read_tif, make_image_seqs, make_whole_img
 from FreeTrace.module.XmlModule import write_xml
-from FreeTrace.module.FileIO import write_trajectory, read_localization, read_parameters, write_trxyt, initialization
+from FreeTrace.module.FileIO import write_trajectory, read_localization, initialization
 
 
 @lru_cache
@@ -61,7 +59,7 @@ def predict_multinormal(relativ_coord, alpha, k, lag):
     return log_pdf, abnormal
 
 
-def greedy_shortest(srcs, dests, lag):
+def greedy_shortest(srcs, dests):
     srcs = np.array(srcs)
     dests = np.array(dests)
     x_distribution = []
@@ -128,8 +126,8 @@ def segmentation(localization: dict, time_steps: np.ndarray, lag=2):
         for j in range(i+1, i+lag+2):
             dest = localization[time_steps[j]]
             dests[j - i - 1].extend(dest)
-        for l, dest in enumerate(dests):
-            dist_x, dist_y, dist_z = greedy_shortest(srcs=srcs, dests=dest, lag=l)
+        for dest in dests:
+            dist_x, dist_y, dist_z = greedy_shortest(srcs=srcs, dests=dest)
             dist_x_all.extend(dist_x)
             dist_y_all.extend(dist_y)
             dist_z_all.extend(dist_z)
@@ -171,123 +169,82 @@ def euclidean_displacement(pos1, pos2):
         return None
     else:
         raise Exception
-    
+
 
 def gmm_bic_score(estimator, x):
     return -estimator.bic(x)
 
 
-def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
+def approx_gauss(distributions):
     #resample_nb = 3000
     #resampled = distribution[np.random.randint(0, len(distribution), min(resample_nb, len(distribution)))]
-    resampled = np.array(distribution)
-    kdes = []
-    param_grid = [
-        {
-        "n_components": [1],
-        "means_init": [[[0]]]
-        },
-        {
-        "n_components": [2],
-        "means_init": [[[0], [0]]]
-        },
-        {
-        "n_components": [3],
-        "means_init": [[[0], [0], [0]]]
-        }
-        ]
-    grid_search = GridSearchCV(
-        GaussianMixture(max_iter=100, n_init=10, covariance_type='full'),
-        param_grid=param_grid,
-        scoring=gmm_bic_score, verbose=0
-    )
-    grid_search.fit(resampled.reshape(-1, 1))
-    cluster_df = pd.DataFrame(grid_search.cv_results_)[
-        ["param_n_components", "mean_test_score"]
-    ]
-    cluster_df["mean_test_score"] = -cluster_df["mean_test_score"]
-    cluster_df = cluster_df.rename(
-        columns={
-            "param_n_components": "Number of components",
-            "mean_test_score": "BIC score",
-        }
-    )
-    opt_nb_component = np.argmin(cluster_df["BIC score"]) + 1
-    cluster = BayesianGaussianMixture(n_components=opt_nb_component, max_iter=100, n_init=10,
-                                      mean_prior=[0], mean_precision_prior=1e7, covariance_type='full').fit(resampled.reshape(-1, 1))
+    max_xyz = []
+    max_euclid = 0
+    min_euclid = 5
 
-    print(cluster.n_features_in_)
-    print(cluster.means_, cluster.covariances_, cluster.weights_)
-    import matplotlib.pyplot as plt
-    plt.figure()
-    plt.hist(resampled, bins=100)
-    plt.show()
-    exit()
-    max_diffusive = 0
-    for mean, cov, weight in zip(cluster.means_.flatten(), cluster.covariances_.flatten(), cluster.weights_.flatten()):
-        sample = np.random.normal(loc=mean, scale=cov, size=10000)
-        kde = KernelDensity(kernel="gaussian", bandwidth=0.75).fit(sample.reshape(-1, 1))
-        kdes.append(kde)
-        if cov > 2.5:  #TODO: diffraction light limit
+    for distribution in distributions:
+        if np.var(distribution) < 1e-5:
             continue
+        selec_mean = []
+        selec_var = []
+        param_grid = [
+            {
+            "n_components": [1],
+            "means_init": [[[0]]]
+            },
+            {
+            "n_components": [2],
+            "means_init": [[[0], [0]]]
+            },
+            {
+            "n_components": [3],
+            "means_init": [[[0], [0], [0]]]
+            }
+            ]
+        grid_search = GridSearchCV(
+            GaussianMixture(max_iter=100, n_init=3, covariance_type='full'),
+            param_grid=param_grid,
+            scoring=gmm_bic_score, verbose=0
+        )
+        grid_search.fit(distribution.reshape(-1, 1))
+        cluster_df = pd.DataFrame(grid_search.cv_results_)[
+            ["param_n_components", "mean_test_score"]
+        ]
+        cluster_df["mean_test_score"] = -cluster_df["mean_test_score"]
+        cluster_df = cluster_df.rename(
+            columns={
+                "param_n_components": "Number of components",
+                "mean_test_score": "BIC score",
+            }
+        )
+        opt_nb_component = np.argmin(cluster_df["BIC score"]) + 1
+        cluster = BayesianGaussianMixture(n_components=opt_nb_component, max_iter=100, n_init=3,
+                                          mean_prior=[0], mean_precision_prior=1e7, covariance_type='full').fit(distribution.reshape(-1, 1))
+        for mean_, cov_, weight_ in zip(cluster.means_.flatten(), cluster.covariances_.flatten(), cluster.weights_.flatten()):
+            if -1 < mean_ < 1 and weight_ > 0.05:
+                selec_mean.append(mean_)
+                selec_var.append(cov_)
+        max_arg = np.argsort(selec_var)[::-1][0]
+        max_var = selec_var[max_arg]
+        max_xyz.append(math.sqrt(max_var) * 2.5)
 
-        if weight > 0.1:
-            max_diffusive = max(max_diffusive, mean + 2.5*cov)
-
-    hist = np.histogram(resampled, bins=bins)
-    hist_dist = rv_histogram(hist)
-    pdf = hist[0] / np.sum(hist[0])
-    bin_edges = hist[1]
-    pdf = np.where(pdf > 0.0005, pdf, 0)
-    pdf = pdf / np.sum(pdf)
-
-    if approx == 'metropolis_hastings':
-        resampled = metropolis_hastings(pdf, n_iter=n_iter, burn=burn) * bin_size
-        reduced_bins = np.arange(0, length_max_val + bin_size, bin_size)
-        hist = np.histogram(resampled, bins=reduced_bins)
-        hist_dist = rv_histogram(hist)
-        pdf = hist[0] / np.sum(hist[0])
-        bin_edges = hist[1]
-    return max_diffusive, pdf, bin_edges, hist_dist.cdf, resampled, kdes, cluster
+    system_dim = len(max_xyz)
+    for i in range(system_dim):
+        max_euclid += max_xyz[i]**2
+    max_euclid = max(math.sqrt(max_euclid), min_euclid)
+    return max_euclid
 
 
-def approximation(real_distribution, conf, bin_size, approx='metropolis_hastings', n_iter=1e6, burn=0, thresholds=None):
-    approx_cdf(real_distribution[0], 0, 0, 0, 0, 0)
-
-    for lag_key in real_distribution:
-        real_distribution[lag_key] = np.array(real_distribution[lag_key])
-    approx_distribution = {}
-    n_iter = int(n_iter)
-    for index, lag in enumerate(real_distribution.keys()):
-        seg_len_obv, pdf_obv, bins_obv, cdf_obv, distrib, kdes, cluster = (
-            approx_cdf(distribution=real_distribution[lag],
-                        conf=conf, bin_size=bin_size, approx=approx, n_iter=n_iter, burn=burn))
-        if thresholds is not None:
-            approx_distribution[lag] = [thresholds[index], pdf_obv, bins_obv, cdf_obv, distrib, kdes, cluster]
-        else:
-            approx_distribution[lag] = [seg_len_obv, pdf_obv, bins_obv, cdf_obv, distrib, kdes, cluster]
-
-    if thresholds == None:
-        max_length_0 = approx_distribution[0][0]
-        if max_length_0 <= 0:
-            max_length_0 = 1
-        alpha = min(4, 4 / max_length_0)  # TODO: consideration
-        for index, lag in enumerate(real_distribution.keys()):
-            approx_distribution[lag][0] = max_length_0 * np.power(index + 1, (1/3)) + alpha  # TODO: consideration
-
-    bin_max = -1
-    for lag in real_distribution.keys():
-        bin_max = max(bin_max, len(approx_distribution[lag][1]))
-    for lag in real_distribution.keys():
-        for index in [1, 2]:
-            if index == 1:
-                tmp = np.zeros(bin_max)
-                tmp[:len(approx_distribution[lag][index]) - index] = approx_distribution[lag][index][:-1 - index + 1]
-            else:
-                tmp = np.arange(0, 1000, approx_distribution[lag][index][1] - approx_distribution[lag][index][0])[:bin_max]
-                tmp[:len(approx_distribution[lag][index]) - index + 1] = approx_distribution[lag][index][:-1 - index + 2]
-            approx_distribution[lag][index] = tmp
-    return approx_distribution
+def approximation(real_distribution, time_forecast, jump_threshold=float|None):
+    approx = {}
+    if jump_threshold is None:
+        max_euclid = approx_gauss(real_distribution)
+        for t in range(time_forecast+1):
+            approx[t] = max_euclid  #TODO increase over time? well...
+    else:
+        for t in range(time_forecast+1):
+            approx[t] = jump_threshold
+    return approx
 
 
 def metropolis_hastings(pdf, n_iter, burn=0.25):
@@ -340,272 +297,6 @@ def predict_alphas(x, y):
 def predict_ks(x, y):
     pred_logk = REG_MODEL.k_predict([np.array([x, y])])
     return pred_logk[0]
-
-
-"""
-def predict_long_seq2(next_path, trajectories_costs, localizations, prev_alpha, prev_k, next_times, prev_path=None, start_indice=None):
-    abnormal = False
-    time_penalty = 200
-    abnormal_penalty = 1000
-    time_score = 0
-    abnomral_jump_score = 0
-    if 0.9999 < prev_alpha < 1.0001 and 0.9999 < prev_k < 1.0001:
-        abnomral_jump_score += abnormal_penalty
-
-    cutting_threshold = 2 * abnormal_penalty
-    initial_cost = cutting_threshold - 10
-    ab_index = []
-    if trajectories_costs[next_path] is not None:
-        return ab_index
-    print('STARTINDEX', next_path, start_indice)
-    for idx in range(1, len(next_path) - 1):
-        if (next_path[idx+1][0] - next_path[idx][0]) - 1 > TIME_FORECAST:
-            trajectories_costs[next_path] = initial_cost
-            return [idx]
-
-    if len(next_path) <= 1:
-        raise Exception
-    elif len(next_path) == 2:
-        trajectories_costs[next_path] = initial_cost
-    elif len(next_path) == 3 and next_path[2][0] in next_times:
-        if abnormal:
-            prev_alpha = 1.0
-            prev_k = 1.0
-        before_node = next_path[1]
-        next_node = next_path[2]
-        time_gap = next_node[0] - before_node[0] - 1
-        next_coord = localizations[next_node[0]][next_node[1]]
-        cur_coord = localizations[before_node[0]][before_node[1]]
-        dir_vec_before = np.array([1, 1, 1])
-        estim_mu = (time_gap + 1) * pdf_mu_measure(prev_alpha) * dir_vec_before + cur_coord
-        input_mu = next_coord - estim_mu
-        log_p0, abnormal = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
-
-        if abnormal:
-            abnomral_jump_score += abnormal_penalty
-            ab_index.append(1)
-        time_score += time_gap * time_penalty
-        final_score = abs(log_p0) + abnomral_jump_score + time_score
-
-        trajectories_costs[next_path] = final_score
-    elif len(next_path) == 3 and next_path[2][0] not in next_times:
-        trajectories_costs[next_path] = initial_cost
-    else:
-        if len(next_path) == 4 and next_path[2][0] in next_times:
-            traj_cost = []
-            if abnormal:
-                prev_alpha = 1.0
-                prev_k = 1.0
-            before_node = next_path[1]
-            next_node = next_path[2]
-            time_gap = next_node[0] - before_node[0] - 1
-            next_coord = localizations[next_node[0]][next_node[1]]
-            cur_coord = localizations[before_node[0]][before_node[1]]
-            dir_vec_before = np.array([1, 1, 1])
-            estim_mu = (time_gap + 1) * pdf_mu_measure(prev_alpha) * dir_vec_before + cur_coord
-            input_mu = next_coord - estim_mu
-            log_p0, abnormal = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
-
-            if abnormal:
-                abnomral_jump_score += abnormal_penalty
-                ab_index.append(1)
-            time_score += time_gap * time_penalty
-            traj_cost.append(abs(log_p0))
-
-            for edge_index in range(3, len(next_path) - 1):
-                if abnormal:
-                    prev_alpha = 1.0
-                    prev_k = 1.0
-                bebefore_node = next_path[edge_index - 2]
-                before_node = next_path[edge_index - 1]
-                next_node = next_path[edge_index]
-                time_gap = next_node[0] - before_node[0] - 1
-                next_coord = localizations[next_node[0]][next_node[1]]
-                cur_coord = localizations[before_node[0]][before_node[1]]
-                before_coord = localizations[bebefore_node[0]][bebefore_node[1]]
-                dir_vec_before = cur_coord - before_coord
-                estim_mu = (time_gap + 1) * pdf_mu_measure(prev_alpha) * dir_vec_before + cur_coord
-                input_mu = next_coord - estim_mu
-                log_p0, abnormal = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
-                
-                if abnormal:
-                    abnomral_jump_score += abnormal_penalty
-                    ab_index.append(edge_index - 1)
-                time_score += time_gap * time_penalty
-                traj_cost.append(abs(log_p0))
-            time_score += (next_path[-1][0] - next_path[-2][0] - 1) * time_penalty
-
-            if len(traj_cost) > 0:
-                final_score = np.mean(traj_cost) + abnomral_jump_score + time_score
-            else:
-                final_score = abnomral_jump_score + time_score
-            trajectories_costs[next_path] = final_score
-            print(next_path)
-            print(trajectories_costs[next_path], abnomral_jump_score, time_score, ab_index)
-            print('----------------------------------------------')
-        elif len(next_path) == 4 and next_path[2][0] not in next_times:
-            traj_cost = []
-            for edge_index in range(3, len(next_path) - 1):
-                if abnormal:
-                    prev_alpha = 1.0
-                    prev_k = 1.0
-                bebefore_node = next_path[edge_index - 2]
-                before_node = next_path[edge_index - 1]
-                next_node = next_path[edge_index]
-                time_gap = next_node[0] - before_node[0] - 1
-                next_coord = localizations[next_node[0]][next_node[1]]
-                cur_coord = localizations[before_node[0]][before_node[1]]
-                before_coord = localizations[bebefore_node[0]][bebefore_node[1]]
-                dir_vec_before = cur_coord - before_coord
-                estim_mu = (time_gap + 1) * pdf_mu_measure(prev_alpha) * dir_vec_before + cur_coord
-                input_mu = next_coord - estim_mu
-                log_p0, abnormal = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
-                print('@')
-                if abnormal:
-                    abnomral_jump_score += abnormal_penalty
-                    ab_index.append(edge_index - 1)
-                time_score += time_gap * time_penalty
-                traj_cost.append(abs(log_p0))
-            time_score += (next_path[-1][0] - next_path[-2][0] - 1) * time_penalty
-
-            if len(traj_cost) > 0:
-                final_score = np.mean(traj_cost) + abnomral_jump_score + time_score
-            else:
-                final_score = abnomral_jump_score + time_score
-            trajectories_costs[next_path] = final_score
-            print(next_path)
-            print(trajectories_costs[next_path], abnomral_jump_score, time_score, ab_index, traj_cost)
-            print('----------------------------------------------')
-        elif len(next_path) > 4:
-            traj_cost = []
-            start_index = start_indice[tuple(next_path)]
-
-            if start_index == 1:
-                if abnormal:
-                    prev_alpha = 1.0
-                    prev_k = 1.0
-                before_node = next_path[1]
-                next_node = next_path[2]
-                time_gap = next_node[0] - before_node[0] - 1
-                next_coord = localizations[next_node[0]][next_node[1]]
-                cur_coord = localizations[before_node[0]][before_node[1]]
-                dir_vec_before = np.array([1, 1, 1])
-                estim_mu = (time_gap + 1) * pdf_mu_measure(prev_alpha) * dir_vec_before + cur_coord
-                input_mu = next_coord - estim_mu
-                log_p0, abnormal = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
-
-                if abnormal:
-                    abnomral_jump_score += abnormal_penalty
-                    ab_index.append(edge_index - 1)
-                time_score += time_gap * time_penalty
-                traj_cost.append(abs(log_p0))
-
-                for edge_index in range(3, len(next_path) - 1):
-                    if abnormal:
-                        prev_alpha = 1.0
-                        prev_k = 1.0
-                    bebefore_node = next_path[edge_index - 2]
-                    before_node = next_path[edge_index - 1]
-                    next_node = next_path[edge_index]
-                    time_gap = next_node[0] - before_node[0] - 1
-                    next_coord = localizations[next_node[0]][next_node[1]]
-                    cur_coord = localizations[before_node[0]][before_node[1]]
-                    before_coord = localizations[bebefore_node[0]][bebefore_node[1]]
-                    dir_vec_before = cur_coord - before_coord
-                    estim_mu = (time_gap + 1) * pdf_mu_measure(prev_alpha) * dir_vec_before + cur_coord
-                    input_mu = next_coord - estim_mu
-                    log_p0, abnormal = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
-
-                    if abnormal:
-                        abnomral_jump_score += abnormal_penalty
-                        ab_index.append(edge_index - 1)
-                    time_score += time_gap * time_penalty
-                    traj_cost.append(abs(log_p0))
-                time_score += (next_path[-1][0] - next_path[-2][0] - 1) * time_penalty
-
-            elif start_index == 2:
-                if abnormal:
-                    prev_alpha = 1.0
-                    prev_k = 1.0
-                before_node = next_path[1]
-                next_node = next_path[2]
-                time_gap = next_node[0] - before_node[0] - 1
-                next_coord = localizations[next_node[0]][next_node[1]]
-                cur_coord = localizations[before_node[0]][before_node[1]]
-                dir_vec_before = np.array([1, 1, 1])
-                estim_mu = (time_gap + 1) * pdf_mu_measure(prev_alpha) * dir_vec_before + cur_coord
-                input_mu = next_coord - estim_mu
-                log_p0, abnormal = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
-
-                if abnormal:
-                    abnomral_jump_score += abnormal_penalty
-                    ab_index.append(start_index - 1)
-                time_score += time_gap * time_penalty
-                traj_cost.append(abs(log_p0))
-
-                for edge_index in range(start_index+1, len(next_path) - 1):
-                    if abnormal:
-                        prev_alpha = 1.0
-                        prev_k = 1.0
-                    bebefore_node = next_path[edge_index - 2]
-                    before_node = next_path[edge_index - 1]
-                    next_node = next_path[edge_index]
-                    time_gap = next_node[0] - before_node[0] - 1
-                    next_coord = localizations[next_node[0]][next_node[1]]
-                    cur_coord = localizations[before_node[0]][before_node[1]]
-                    before_coord = localizations[bebefore_node[0]][bebefore_node[1]]
-                    dir_vec_before = cur_coord - before_coord
-                    estim_mu = (time_gap + 1) * pdf_mu_measure(prev_alpha) * dir_vec_before + cur_coord
-                    input_mu = next_coord - estim_mu
-                    log_p0, abnormal = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
-
-                    if abnormal:
-                        abnomral_jump_score += abnormal_penalty
-                        ab_index.append(edge_index - 1)
-                    time_score += time_gap * time_penalty
-                    traj_cost.append(abs(log_p0))
-                time_score += (next_path[-1][0] - next_path[-2][0] - 1) * time_penalty
-
-            else:
-                for edge_index in range(start_index, len(next_path) - 1):
-                    if abnormal:
-                        prev_alpha = 1.0
-                        prev_k = 1.0
-                    bebefore_node = next_path[edge_index - 2]
-                    before_node = next_path[edge_index - 1]
-                    next_node = next_path[edge_index]
-                    time_gap = next_node[0] - before_node[0] - 1
-                    next_coord = localizations[next_node[0]][next_node[1]]
-                    cur_coord = localizations[before_node[0]][before_node[1]]
-                    before_coord = localizations[bebefore_node[0]][bebefore_node[1]]
-                    dir_vec_before = cur_coord - before_coord
-                    estim_mu = (time_gap + 1) * pdf_mu_measure(prev_alpha) * dir_vec_before + cur_coord
-                    input_mu = next_coord - estim_mu
-                    log_p0, abnormal = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
-
-                    if abnormal:
-                        abnomral_jump_score += abnormal_penalty
-                        ab_index.append(edge_index - 1)
-                    time_score += time_gap * time_penalty
-                    traj_cost.append(abs(log_p0))
-                time_score += (next_path[-1][0] - next_path[-2][0] - 1) * time_penalty
-            if len(traj_cost) > 0:
-                final_score = np.mean(traj_cost) + abnomral_jump_score + time_score
-            else:
-                final_score = abnomral_jump_score + time_score
-            trajectories_costs[next_path] = final_score
-            print(next_path)
-            print(trajectories_costs[next_path], abnomral_jump_score, time_score, ab_index, prev_alpha, prev_k, pdf_mu_measure(prev_alpha))
-            print('----------------------------------------------')
-        else:
-            sys.exit("Untreated exception, check trajectory inference method again.")
-
-    #trajectories_costs[next_path] -= len(next_path)
-    if trajectories_costs[next_path] > cutting_threshold:
-        return ab_index
-    else:
-        return []
-"""
 
 
 def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, next_times, prev_path=None, start_indice=None):
@@ -716,7 +407,7 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
         return []
     
 
-def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.graph, localizations, next_times, distribution, first_step, most_probable_jump_d):
+def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.graph, localizations, next_times, distribution, first_step):
     selected_graph = nx.DiGraph()
     source_node = (0, 0)
     selected_graph.add_node(source_node)
@@ -776,7 +467,7 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
                                     local_idx += 1
                                     time_gap = cur_time - last_node[0] - 1
                                     if time_gap in distribution:
-                                        threshold = distribution[time_gap][0]
+                                        threshold = distribution[time_gap]
                                         if jump_d < threshold:
                                             next_node = (cur_time, next_idx)
                                             if next_node not in init_graph.nodes:
@@ -785,7 +476,7 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
             for cur_time in next_times[index:index+1]:
                 for idx in range(len(localizations[cur_time])):
                     if (cur_time, idx) not in next_graph and (cur_time, idx) not in init_graph and len(localizations[cur_time][0]) == 3:
-                        next_graph.add_edge((0, 0), (cur_time, idx), jump_d=most_probable_jump_d)
+                        next_graph.add_edge((0, 0), (cur_time, idx), jump_d=-1)
 
             index += 1
             if index == len(next_times):
@@ -879,10 +570,10 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
                             if pred != source_node and (pred, suc) not in next_graph.edges:
                                 pred_loc = localizations[pred[0]][pred[1]]
                                 suc_loc = localizations[suc[0]][suc[1]]
-                                jump_d = euclidean_displacement(pred_loc, suc_loc)
+                                jump_d = euclidean_displacement(pred_loc, suc_loc)[0]
                                 time_gap = suc[0] - pred[0] - 1
                                 if time_gap in distribution:
-                                    threshold = distribution[time_gap][0]
+                                    threshold = distribution[time_gap]
                                     if jump_d < threshold:
                                         next_graph.add_edge(pred, suc, jump_d=jump_d)
             after_pruning = len(next_graph)
@@ -927,9 +618,7 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
     final_graph.add_node(source_node)
     light_prev_graph.add_node(source_node)
     next_graph.add_node(source_node)
-    initial_time_gap = 0
-    most_probable_jump_d = distribution[initial_time_gap][6].means_[np.argmax(distribution[initial_time_gap][6].weights_)][0]
-    next_graph.add_edges_from([((0, 0), (t_avail_steps[0], index), {'jump_d':most_probable_jump_d}) for index in range(len(localization[t_avail_steps[0]]))])
+    next_graph.add_edges_from([((0, 0), (t_avail_steps[0], index), {'jump_d':-1}) for index in range(len(localization[t_avail_steps[0]]))])
     selected_time_steps = np.arange(t_avail_steps[0] + 1, t_avail_steps[0] + 1 + time_forecast)
     saved_time_steps = 1
     mysum = 0
@@ -949,7 +638,7 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
             PBAR.update(pbar_update)
 
         if len(set(selected_time_steps).intersection(set(t_avail_steps))) != 0:
-            selected_sub_graph = select_opt_graph2(final_graph, light_prev_graph, next_graph, localization, selected_time_steps, distribution, first_construction, most_probable_jump_d)
+            selected_sub_graph = select_opt_graph2(final_graph, light_prev_graph, next_graph, localization, selected_time_steps, distribution, first_construction)
         else:
             selected_sub_graph = nx.DiGraph()
             selected_sub_graph.add_node(source_node)
@@ -1037,11 +726,11 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
         selected_time_steps = [t for t in range(start_time, min(last_time + 1, next_first_time + time_forecast))]
         for node_pair in node_pairs:
             if len(node_pair) == 1:
-                next_graph.add_edge(source_node, node_pair[0], jump_d=most_probable_jump_d)
+                next_graph.add_edge(source_node, node_pair[0], jump_d=-1)
             else:
                 last_xyz = localization[node_pair[-1][0]][node_pair[-1][1]]
                 second_last_xyz = localization[node_pair[0][0]][node_pair[0][1]]
-                next_graph.add_edge(source_node, node_pair[0], jump_d=most_probable_jump_d)
+                next_graph.add_edge(source_node, node_pair[0], jump_d=-1)
                 next_graph.add_edge(node_pair[0], node_pair[-1], jump_d=math.sqrt((last_xyz[0] - second_last_xyz[0])**2 + (last_xyz[1] - second_last_xyz[1])**2))
 
     all_nodes_ = []
@@ -1109,8 +798,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, gpu_on
     output_img = f'{output_path}/{input_video_path.split("/")[-1].split(".tif")[0]}_traces.png'
 
     final_trajectories = []
-    confidence = 0.95
-    THRESHOLDS = None
+    JUMP_THRESHOLD = None
 
     images = read_tif(input_video_path)
     IMAGES = images
@@ -1127,40 +815,15 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, gpu_on
         REG_MODEL = RegModel(REG_LEGNTHS)
 
     t_steps, mean_nb_per_time, xyz_min, xyz_max = count_localizations(loc)
-    raw_jump_distribution = segmentation(loc, time_steps=t_steps, lag=time_forecast)
-    bin_size = np.mean(xyz_max - xyz_min) / 5000. 
-    jump_distribution = approximation(raw_jump_distribution, confidence, bin_size, n_iter=1e3, burn=0, approx=None, thresholds=THRESHOLDS)
+    raw_distributions = segmentation(loc, time_steps=t_steps, lag=time_forecast)
+    max_jumps = approximation(raw_distributions, time_forecast=time_forecast, jump_threshold=JUMP_THRESHOLD)
 
     if VERBOSE:
         print(f'Mean nb of molecules per frame: {mean_nb_per_time:.2f} molecules/frame')
-        for lag in jump_distribution.keys():
-            print(f'{lag}_limit_length: {jump_distribution[lag][0]}')
         PBAR = tqdm(total=t_steps[-1], desc="Tracking", unit="frame", ncols=120)
 
-    """
-    fig, axs = plt.subplots((BLINK_LAG + 1), 2, figsize=(20, 10))
-    show_x_max = 20
-    show_y_max = 0.30
-    for lag in jump_distribution.keys():
-        raw_segs_hist, bin_edges = np.histogram(raw_jump_distribution[lag], bins=np.arange(0, show_x_max, bin_size * 2))
-        mcmc_segs_hist, _ = np.histogram(jump_distribution[lag][4], bins=bin_edges)
-        axs[lag][1].hist(bin_edges[:-1], bin_edges, weights=raw_segs_hist / np.sum(raw_segs_hist), alpha=0.5)
-        axs[lag][0].hist(bin_edges[:-1], bin_edges, weights=mcmc_segs_hist / np.sum(mcmc_segs_hist), alpha=0.5)
-        for i in range(len(jump_distribution[lag][6].weights_)):
-            axs[lag][0].plot(jump_distribution[lag][2], np.exp(jump_distribution[lag][5][i].score_samples(jump_distribution[lag][2].reshape(-1, 1))), label=f'{lag}_PDF')
-        axs[lag][0].vlines(jump_distribution[lag][0], ymin=0, ymax=.14, alpha=0.6, colors='r', label=f'{lag}_limit')
-        axs[lag][0].legend()
-        axs[lag][1].legend()
-        axs[lag][0].set_xlim([0, show_x_max])
-        axs[lag][1].set_xlim([0, show_x_max])
-        axs[lag][0].set_ylim([0, show_y_max])
-        axs[lag][1].set_ylim([0, show_y_max])
-    plt.show()
-    """
-
-
     trajectory_list = trajectory_inference(localization=loc, time_steps=t_steps,
-                                           distribution=jump_distribution, image_length=images.shape[0], realtime_visualization=realtime_visualization)
+                                           distribution=max_jumps, image_length=images.shape[0], realtime_visualization=realtime_visualization)
     for trajectory in trajectory_list:
         if not trajectory.delete(cutoff=CUTOFF):
             final_trajectories.append(trajectory)
@@ -1170,7 +833,6 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, gpu_on
 
     #write_xml(output_file=output_xml, trajectory_list=final_trajectories, snr='7', density='low', scenario='Vesicle', cutoff=CUTOFF)
     write_trajectory(output_trj, final_trajectories)
-    #write_trxyt(output_trxyt, final_trajectories, PIXEL_MICRONS, FRAME_RATE)
     make_whole_img(final_trajectories, output_dir=output_img, img_stacks=images)
     if save_video:
         print(f'Visualizing trajectories...')

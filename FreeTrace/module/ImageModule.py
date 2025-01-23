@@ -24,7 +24,7 @@ class RealTimePlot(tk.Tk):
         self.img_process = cahced_img_process
         self.job_type = job_type
         self.past_t_steps = []
-        self.text_kwargs = dict(ha='center', va='center', fontsize=20, color='C1')
+        self.text_kwargs = dict(fontsize=20, color='C1')
         self.cmap_plt = 'gist_gray'
         self.show_frame = show_frame
         self.video_wait_max_time = 15 if job_type=='loc' else 30
@@ -43,8 +43,9 @@ class RealTimePlot(tk.Tk):
             del self.plt
             del self.canvas
             del self.figure
+            self.queue.close()
             self.force_terminate.value = 0
-            exit(0)
+            sys.exit(0)
         try:
             self.plt.clear()
             self.plt.margins(x=0, y=0)
@@ -52,14 +53,14 @@ class RealTimePlot(tk.Tk):
                 img, coords, frame = self.queue.get(timeout=self.video_wait_max_time)
                 self.plt.imshow(img, cmap=self.cmap_plt)
                 if self.show_frame:
-                    self.plt.text(10, 10, f'{frame}', self.text_kwargs)
+                    self.plt.text(1, 6, f'{frame}', self.text_kwargs)
                 if len(coords) > 0:
                     self.plt.scatter(coords[:, 1], coords[:, 0], marker='+', c='red', alpha=0.6)
             else:
                 img, trajs, frame = self.queue.get(timeout=self.video_wait_max_time)
                 self.plt.imshow(img, cmap=self.cmap_plt)
                 if self.show_frame:
-                    self.plt.text(10, 10, f'{frame}', self.text_kwargs)
+                    self.plt.text(1, 6, f'{frame}', self.text_kwargs)
                 if len(trajs) > 0:
                     for traj in trajs:
                         if len(traj) > 1:
@@ -69,9 +70,7 @@ class RealTimePlot(tk.Tk):
         except Exception:
             print(f'Video off due to max time limit ({self.video_wait_max_time}s)')
             self.destroy()
-            self.queue.cancel_join_thread()
             self.force_terminate.value = 0
-            exit(0)
 
         self.after(self.fpms, self.update_plot)
 
