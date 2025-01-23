@@ -64,13 +64,14 @@ def predict_multinormal(relativ_coord, alpha, k, lag):
 def greedy_shortest(srcs, dests, lag):
     srcs = np.array(srcs)
     dests = np.array(dests)
-    distribution = []
+    x_distribution = []
+    y_distribution = []
+    z_distribution = []
     superposed_locals = dests
     superposed_len = len(superposed_locals)
     linked_src = [False] * len(srcs)
     linked_dest = [False] * superposed_len
     linkage = [[0 for _ in range(superposed_len)] for _ in range(len(srcs))]
-
     combs = list(product(np.arange(len(srcs)), np.arange(len(superposed_locals))))
     euclid_tmp0 = []
     euclid_tmp1 = []
@@ -79,13 +80,18 @@ def greedy_shortest(srcs, dests, lag):
         euclid_tmp1.append(superposed_locals[dest])
     euclid_tmp0 = np.array(euclid_tmp0)
     euclid_tmp1 = np.array(euclid_tmp1)
-    segment_lengths = euclidian_displacement(euclid_tmp0, euclid_tmp1)
+
+    segment_lengths = euclidean_displacement(euclid_tmp0, euclid_tmp1)
+    x_diff = euclid_tmp0[:, 0] - euclid_tmp1[:, 0]
+    y_diff = euclid_tmp0[:, 1] - euclid_tmp1[:, 1]
+    z_diff = euclid_tmp0[:, 2] - euclid_tmp1[:, 2]
+
     if segment_lengths is not None:
-        for (i, dest), segment_length in zip(combs, segment_lengths):
+        for (i, dest), segment_length, x_, y_, z_ in zip(combs, segment_lengths, x_diff, y_diff, z_diff):
             if segment_length is not None:
                 linkage[i][dest] = segment_length
-
     minargs = np.argsort(np.array(linkage).flatten())
+
     for minarg in minargs:
         src = minarg // superposed_len
         dest = minarg % superposed_len
@@ -94,36 +100,40 @@ def greedy_shortest(srcs, dests, lag):
         else:
             linked_dest[dest] = True
             linked_src[src] = True
-            distribution.append(linkage[src][dest])
-
-    diffraction_light_limit = 15.0 * np.power(lag + 1, (1/4))  #TODO: diffraction light limit
-    filtered_distrib = []
-    if len(distribution) > 2:
-        for jump_d in distribution[:-1]:
-            if jump_d < diffraction_light_limit:
-                filtered_distrib.append(jump_d)
-    else:
-        for jump_d in distribution:
-            if jump_d < diffraction_light_limit:
-                filtered_distrib.append(jump_d)
-    return filtered_distrib
+            x_distribution.append(x_diff[minarg])
+            y_distribution.append(y_diff[minarg])
+            z_distribution.append(z_diff[minarg]) 
+    
+    filtered_x = []
+    filtered_y = []
+    filtered_z = []
+    diffraction_light_limit = 10  #TODO:diffraction light limit
+    for x, y, z in zip(x_distribution[:-1], y_distribution[:-1], z_distribution[:-1]):
+        if abs(x) < diffraction_light_limit and abs(y) < diffraction_light_limit and abs(z) < diffraction_light_limit:
+            filtered_x.append(x)
+            filtered_y.append(y)
+            filtered_z.append(z)
+    return filtered_x, filtered_y, filtered_z
 
 
 def segmentation(localization: dict, time_steps: np.ndarray, lag=2):
-    lag = min(lag, len(time_steps) - 2)
-    seg_distribution = {}
-    for i in range(lag + 1):
-        seg_distribution[i] = []
-    for i, time_step in enumerate(time_steps[:-lag-1:1]):
+    lag = 0
+    dist_x_all = []
+    dist_y_all = []
+    dist_z_all = []
+
+    for i, time_step in enumerate(time_steps[:-1]):
         dests = [[] for _ in range(lag + 1)]
         srcs = localization[time_step]
         for j in range(i+1, i+lag+2):
             dest = localization[time_steps[j]]
             dests[j - i - 1].extend(dest)
         for l, dest in enumerate(dests):
-            dist = greedy_shortest(srcs=srcs, dests=dest, lag=l)
-            seg_distribution[l].extend(dist)
-    return seg_distribution
+            dist_x, dist_y, dist_z = greedy_shortest(srcs=srcs, dests=dest, lag=l)
+            dist_x_all.extend(dist_x)
+            dist_y_all.extend(dist_y)
+            dist_z_all.extend(dist_z)
+    return np.array([dist_x_all, dist_y_all, dist_z_all])
 
 
 def count_localizations(localization):
@@ -144,7 +154,7 @@ def count_localizations(localization):
     return np.array(time_steps), nb_per_time, np.array(xyz_min), np.array(xyz_max)
 
 
-def euclidian_displacement(pos1, pos2):
+def euclidean_displacement(pos1, pos2):
     assert type(pos1) == type(pos2)
     if type(pos1) is not np.ndarray and type(pos1) is not list:
         return math.sqrt((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2 + (pos1[2] - pos2[2])**2)
@@ -170,18 +180,26 @@ def gmm_bic_score(estimator, x):
 def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
     #resample_nb = 3000
     #resampled = distribution[np.random.randint(0, len(distribution), min(resample_nb, len(distribution)))]
-    resampled = distribution
-
-    bin_size *= 2
-    length_max_val = np.max(resampled)
-    bins = np.arange(0, length_max_val + bin_size, bin_size)
+    resampled = np.array(distribution)
     kdes = []
-    param_grid = {
-        "n_components": [1, 2, 3],
-    }
+    param_grid = [
+        {
+        "n_components": [1],
+        "means_init": [[[0]]]
+        },
+        {
+        "n_components": [2],
+        "means_init": [[[0], [0]]]
+        },
+        {
+        "n_components": [3],
+        "means_init": [[[0], [0], [0]]]
+        }
+        ]
     grid_search = GridSearchCV(
-        GaussianMixture(max_iter=1000, n_init=10, covariance_type='diag'), param_grid=param_grid,
-        scoring=gmm_bic_score
+        GaussianMixture(max_iter=100, n_init=10, covariance_type='full'),
+        param_grid=param_grid,
+        scoring=gmm_bic_score, verbose=0
     )
     grid_search.fit(resampled.reshape(-1, 1))
     cluster_df = pd.DataFrame(grid_search.cv_results_)[
@@ -194,11 +212,17 @@ def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
             "mean_test_score": "BIC score",
         }
     )
-    opt_nb_component = np.argmin(cluster_df["BIC score"]) + param_grid['n_components'][0]
-    cluster = BayesianGaussianMixture(n_components=opt_nb_component, max_iter=1000, n_init=20,
-                                      mean_precision_prior=1e-7,
-                                      covariance_type='diag').fit(resampled.reshape(-1, 1))
+    opt_nb_component = np.argmin(cluster_df["BIC score"]) + 1
+    cluster = BayesianGaussianMixture(n_components=opt_nb_component, max_iter=100, n_init=10,
+                                      mean_prior=[0], mean_precision_prior=1e7, covariance_type='full').fit(resampled.reshape(-1, 1))
 
+    print(cluster.n_features_in_)
+    print(cluster.means_, cluster.covariances_, cluster.weights_)
+    import matplotlib.pyplot as plt
+    plt.figure()
+    plt.hist(resampled, bins=100)
+    plt.show()
+    exit()
     max_diffusive = 0
     for mean, cov, weight in zip(cluster.means_.flatten(), cluster.covariances_.flatten(), cluster.weights_.flatten()):
         sample = np.random.normal(loc=mean, scale=cov, size=10000)
@@ -228,6 +252,8 @@ def approx_cdf(distribution, conf, bin_size, approx, n_iter, burn):
 
 
 def approximation(real_distribution, conf, bin_size, approx='metropolis_hastings', n_iter=1e6, burn=0, thresholds=None):
+    approx_cdf(real_distribution[0], 0, 0, 0, 0, 0)
+
     for lag_key in real_distribution:
         real_distribution[lag_key] = np.array(real_distribution[lag_key])
     approx_distribution = {}
@@ -742,7 +768,7 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
                         jump_d_pos1 = np.array(jump_d_pos1)
                         jump_d_pos2 = np.array(jump_d_pos2)
                         if jump_d_pos1.shape[0] > 0:
-                            jump_d_mat = euclidian_displacement(jump_d_pos1, jump_d_pos2)
+                            jump_d_mat = euclidean_displacement(jump_d_pos1, jump_d_pos2)
                             local_idx = 0
                             for next_idx, loc in enumerate(localizations[cur_time]):
                                 if len(loc) == 3 and len(node_loc) == 3:
@@ -853,7 +879,7 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
                             if pred != source_node and (pred, suc) not in next_graph.edges:
                                 pred_loc = localizations[pred[0]][pred[1]]
                                 suc_loc = localizations[suc[0]][suc[1]]
-                                jump_d = euclidian_displacement(pred_loc, suc_loc)
+                                jump_d = euclidean_displacement(pred_loc, suc_loc)
                                 time_gap = suc[0] - pred[0] - 1
                                 if time_gap in distribution:
                                     threshold = distribution[time_gap][0]
