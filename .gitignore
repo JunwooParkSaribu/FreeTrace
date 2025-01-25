@@ -58,6 +58,7 @@ scratch*.py
 .DS_Store
 .DS_Store?
 ._*
+.ipynb_*
 .Spotlight-V100
 .Trashes
 ehthumbs.db
