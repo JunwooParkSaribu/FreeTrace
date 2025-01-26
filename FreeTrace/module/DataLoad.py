@@ -14,13 +14,18 @@ def read_h5(file):
 
 
 def read_csv(file):
-    csv_data = pd.read_csv(file)
+    csv_data = pd.read_csv(file, na_filter=False)
     col_names = ['traj_idx', 'frame', 'x', 'y', 'z', 'state', 'K', 'alpha']
-    z = np.zeros(len(csv_data.iloc[:, 1]))
-    state = np.zeros(len(csv_data.iloc[:, 1]), dtype=np.int32)
-    K = np.zeros(len(csv_data.iloc[:, 1]))
-    alpha = np.zeros(len(csv_data.iloc[:, 1]))
-    csv_data = csv_data.assign(z = z)
+    z = np.empty(len(csv_data.iloc[:, 1]))
+    state = np.empty(len(csv_data.iloc[:, 1]))
+    K = np.empty(len(csv_data.iloc[:, 1]))
+    alpha = np.empty(len(csv_data.iloc[:, 1]))
+    z.fill(np.nan)
+    state.fill(np.nan)
+    K.fill(np.nan)
+    alpha.fill(np.nan)
+    if np.var(csv_data['z']) < 1e-5:
+        csv_data = csv_data.assign(z = z)
     csv_data = csv_data.assign(state = state)
     csv_data = csv_data.assign(K = K)
     csv_data = csv_data.assign(alpha = alpha)
