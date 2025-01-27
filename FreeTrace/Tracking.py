@@ -127,10 +127,11 @@ def segmentation(localization: dict, time_steps: np.ndarray, lag=2):
             dest = localization[time_steps[j]]
             dests[j - i - 1].extend(dest)
         for dest in dests:
-            dist_x, dist_y, dist_z = greedy_shortest(srcs=srcs, dests=dest)
-            dist_x_all.extend(dist_x)
-            dist_y_all.extend(dist_y)
-            dist_z_all.extend(dist_z)
+            if srcs[0].shape[0] > 1 and dest[0].shape[0] > 1:
+                dist_x, dist_y, dist_z = greedy_shortest(srcs=srcs, dests=dest)
+                dist_x_all.extend(dist_x)
+                dist_y_all.extend(dist_y)
+                dist_z_all.extend(dist_z)
     return np.array([dist_x_all, dist_y_all, dist_z_all])
 
 
