@@ -302,8 +302,8 @@ def predict_ks(x, y):
 
 def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, next_times, prev_path=None, start_indice=None):
     abnormal = False
-    time_penalty = 200
     abnormal_penalty = 1000
+    time_penalty = abnormal_penalty / TIME_FORECAST
     time_score = 0
     abnomral_jump_score = 0
     traj_cost = []
