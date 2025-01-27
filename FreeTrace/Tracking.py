@@ -843,8 +843,34 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, gpu_on
     return True
 
 
-def run_process(input_video_path:str, output_path:str, time_forecast=2, cutoff=0,
-                gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False):
+def run_process(input_video_path:str, output_path:str, time_forecast=5, cutoff=2,
+                gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False) -> bool:
+    """
+    Create a process to run the tracking of particles to reconstruct the trajectories from localized molecules.
+    This function reads both the video.tiff and the video_loc.csv which was generated with Localization process.
+    Thus, the localization of particles is mandatory before performing the reconstruction of trajectories. 
+
+    @params
+        input_video_path: Path of video (video.tiff)
+
+        output_path: Path of outputs (video_traces.csv and supplementary outputs depending on the visualization options)
+        
+        time_forecast: Amount of frames to consider for the reconstruction of most probable trajectories for each calculation. 
+        
+        cutoff: Minimum length of trajectory to consider.
+        
+        gpu_on: Perform neural network enhanced trajectory inference assuming fractional Brownian motion. With False, FreeTrace infers the trajectory assuming standard Brownian motion.
+        
+        save_video: Save and visualize the reconstructed trajectories. (video_traces.tiff)
+        
+        verbose: Print the process.
+        
+        realtime_visualization: Real time visualization of process.
+
+    @return
+        return: It returns True if the tracking of particles is finished succesfully, False otherwise.
+    """
+
     from multiprocessing import Process, Value
     return_state = Value('b', 0)
     options = {

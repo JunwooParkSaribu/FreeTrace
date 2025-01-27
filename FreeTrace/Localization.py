@@ -739,25 +739,35 @@ def run(input_video_path:str, output_path:str, window_size=9, threshold=1.0, def
 
 
 def run_process(input_video_path:str, output_path:str, window_size=7, threshold=1.0, deflation=0, sigma=4.0, shift=1,
-                gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False):
+                gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False) -> bool:
     """
-    Create a process to run the localization of particles from video.
+    Create a process to localize the positions of particles from video.
 
     @params
-    input_video_path: Path of video (videoname.tiff)
-    output_path: Path of outputs (videoname_loc.csv and supplementary outputs depending on the visualization options)
-    window_size: Sliding window length at pixel scale to search the signals of particle in each frame of video. 
-    threshold: Threshold to determine the existence of particle inside a sliding window. Low value increases the detection rate.
-    deflation: Deflation loop to search particles iteratively (deprecated)
-    sigma: Standard deviation to detect the overlapped particles (deprecated)
-    shift: Value to shift the sliding window.
-    gpu_on: Accelerate the computation of localization.
-    save_video: Visualize the localized particles.
-    verbose: Print the process.
-    realtime_visualization: Real time visualization of process.
+        input_video_path: Path of video. (video.tiff)
+
+        output_path: Path of outputs. (video_loc.csv and supplementary outputs depending on the visualization options)
+        
+        window_size: Sliding window length at pixel scale to search the signals of particle in each frame of video. 
+        
+        threshold: Threshold to determine the existence of particle inside a sliding window. Low value increases the detection rate.
+        
+        deflation: Deflation loop to search particles iteratively. (deprecated)
+        
+        sigma: Standard deviation to detect the overlapped particles. (deprecated)
+        
+        shift: Value to shift the sliding window.
+        
+        gpu_on: Accelerate the computation of localization.
+        
+        save_video: Save and visualize the localized particles.
+        
+        verbose: Print the process.
+        
+        realtime_visualization: Real time visualization of process.
 
     @return
-    return: It returns True if the localization of particles is finished succesfully, False otherwise.
+        return: It returns True if the localization of particles is finished succesfully, False otherwise.
     """
     
     from multiprocessing import Process, Value
