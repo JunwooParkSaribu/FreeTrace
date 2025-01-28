@@ -11,8 +11,8 @@ OUTPUT_DIR = 'outputs'
 
 WINSIZE = 7
 THRESHOLD = 1.0
-REAL_LOC = True
 SAVE_VIDEO_LOC = False
+REAL_LOC = True
 LOC_GPU_AVAIL = True
 
 
