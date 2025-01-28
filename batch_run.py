@@ -6,7 +6,7 @@ from FreeTrace import Tracking, Localization
 from FreeTrace.module.FileIO import initialization
 
 
-input_folder = 'inputs'
+input_folder = 'test_samples'
 OUTPUT_DIR = 'outputs'
 
 WINSIZE = 7
@@ -33,7 +33,6 @@ if __name__ == "__main__":
             os.makedirs(f'{OUTPUT_DIR}')
         file_list = os.listdir(f'{input_folder}')
         print(f'\n*****  Batch processing on {len(file_list)} files. ({len(file_list)*2} tasks: Localizations + Trackings)  *****')
-        initialization(gpu=True, verbose=True, batch=True)
         PBAR = tqdm(total=len(file_list)*2, desc="Batch", unit="task", ncols=120, miniters=1)
         for idx in range(len(file_list)):
             loc = False
