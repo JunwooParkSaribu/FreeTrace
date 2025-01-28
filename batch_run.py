@@ -6,7 +6,7 @@ from FreeTrace import Tracking, Localization
 from FreeTrace.module.FileIO import initialization
 
 
-input_folder = 'test_samples'
+input_folder = 'inputs'
 OUTPUT_DIR = 'outputs'
 
 WINSIZE = 7
