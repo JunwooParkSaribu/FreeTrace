@@ -27,7 +27,7 @@ class RealTimePlot(tk.Tk):
         self.text_kwargs = dict(fontsize=20, color='C1')
         self.cmap_plt = 'gist_gray'
         self.show_frame = show_frame
-        self.video_wait_max_time = 15 if job_type=='loc' else 30
+        self.video_wait_max_time = 15 if job_type=='loc' else 60
 
         def cleanup():
             print('clean-up phase')
