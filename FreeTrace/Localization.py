@@ -750,7 +750,7 @@ def run_process(input_video_path:str, output_path:str, window_size=7, threshold=
         
         window_size: Sliding window length at pixel scale to search the signals of particle in each frame of video. 
         
-        threshold: Threshold to determine the existence of particle inside a sliding window. Low value increases the detection rate.
+        threshold: Threshold multiplier to determine the existence of particle inside a sliding window. Low value increases the detection rate. Base threshold is calculated with SNR of each frame.
         
         deflation: Deflation loop to search particles iteratively. (deprecated)
         
