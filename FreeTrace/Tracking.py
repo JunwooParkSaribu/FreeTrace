@@ -181,54 +181,62 @@ def approx_gauss(distributions):
     #resampled = distribution[np.random.randint(0, len(distribution), min(resample_nb, len(distribution)))]
     max_xyz = []
     max_euclid = 0
-    min_euclid = 5
+    min_euclid = 3.5
+
+    qt_distrbutions = []
+    for distribution in distributions:
+        if np.var(distribution) > 1e-5:
+            distribution = np.array(distribution)
+            quantile = np.quantile(distribution, [0.025, 0.975])
+            qt_distrbutions.append(distribution[(distribution > quantile[0]) * (distribution < quantile[1])])
+    distributions = qt_distrbutions
 
     for distribution in distributions:
-        if np.var(distribution) < 1e-5:
-            continue
-        selec_mean = []
-        selec_var = []
-        param_grid = [
-            {
-            "n_components": [1],
-            "means_init": [[[0]]]
-            },
-            {
-            "n_components": [2],
-            "means_init": [[[0], [0]]]
-            },
-            {
-            "n_components": [3],
-            "means_init": [[[0], [0], [0]]]
-            }
+        if np.var(distribution) > 1e-5:
+            selec_mean = []
+            selec_var = []
+            param_grid = [
+                {
+                "n_components": [1],
+                "means_init": [[[0]]]
+                },
+                {
+                "n_components": [2],
+                "means_init": [[[0], [0]]]
+                },
+                {
+                "n_components": [3],
+                "means_init": [[[0], [0], [0]]]
+                }
+                ]
+            grid_search = GridSearchCV(
+                GaussianMixture(max_iter=100, n_init=3, covariance_type='full'),
+                param_grid=param_grid,
+                scoring=gmm_bic_score, verbose=0
+            )
+            grid_search.fit(distribution.reshape(-1, 1))
+            cluster_df = pd.DataFrame(grid_search.cv_results_)[
+                ["param_n_components", "mean_test_score"]
             ]
-        grid_search = GridSearchCV(
-            GaussianMixture(max_iter=100, n_init=3, covariance_type='full'),
-            param_grid=param_grid,
-            scoring=gmm_bic_score, verbose=0
-        )
-        grid_search.fit(distribution.reshape(-1, 1))
-        cluster_df = pd.DataFrame(grid_search.cv_results_)[
-            ["param_n_components", "mean_test_score"]
-        ]
-        cluster_df["mean_test_score"] = -cluster_df["mean_test_score"]
-        cluster_df = cluster_df.rename(
-            columns={
-                "param_n_components": "Number of components",
-                "mean_test_score": "BIC score",
-            }
-        )
-        opt_nb_component = np.argmin(cluster_df["BIC score"]) + 1
-        cluster = BayesianGaussianMixture(n_components=opt_nb_component, max_iter=100, n_init=3,
-                                          mean_prior=[0], mean_precision_prior=1e7, covariance_type='full').fit(distribution.reshape(-1, 1))
-        for mean_, cov_, weight_ in zip(cluster.means_.flatten(), cluster.covariances_.flatten(), cluster.weights_.flatten()):
-            if -1 < mean_ < 1 and weight_ > 0.05:
-                selec_mean.append(mean_)
-                selec_var.append(cov_)
-        max_arg = np.argsort(selec_var)[::-1][0]
-        max_var = selec_var[max_arg]
-        max_xyz.append(math.sqrt(max_var) * 2.5)
+            cluster_df["mean_test_score"] = -cluster_df["mean_test_score"]
+            cluster_df = cluster_df.rename(
+                columns={
+                    "param_n_components": "Number of components",
+                    "mean_test_score": "BIC score",
+                }
+            )
+            opt_nb_component = np.argmin(cluster_df["BIC score"]) + 1
+            cluster = BayesianGaussianMixture(n_components=opt_nb_component, max_iter=100, n_init=3,
+                                            mean_prior=[0], mean_precision_prior=1e7, covariance_type='full').fit(distribution.reshape(-1, 1))
 
+            for mean_, cov_, weight_ in zip(cluster.means_.flatten(), cluster.covariances_.flatten(), cluster.weights_.flatten()):
+                if -1 < mean_ < 1 and weight_ > 0.05:
+                    selec_mean.append(mean_)
+                    selec_var.append(cov_)
+            max_arg = np.argsort(selec_var)[::-1][0]
+            max_var = selec_var[max_arg]
+            max_xyz.append(math.sqrt(max_var) * 2.5)
+            
     system_dim = len(max_xyz)
     for i in range(system_dim):
         max_euclid += max_xyz[i]**2
@@ -764,7 +772,7 @@ def trajectory_inference(localization: dict, time_steps: np.ndarray, distributio
     return trajectory_list
 
 
-def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False, return_state=0):
+def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, jump_threshold=None, gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False, return_state=0):
     global IMAGES
     global VERBOSE
     global BATCH
@@ -777,9 +785,9 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, gpu_on
     global POLY_FIT_DATA
     global STD_FIT_DATA 
     global TIME_FORECAST
-    global THRESHOLDS 
     global PBAR
     global REG_MODEL
+    global JUMP_THRESHOLD
 
     VERBOSE = verbose
     BATCH = batch
@@ -788,6 +796,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, gpu_on
     GPU_AVAIL = gpu_on
     REG_LEGNTHS = [3, 5, 8]
     ALPHA_MAX_LENGTH = 10
+    JUMP_THRESHOLD = jump_threshold
     CUDA, TF = initialization(GPU_AVAIL, REG_LEGNTHS, ptype=1, verbose=VERBOSE, batch=BATCH)
     POLY_FIT_DATA = np.load(f'{__file__.split("/Tracking.py")[0]}/models/theta_hat.npz')
     STD_FIT_DATA = np.load(f'{__file__.split("/Tracking.py")[0]}/models/std_sets.npz')
@@ -799,7 +808,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, gpu_on
     output_img = f'{output_path}/{input_video_path.split("/")[-1].split(".tif")[0]}_traces.png'
 
     final_trajectories = []
-    JUMP_THRESHOLD = None
+    
 
     images = read_tif(input_video_path)
     IMAGES = images
@@ -844,7 +853,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, gpu_on
     return True
 
 
-def run_process(input_video_path:str, output_path:str, time_forecast=5, cutoff=2,
+def run_process(input_video_path:str, output_path:str, time_forecast=5, cutoff=2, jump_threshold=None|float,
                 gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False) -> bool:
     """
     Create a process to run the tracking of particles to reconstruct the trajectories from localized molecules.
@@ -859,6 +868,8 @@ def run_process(input_video_path:str, output_path:str, time_forecast=5, cutoff=2
         time_forecast: Amount of frames to consider for the reconstruction of most probable trajectories for each calculation. 
         
         cutoff: Minimum length of trajectory to consider.
+
+        jump_threshold: Maximum jump length of particles. If it is set to None, FreeTrace infers its maximum length with GMM, otherwise this value is fixed to the given value.
         
         gpu_on: Perform neural network enhanced trajectory inference assuming fractional Brownian motion. With False, FreeTrace infers the trajectory assuming standard Brownian motion.
         
@@ -877,6 +888,7 @@ def run_process(input_video_path:str, output_path:str, time_forecast=5, cutoff=2
     options = {
         'time_forecast': time_forecast,
         'cutoff': cutoff,
+        'jump_threshold': jump_threshold,
         'gpu_on': gpu_on,
         'save_video': save_video,
         'verbose': verbose,

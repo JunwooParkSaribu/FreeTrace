@@ -11,13 +11,14 @@ OUTPUT_DIR = 'outputs'
 WINSIZE = 7
 THRESHOLD = 1.0
 REAL_LOC = True
-SAVE_VIDEO_LOC = False
+SAVE_VIDEO_LOC = True
 LOC_GPU_AVAIL = True
 
 
 TIME_FORECAST = 5
 CUTOFF = 2
-SAVE_VIDEO_TRACK = False
+JUMP_THRESHOLD = None
+SAVE_VIDEO_TRACK = True
 REAL_TRACK = True
 TRACK_GPU_AVAIL = True
 
@@ -28,14 +29,15 @@ if __name__ == "__main__":
             os.makedirs(f'{OUTPUT_DIR}')
         loc = False
         track = False
+
         initialization(False, verbose=False, batch=False)
         loc = Localization.run_process(input_video_path=video_name, output_path=OUTPUT_DIR,
                                        window_size=WINSIZE, threshold=THRESHOLD,
                                        gpu_on=LOC_GPU_AVAIL, save_video=SAVE_VIDEO_LOC, realtime_visualization=REAL_LOC, verbose=1, batch=False)
         if loc:
             track = Tracking.run_process(input_video_path=video_name, output_path=OUTPUT_DIR,
-                                            time_forecast=TIME_FORECAST, cutoff=CUTOFF,
-                                            gpu_on=TRACK_GPU_AVAIL, save_video=SAVE_VIDEO_TRACK, realtime_visualization=REAL_TRACK, verbose=1, batch=False)
+                                        time_forecast=TIME_FORECAST, cutoff=CUTOFF, jump_threshold=JUMP_THRESHOLD,
+                                        gpu_on=TRACK_GPU_AVAIL, save_video=SAVE_VIDEO_TRACK, realtime_visualization=REAL_TRACK, verbose=1, batch=False)
             
     except Exception as e:
         sys.exit(f'Err code:{e} on file:{video_name}')

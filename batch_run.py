@@ -18,6 +18,7 @@ LOC_GPU_AVAIL = True
 
 TIME_FORECAST = 5
 CUTOFF = 2
+JUMP_THRESHOLD = None
 SAVE_VIDEO_TRACK = False
 REAL_TRACK = True
 TRACK_GPU_AVAIL = True
@@ -48,7 +49,7 @@ if __name__ == "__main__":
                     PBAR.update(1)
                     if loc:
                         track = Tracking.run_process(input_video_path=f'{input_folder}/{file}', output_path=OUTPUT_DIR,
-                                                     time_forecast=TIME_FORECAST, cutoff=CUTOFF,
+                                                     time_forecast=TIME_FORECAST, cutoff=CUTOFF, jump_threshold=JUMP_THRESHOLD,
                                                      gpu_on=TRACK_GPU_AVAIL, save_video=SAVE_VIDEO_TRACK, 
                                                      realtime_visualization=REAL_TRACK, verbose=0, batch=True)
                     PBAR.update(1)
