@@ -3,11 +3,11 @@ import sys
 from datetime import datetime
 from tqdm import tqdm
 from FreeTrace import Tracking, Localization
-from FreeTrace.module.FileIO import initialization
 
 
 input_folder = 'inputs'
 OUTPUT_DIR = 'outputs'
+
 
 WINSIZE = 7
 THRESHOLD = 1.0

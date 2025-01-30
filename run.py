@@ -1,7 +1,6 @@
 import os
 import sys
 from FreeTrace import Tracking, Localization
-from FreeTrace.module.FileIO import initialization
 
 
 video_name = 'inputs/sample0.tiff'
@@ -30,7 +29,6 @@ if __name__ == "__main__":
         loc = False
         track = False
 
-        initialization(False, verbose=False, batch=False)
         loc = Localization.run_process(input_video_path=video_name, output_path=OUTPUT_DIR,
                                        window_size=WINSIZE, threshold=THRESHOLD,
                                        gpu_on=LOC_GPU_AVAIL, save_video=SAVE_VIDEO_LOC, realtime_visualization=REAL_LOC, verbose=1, batch=False)
