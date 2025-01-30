@@ -755,11 +755,14 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
         realtime_obj.turn_off()
 
     trajectory_list = []
-    for traj_idx, path in enumerate(find_paths(final_graph, source=source_node)):
-        traj = TrajectoryObj(index=traj_idx, localizations=localization)
-        for node in path[1:]:
-            traj.add_trajectory_tuple(node[0], node[1])
-        trajectory_list.append(traj)
+    traj_idx = 0
+    for path in find_paths(final_graph, source=source_node):
+        if len(path) >= CUTOFF + 1:
+            traj = TrajectoryObj(index=traj_idx, localizations=localization)
+            for node in path[1:]:
+                traj.add_trajectory_tuple(node[0], node[1])
+            trajectory_list.append(traj)
+            traj_idx += 1
     return trajectory_list
 
 
@@ -832,11 +835,8 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, jump_t
         print(f'Mean nb of molecules per frame: {mean_nb_per_time:.2f} molecules/frame')
         PBAR = tqdm(total=t_steps[-1], desc="Tracking", unit="frame", ncols=120)
 
-    trajectory_list = trajectory_inference(localization=loc, time_steps=t_steps,
-                                           distribution=max_jumps, image_length=images.shape[0], realtime_visualization=realtime_visualization)
-    for trajectory in trajectory_list:
-        if not trajectory.delete(cutoff=CUTOFF):
-            final_trajectories.append(trajectory)
+    final_trajectories = trajectory_inference(localization=loc, time_steps=t_steps,
+                                              distribution=max_jumps, image_length=images.shape[0], realtime_visualization=realtime_visualization)
 
     if VERBOSE:
         PBAR.close()
