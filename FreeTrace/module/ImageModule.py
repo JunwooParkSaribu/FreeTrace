@@ -641,6 +641,7 @@ def make_loc_depth_image(output_dir, coords, winsize=7, resolution=1, dim=2):
             row = min(max(0, coord_row), image.shape[0])
             col = min(max(0, coord_col), image.shape[1])
             image[row - winsize//2: row + winsize//2 + 1, col - winsize//2: col + winsize//2 + 1] += template
+        image = np.sqrt(image)
         image = image / np.max(image)
 
         plt.figure('Localization density', dpi=256)
