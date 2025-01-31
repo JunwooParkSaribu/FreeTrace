@@ -40,10 +40,10 @@ with open(f"{freetrace_path}/requirements.txt", 'r') as f:
         if f'tensorflow' in line:
             print(tf_version)
         else:
-            print(f"{line.split('\n')[0]}", end=' ')
+            print(f'{line.split("\n")[0]}', end=' ')
 print("unzip clang python3-tk python3-dev python3-pip\n")
 print("If you don't want to continue, please stop the process.")
-time.sleep(3)
+time.sleep(5)
 
 
 

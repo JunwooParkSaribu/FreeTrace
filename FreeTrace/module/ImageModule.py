@@ -1,5 +1,5 @@
 import sys
-import atexit
+import time
 import pandas as pd
 import numpy as np
 import cv2
@@ -14,38 +14,32 @@ from multiprocessing import Queue, Process, Value
 
 
 class RealTimePlot(tk.Tk):
-    def __init__(self, title='', job_type='loc', fpms=10, show_frame=False, *args, **kwargs):
+    def __init__(self, title='', job_type='loc', show_frame=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.wm_title(string=title)
         self.queue = Queue()
-        self.fpms = fpms
         self.force_terminate = Value('b', 0)
-        cahced_img_process = Process(target=self.start_main_loop, daemon=True)
-        self.img_process = cahced_img_process
         self.job_type = job_type
         self.past_t_steps = []
         self.text_kwargs = dict(fontsize=20, color='C1')
         self.cmap_plt = 'gist_gray'
         self.show_frame = show_frame
-        self.video_wait_max_time = 15 if job_type=='loc' else 60
+        self.video_wait_max_time = 15 if job_type=='loc' else 100
+        self.fps = 1
+        self.max_queue_recv_size = 500
+        self.img_process = Process(target=self.start_main_loop, daemon=True)
 
-        def cleanup():
-            print('clean-up phase')
-            cahced_img_process.terminate()
-            cahced_img_process.join()
-            cahced_img_process.close()
-
-        atexit.register(cleanup)
+    def clean_tk_widgets(self):
+        self.destroy()
+        del self.plt
+        del self.canvas
+        del self.figure
+        self.force_terminate.value = 0
+        sys.exit(0)
           
     def update_plot(self):
         if self.force_terminate.value == 1:
-            self.destroy()
-            del self.plt
-            del self.canvas
-            del self.figure
-            self.queue.close()
-            self.force_terminate.value = 0
-            sys.exit(0)
+            self.clean_tk_widgets()
         try:
             self.plt.clear()
             self.plt.margins(x=0, y=0)
@@ -65,31 +59,41 @@ class RealTimePlot(tk.Tk):
                     for traj in trajs:
                         if len(traj) > 1:
                             self.plt.plot(traj[:, 0], traj[:, 1], c='red', alpha=0.6)
-
             self.figure.canvas.draw()
-        except Exception:
-            print(f'Video off due to max time limit ({self.video_wait_max_time}s)')
-            self.destroy()
-            self.force_terminate.value = 0
+            if frame % 2 == 0:
+                cur_qsize = self.queue.qsize()
+                if cur_qsize > self.max_queue_recv_size / 2:
+                    self.fps = 1
+                else:
+                    self.fps = int((self.max_queue_recv_size * 30) / (self.queue.qsize()+1)**2) + 1
+        except Exception as e:
+            print(f'Video off due to max time limit ({self.video_wait_max_time}s) or {e}')
+            self.clean_tk_widgets()
 
-        self.after(self.fpms, self.update_plot)
+        self.after(self.fps, self.update_plot)
 
     def turn_on(self):
         self.img_process.start()
 
+    def cleaning_queue(self):
+        try:
+            while self.queue.qsize() > 0:
+                self.queue.get()
+        except:
+            return 1
+
     def turn_off(self):
         self.force_terminate.value = 1
-        while True:
-            if self.force_terminate.value == 0:
-                self.queue.cancel_join_thread()
-                if self.img_process is not None:
-                    self.img_process.terminate()
-                    self.img_process.join()
-                    self.img_process.close()
-                del self.queue
-                del self.force_terminate
-                del self.img_process
-                break
+        self.queue.put((np.zeros([2, 2]), [], 1))
+        time.sleep(1.0)
+        if self.img_process.is_alive():
+            self.img_process.terminate()
+        self.cleaning_queue()
+        self.queue.close()
+        self.queue.cancel_join_thread()
+        del self.queue
+        del self.force_terminate
+        del self.img_process
  
     def start_main_loop(self):
         self.queue.get()
@@ -102,7 +106,7 @@ class RealTimePlot(tk.Tk):
         self.mainloop()
 
     def put_into_queue(self, data_zip, mod_n=1):
-        if self.queue.qsize() > 500:
+        if self.queue.qsize() > self.max_queue_recv_size:
             return
         if self.job_type == 'loc':
             imgs = data_zip[0]
