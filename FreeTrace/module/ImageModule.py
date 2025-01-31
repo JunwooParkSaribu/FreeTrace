@@ -79,7 +79,7 @@ class RealTimePlot(tk.Tk):
         except Exception as e:
             print(f'')
             print(f'FreeTrace turns off the real-time viusualization if it waits more than [{self.video_wait_max_time}s] or [{e}], to save the computational resources.')
-            print(f'FreeTrace is still running if you have still non-inferred frames. Please don\'t shut down, it is just slowed down due to high number of particles / resolution.')
+            print(f'FreeTrace is running if you have still non-inferred frames. Please don\'t shut down, it is just slowed down due to high number of particles / resolution.')
             print(f'')
             self.clean_tk_widgets()
 
