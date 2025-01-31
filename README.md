@@ -32,11 +32,11 @@
 <junwoo.park@sorbonne-universite.fr>
 
 <h3> Contributors </h3>
-[Citation](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/CITATION.cff)
-Junwoo Park
-Nataliya Sokolovska
-Clément Cabriel
-Ignacio Izeddin
-Judith Miné-Hattab
+> [Citation](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/CITATION.cff) </br>
+Junwoo Park </br>
+Nataliya Sokolovska </br>
+Clément Cabriel </br>
+Ignacio Izeddin </br>
+Judith Miné-Hattab </br>
 
 <br>
