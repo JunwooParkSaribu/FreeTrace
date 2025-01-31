@@ -36,7 +36,6 @@
 
 > If you use this software, please cite it as below. </br>
 > [Citation](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/CITATION.cff) </br>
-</br>
 Junwoo Park </br>
 Nataliya Sokolovska </br>
 Clément Cabriel </br>
