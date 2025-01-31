@@ -13,6 +13,12 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from multiprocessing import Queue, Process, Value
 
 
+class NormalTkExit(Exception):
+    def __init__(self, message="Normal tk widget exit to release resources"):
+        self.message = message
+        super().__init__(self.message)
+
+
 class RealTimePlot(tk.Tk):
     def __init__(self, title='', job_type='loc', show_frame=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -46,7 +52,7 @@ class RealTimePlot(tk.Tk):
             if self.job_type == 'loc':
                 img, coords, frame = self.queue.get(timeout=self.video_wait_max_time)
                 if frame == -1:
-                    raise Exception
+                    raise NormalTkExit
                 self.plt.imshow(img, cmap=self.cmap_plt)
                 if self.show_frame:
                     self.plt.text(1, 6, f'{frame}', self.text_kwargs)
@@ -55,7 +61,7 @@ class RealTimePlot(tk.Tk):
             else:
                 img, trajs, frame = self.queue.get(timeout=self.video_wait_max_time)
                 if frame == -1:
-                    raise Exception
+                    raise NormalTkExit
                 self.plt.imshow(img, cmap=self.cmap_plt)
                 if self.show_frame:
                     self.plt.text(1, 6, f'{frame}', self.text_kwargs)
@@ -72,7 +78,7 @@ class RealTimePlot(tk.Tk):
                     self.fps = int((self.max_queue_recv_size * 30) / (self.queue.qsize()+1)**2) + 1
         except Exception as e:
             print(f'')
-            print(f'FreeTrace turns off the real-time viusualization if it waits more than ({self.video_wait_max_time}s) or {e}, to save the computational resources.')
+            print(f'FreeTrace turns off the real-time viusualization if it waits more than [{self.video_wait_max_time}s] or [{e}], to save the computational resources.')
             print(f'FreeTrace is still running if you have still non-inferred frames. Please don\'t shut down, it is just slowed down due to high number of particles / resolution.')
             print(f'')
             self.clean_tk_widgets()
