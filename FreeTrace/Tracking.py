@@ -794,7 +794,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, jump_t
 
     VERBOSE = verbose
     BATCH = batch
-    TIME_FORECAST = time_forecast
+    TIME_FORECAST = max(1, min(10, time_forecast))
     CUTOFF = cutoff
     GPU_AVAIL = gpu_on
     REG_LEGNTHS = [3, 5, 8]
