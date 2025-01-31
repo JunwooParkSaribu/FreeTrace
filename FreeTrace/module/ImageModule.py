@@ -45,6 +45,8 @@ class RealTimePlot(tk.Tk):
             self.plt.margins(x=0, y=0)
             if self.job_type == 'loc':
                 img, coords, frame = self.queue.get(timeout=self.video_wait_max_time)
+                if frame == -1:
+                    raise Exception
                 self.plt.imshow(img, cmap=self.cmap_plt)
                 if self.show_frame:
                     self.plt.text(1, 6, f'{frame}', self.text_kwargs)
@@ -52,6 +54,8 @@ class RealTimePlot(tk.Tk):
                     self.plt.scatter(coords[:, 1], coords[:, 0], marker='+', c='red', alpha=0.6)
             else:
                 img, trajs, frame = self.queue.get(timeout=self.video_wait_max_time)
+                if frame == -1:
+                    raise Exception
                 self.plt.imshow(img, cmap=self.cmap_plt)
                 if self.show_frame:
                     self.plt.text(1, 6, f'{frame}', self.text_kwargs)
@@ -67,7 +71,8 @@ class RealTimePlot(tk.Tk):
                 else:
                     self.fps = int((self.max_queue_recv_size * 30) / (self.queue.qsize()+1)**2) + 1
         except Exception as e:
-            print(f'Video off due to max time limit ({self.video_wait_max_time}s) or {e}')
+            print(f'FreeTrace turns off the real-time viusualization if it waits more than ({self.video_wait_max_time}s) or {e}, to save the computational resources.')
+            print(f'FreeTrace is still running, don\'t shut down.')
             self.clean_tk_widgets()
 
         self.after(self.fps, self.update_plot)
@@ -84,7 +89,7 @@ class RealTimePlot(tk.Tk):
 
     def turn_off(self):
         self.force_terminate.value = 1
-        self.queue.put((np.zeros([2, 2]), [], 1))
+        self.queue.put((np.zeros([2, 2]), [], -1))
         time.sleep(1.0)
         if self.img_process.is_alive():
             self.img_process.terminate()
