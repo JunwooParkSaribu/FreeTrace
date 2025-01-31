@@ -24,7 +24,7 @@ class RealTimePlot(tk.Tk):
         self.text_kwargs = dict(fontsize=20, color='C1')
         self.cmap_plt = 'gist_gray'
         self.show_frame = show_frame
-        self.video_wait_max_time = 15 if job_type=='loc' else 100
+        self.video_wait_max_time = 15 if job_type=='loc' else 60
         self.fps = 1
         self.max_queue_recv_size = 500
         self.img_process = Process(target=self.start_main_loop, daemon=True)
@@ -71,8 +71,10 @@ class RealTimePlot(tk.Tk):
                 else:
                     self.fps = int((self.max_queue_recv_size * 30) / (self.queue.qsize()+1)**2) + 1
         except Exception as e:
+            print(f'')
             print(f'FreeTrace turns off the real-time viusualization if it waits more than ({self.video_wait_max_time}s) or {e}, to save the computational resources.')
-            print(f'FreeTrace is still running, don\'t shut down.')
+            print(f'FreeTrace is still running if you have still non-inferred frames. Please don\'t shut down, it is just slowed down due to high number of particles / resolution.')
+            print(f'')
             self.clean_tk_widgets()
 
         self.after(self.fps, self.update_plot)
