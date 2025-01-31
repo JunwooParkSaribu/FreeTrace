@@ -36,10 +36,10 @@
 
 > If you use this software, please cite it as below. </br>
 > [Citation](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/CITATION.cff) </br>
-Junwoo Park </br>
-Nataliya Sokolovska </br>
-Clément Cabriel </br>
-Ignacio Izeddin </br>
-Judith Miné-Hattab </br>
+Author: Junwoo Park </br>
+Co-author: Nataliya Sokolovska </br>
+Co-author: Clément Cabriel </br>
+Co-author: Ignacio Izeddin </br>
+Co-author: Judith Miné-Hattab </br>
 
 <br>
