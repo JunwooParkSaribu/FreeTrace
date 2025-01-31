@@ -29,9 +29,11 @@
 [Brief description of the method] will be available soon.
 
 <h3> Contact person </h3>
+
 <junwoo.park@sorbonne-universite.fr>
 
 <h3> Contributors </h3>
+
 > [Citation](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/CITATION.cff) </br>
 Junwoo Park </br>
 Nataliya Sokolovska </br>
