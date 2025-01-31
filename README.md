@@ -28,8 +28,15 @@
 
 [Brief description of the method] will be available soon.
 
-<h3> Contacts </h3>
-
+<h3> Contact person </h3>
 <junwoo.park@sorbonne-universite.fr>
+
+<h3> Contributors </h3>
+[Citation](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/CITATION.cff)
+Junwoo Park
+Nataliya Sokolovska
+Clément Cabriel
+Ignacio Izeddin
+Judith Miné-Hattab
 
 <br>
