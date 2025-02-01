@@ -861,28 +861,38 @@ def run_process(input_video_path:str, output_path:str, time_forecast=5, cutoff=2
     Thus, the localization of particles is mandatory before performing the reconstruction of trajectories. 
 
     @params
-        input_video_path: Path of video (video.tiff)
+        input_video_path:
+        Path of video (video.tiff)
 
-        output_path: Path of outputs (video_traces.csv and supplementary outputs depending on the visualization options)
+        output_path:
+        Path of outputs (video_traces.csv and supplementary outputs depending on the visualization options)
         
-        time_forecast(frame): Amount of frames to consider for the reconstruction of most probable trajectories for each calculation. 
+        time_forecast(frame):
+        Amount of frames to consider for the reconstruction of most probable trajectories for each calculation. 
         
-        cutoff(frame): Minimum length of trajectory to consider.
+        cutoff(frame):
+        Minimum length of trajectory to consider.
 
-        jump_threshold(pixel): Maximum jump length of particles. If it is set to None, FreeTrace infers its maximum length with GMM, otherwise this value is fixed to the given value.
+        jump_threshold(pixel): 
+        Maximum jump length of particles. If it is set to None, FreeTrace infers its maximum length with GMM, otherwise this value is fixed to the given value.
         The inferred maximum jump length is limited under diffraction light limit of particles in SPT, if you use FreeTrace for non-SPT particles, please set this value manually.
         
-        gpu_on: Perform neural network enhanced trajectory inference assuming fractional Brownian motion. With False, FreeTrace infers the trajectory assuming standard Brownian motion.
+        gpu_on:
+        Perform neural network enhanced trajectory inference assuming fractional Brownian motion. With False, FreeTrace infers the trajectory assuming standard Brownian motion.
         
-        save_video: Save and visualize the reconstructed trajectories. (video_traces.tiff)
+        save_video:
+        Save and visualize the reconstructed trajectories. (video_traces.tiff)
         
-        verbose: Print the process.
+        verbose:
+        Print the process.
         
-        realtime_visualization: Real time visualization of process.
+        realtime_visualization:
+        Real time visualization of process.
 
     @return
-        return: It returns True if the tracking of particles is finished succesfully, False otherwise.
-                The unit of saved particle coordinate is pixel.
+        return:
+        It returns True if the tracking of particles is finished succesfully, False otherwise.
+        The unit of saved particle coordinate is pixel.
     """
 
     from multiprocessing import Process, Value
