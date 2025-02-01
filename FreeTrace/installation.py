@@ -22,13 +22,13 @@ for it in __file__.split("FreeTrace")[:-1]:
 
 if '3.12' in sys.version or '3.11' in sys.version:
     tf_version = 'tensorflow[and-cuda]==2.17'
-    python_version = 3.12
+    python_version = "3.12"
 elif '3.11' in sys.version:
     tf_version = 'tensorflow[and-cuda]==2.17'
-    python_version = 3.11
+    python_version = "3.11"
 elif '3.10' in sys.version:
     tf_version = 'tensorflow[and-cuda]==2.14.1'
-    python_version = 3.10
+    python_version = "3.10"
 else:
     sys.exit('***** python version 3.10/11/12 required *****')
 
@@ -57,7 +57,7 @@ subprocess.run(['sudo', 'apt', 'install', 'python3-dev'])
 subprocess.run(['sudo', 'apt', 'install', 'python3-pip'])
 
 
-if python_version == 3.10:
+if python_version == "3.10":
     subprocess.run(['rm', '-r', f'{freetrace_path}/models'])
     subprocess.run(['wget', 'https://psilo.sorbonne-universite.fr/index.php/s/WqoCoFBc99A3Xbc/download/models_2_14.zip', '-P' f'{freetrace_path}'])
     subprocess.run(['unzip', '-o', f'{freetrace_path}/models_2_14.zip', '-d', f'{freetrace_path}'])
@@ -108,7 +108,7 @@ if os.path.exists(f'{freetrace_path}/requirements.txt'):
                 pass
 
 try:
-    if python_version == 3.10:
+    if python_version == "3.10":
         subprocess.run(['clang', '-Wno-unused-result', '-Wsign-compare', '-Wunreachable-code', '-fno-common', '-dynamic', '-DNDEBUG', '-g', '-fwrapv', '-O3', '-Wall', '-arch', 'arm64', '-arch', 'x86_64', '-g', '-fPIC', '-I', f'{include_path}',
                         '-c', f'{freetrace_path}/module/image_pad.c', '-o', f'{freetrace_path}/module/image_pad.o'])
         subprocess.run(['clang', '-shared', '-g', '-fwrapv', '-undefined', 'dynamic_lookup', '-arch', 'arm64', '-arch', 'x86_64',
@@ -138,7 +138,7 @@ except Exception as e:
 
 if len(list(non_installed_packages.keys())) == 0:
     print(f'***** Pacakge installations finished succesfully. *****')
-    print(f'***** Python veirsion: {str(python_version)} *****')
+    print(f'***** Python veirsion: {python_version} *****')
     print('')
 else:
     for non_installed_pacakge in non_installed_packages.keys():
