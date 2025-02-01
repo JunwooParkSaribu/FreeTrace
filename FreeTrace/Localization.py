@@ -748,7 +748,7 @@ def run_process(input_video_path:str, output_path:str, window_size=7, threshold=
 
         output_path: Path of outputs. (video_loc.csv and supplementary outputs depending on the visualization options)
         
-        window_size: Sliding window length at pixel scale to search the signals of particle in each frame of video. 
+        window_size(pixel): Sliding window length at pixel scale to search the signals of particle in each frame of video. 
         
         threshold: Threshold multiplier to determine the existence of particle inside a sliding window. Low value increases the detection rate. Base threshold is calculated with SNR of each frame.
         
@@ -768,6 +768,7 @@ def run_process(input_video_path:str, output_path:str, window_size=7, threshold=
 
     @return
         return: It returns True if the localization of particles is finished succesfully, False otherwise.
+                The unit of saved particle coordinate is pixel.
     """
     
     from multiprocessing import Process, Value
