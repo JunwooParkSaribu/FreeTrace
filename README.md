@@ -1,4 +1,7 @@
+
+![Static Badge](https://img.shields.io/badge/%3E%3D3.10-1?style=flat&label=Python&color=blue)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13336251.svg)](https://doi.org/10.5281/zenodo.13336251)
+![GitHub License](https://img.shields.io/github/license/JunwooParkSaribu/FreeTrace)
 ## FreeTrace
 
 > [!IMPORTANT]  
@@ -35,11 +38,13 @@
 <h3> Contributors </h3>
 
 > If you use this software, please cite it as below. </br>
-> [Citation](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/CITATION.cff) </br>
-Author: Junwoo Park </br>
-Co-author: Nataliya Sokolovska </br>
-Co-author: Clément Cabriel </br>
-Co-author: Ignacio Izeddin </br>
-Co-author: Judith Miné-Hattab </br>
-
+```
+@software{Park_FreeTrace_2024,
+    author = {Park, Junwoo and Sokolovska, Nataliya and Cabriel, Clément and Izeddin, Ignacio and Miné-Hattab, Judith},
+    month = dec,
+    title = {{FreeTrace}},
+    url = {https://github.com/JunwooParkSaribu/FreeTrace},
+    year = {2024}
+}
+```
 <br>
