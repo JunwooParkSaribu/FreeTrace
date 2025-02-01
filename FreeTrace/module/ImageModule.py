@@ -33,6 +33,7 @@ class RealTimePlot(tk.Tk):
         self.video_wait_max_time = 15 if job_type=='loc' else 60
         self.fps = 1
         self.max_queue_recv_size = 500
+        self.q_idx = 0
         self.img_process = Process(target=self.start_main_loop, daemon=True)
 
     def clean_tk_widgets(self):
@@ -44,6 +45,7 @@ class RealTimePlot(tk.Tk):
         sys.exit(0)
           
     def update_plot(self):
+        self.q_idx += 1
         if self.force_terminate.value == 1:
             self.clean_tk_widgets()
         try:
@@ -70,15 +72,18 @@ class RealTimePlot(tk.Tk):
                         if len(traj) > 1:
                             self.plt.plot(traj[:, 0], traj[:, 1], c='red', alpha=0.6)
             self.figure.canvas.draw()
-            if frame % 2 == 0:
+            if self.q_idx % 2 == 0:
                 cur_qsize = self.queue.qsize()
                 if cur_qsize > self.max_queue_recv_size / 2:
                     self.fps = 1
                 else:
                     self.fps = int((self.max_queue_recv_size * 30) / (self.queue.qsize()+1)**2) + 1
+        except NormalTkExit as tke:
+            print(f'Real time visualization turns off - [{tke}]')
+            self.clean_tk_widgets()
         except Exception as e:
             print(f'')
-            print(f'FreeTrace turns off the real-time viusualization if it waits more than [{self.video_wait_max_time}s] or [{e}], to save the computational resources.')
+            print(f'FreeTrace turns off the real-time viusualization if it waits more than [{self.video_wait_max_time}s], to reduce the usage of computational resource.')
             print(f'FreeTrace is running if you have still non-inferred frames. Please don\'t shut down, it is just slowed down due to high number of particles / resolution.')
             print(f'')
             self.clean_tk_widgets()
@@ -145,7 +150,8 @@ class RealTimePlot(tk.Tk):
                                     node_xyz = loc[node[0]][node[1]][:2]
                                     tmp.append(node_xyz)
                         tmp_coords.append(np.array(tmp))
-                    self.queue.put((imgs[t-1], tmp_coords, t))
+                    if t % mod_n == 0:
+                        self.queue.put((imgs[t-1], tmp_coords, t))
                 self.past_t_steps.append(t)
 
 

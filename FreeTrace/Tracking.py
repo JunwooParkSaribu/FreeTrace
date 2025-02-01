@@ -725,7 +725,7 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
             break
 
         if realtime_visualization:
-            realtime_obj.put_into_queue((IMAGES, list(find_paths(final_graph, source=source_node)), selected_time_steps[:-1], localization), mod_n=1)
+            realtime_obj.put_into_queue((IMAGES, list(find_paths(final_graph, source=source_node)), selected_time_steps[:-1], localization), mod_n=2)
         
         saved_time_steps = selected_time_steps[-1]
         next_first_time = selected_time_steps[-1] + 1
