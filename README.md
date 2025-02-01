@@ -39,12 +39,12 @@
 
 > If you use this software, please cite it as below. </br>
 ```
-@software{Park_FreeTrace_2024,
+@software{FreeTrace,
     author = {Park, Junwoo and Sokolovska, Nataliya and Cabriel, Clément and Izeddin, Ignacio and Miné-Hattab, Judith},
-    month = dec,
-    title = {{FreeTrace}},
-    url = {https://github.com/JunwooParkSaribu/FreeTrace},
-    year = {2024}
+    title = {FreeTrace},
+    year = {2024},
+    doi = {10.5281/zenodo.13336251},
+    publisher = {Zenodo},
 }
 ```
 <br>
