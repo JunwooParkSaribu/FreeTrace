@@ -744,30 +744,42 @@ def run_process(input_video_path:str, output_path:str, window_size=7, threshold=
     Create a process to localize the positions of particles from video.
 
     @params
-        input_video_path: Path of video. (video.tiff)
+        input_video_path:
+        Path of video. (video.tiff)
 
-        output_path: Path of outputs. (video_loc.csv and supplementary outputs depending on the visualization options)
+        output_path:
+        Path of outputs. (video_loc.csv and supplementary outputs depending on the visualization options)
         
-        window_size(pixel): Sliding window length at pixel scale to search the signals of particle in each frame of video. 
+        window_size(pixel):
+        Sliding window length at pixel scale to search the signals of particle in each frame of video. 
         
-        threshold: Threshold multiplier to determine the existence of particle inside a sliding window. Low value increases the detection rate. Base threshold is calculated with SNR of each frame.
+        threshold:
+        Threshold multiplier to determine the existence of particle inside a sliding window. Low value increases the detection rate. Base threshold is calculated with SNR of each frame.
         
-        deflation: Deflation loop to search particles iteratively. (deprecated)
+        deflation:
+        Deflation loop to search particles iteratively. (deprecated)
         
-        sigma: Standard deviation to detect the overlapped particles. (deprecated)
+        sigma:
+        Standard deviation to detect the overlapped particles. (deprecated)
         
-        shift: Value to shift the sliding window.
+        shift:
+        Value to shift the sliding window.
         
-        gpu_on: Accelerate the computation of localization.
+        gpu_on:
+        Accelerate the computation of localization.
         
-        save_video: Save and visualize the localized particles.
+        save_video:
+        Save and visualize the localized particles.
         
-        verbose: Print the process.
+        verbose:
+        Print the process.
         
-        realtime_visualization: Real time visualization of process.
+        realtime_visualization:
+        Real time visualization of process.
 
     @return
-        return: It returns True if the localization of particles is finished succesfully, False otherwise.
+        return:
+        It returns True if the localization of particles is finished succesfully, False otherwise.
         The unit of saved particle coordinate is pixel.
     """
     
