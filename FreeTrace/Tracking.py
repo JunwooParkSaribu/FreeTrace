@@ -870,7 +870,7 @@ def run_process(input_video_path:str, output_path:str, time_forecast=5, cutoff=2
         cutoff(frame): Minimum length of trajectory to consider.
 
         jump_threshold(pixel): Maximum jump length of particles. If it is set to None, FreeTrace infers its maximum length with GMM, otherwise this value is fixed to the given value.
-                               The inferred maximum jump length is limited under diffraction light limit of particles in SPT, if you use FreeTrace for non-SPT particles, please set this value manually.
+        The inferred maximum jump length is limited under diffraction light limit of particles in SPT, if you use FreeTrace for non-SPT particles, please set this value manually.
         
         gpu_on: Perform neural network enhanced trajectory inference assuming fractional Brownian motion. With False, FreeTrace infers the trajectory assuming standard Brownian motion.
         

@@ -768,7 +768,7 @@ def run_process(input_video_path:str, output_path:str, window_size=7, threshold=
 
     @return
         return: It returns True if the localization of particles is finished succesfully, False otherwise.
-                The unit of saved particle coordinate is pixel.
+        The unit of saved particle coordinate is pixel.
     """
     
     from multiprocessing import Process, Value
