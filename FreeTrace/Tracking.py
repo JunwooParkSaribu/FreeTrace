@@ -832,7 +832,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, jump_t
     max_jumps = approximation(raw_distributions, time_forecast=time_forecast, jump_threshold=JUMP_THRESHOLD)
 
     if VERBOSE:
-        print(f'Mean nb of molecules per frame: {mean_nb_per_time:.2f} molecules/frame')
+        print(f'Mean nb of particles per frame: {mean_nb_per_time:.2f} particles/frame')
         PBAR = tqdm(total=t_steps[-1], desc="Tracking", unit="frame", ncols=120)
 
     final_trajectories = trajectory_inference(localization=loc, time_steps=t_steps,
