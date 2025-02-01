@@ -24,8 +24,8 @@ def pdf_mu_measure(alpha):
 
 @lru_cache
 def indice_fetch(alpha, k):
-    alpha_index = 0
-    k_index = 0
+    alpha_index = len(STD_FIT_DATA['alpha_space']) - 1
+    k_index = len(STD_FIT_DATA['logD_space']) -1
     for alpha_i, reg_alpha in enumerate(STD_FIT_DATA['alpha_space']):
         if alpha < reg_alpha:
             alpha_index = alpha_i
@@ -101,17 +101,7 @@ def greedy_shortest(srcs, dests):
             x_distribution.append(x_diff[minarg])
             y_distribution.append(y_diff[minarg])
             z_distribution.append(z_diff[minarg]) 
-    
-    filtered_x = []
-    filtered_y = []
-    filtered_z = []
-    diffraction_light_limit = 10  #TODO:diffraction light limit
-    for x, y, z in zip(x_distribution[:-1], y_distribution[:-1], z_distribution[:-1]):
-        if abs(x) < diffraction_light_limit and abs(y) < diffraction_light_limit and abs(z) < diffraction_light_limit:
-            filtered_x.append(x)
-            filtered_y.append(y)
-            filtered_z.append(z)
-    return filtered_x, filtered_y, filtered_z
+    return x_distribution[:-1], y_distribution[:-1], z_distribution[:-1]
 
 
 def segmentation(localization: dict, time_steps: np.ndarray, lag=2):
@@ -132,6 +122,40 @@ def segmentation(localization: dict, time_steps: np.ndarray, lag=2):
                 dist_x_all.extend(dist_x)
                 dist_y_all.extend(dist_y)
                 dist_z_all.extend(dist_z)
+
+
+    ndim = 2 if np.var(dist_z_all) < 1e-5 else 3
+    diffraction_light_limit = 10  #TODO:diffraction light limit
+
+    for _ in range(2):
+        filtered_x = []
+        filtered_y = []
+        filtered_z = []
+        if ndim == 2:
+            estim_limit = 4 * np.mean([np.std(dist_x_all[:-1]), np.std(dist_y_all[:-1])])
+        else:
+            estim_limit = 4 * np.mean([np.std(dist_x_all[:-1]), np.std(dist_y_all[:-1]), np.std(dist_z_all[:-1])])
+        filter_min = max(estim_limit, diffraction_light_limit)
+        for x, y, z in zip(dist_x_all[:-1], dist_y_all[:-1], dist_z_all[:-1]):
+            if abs(x) < filter_min and abs(y) < filter_min and abs(z) < filter_min:
+                filtered_x.append(x)
+                filtered_y.append(y)
+                filtered_z.append(z)
+        dist_x_all = filtered_x
+        dist_y_all = filtered_y
+        dist_z_all = filtered_z
+
+    filtered_x = []
+    filtered_y = []
+    filtered_z = []
+    for x, y, z in zip(dist_x_all[:-1], dist_y_all[:-1], dist_z_all[:-1]):
+        if abs(x) < diffraction_light_limit and abs(y) < diffraction_light_limit and abs(z) < diffraction_light_limit:
+            filtered_x.append(x)
+            filtered_y.append(y)
+            filtered_z.append(z)
+    dist_x_all = filtered_x
+    dist_y_all = filtered_y
+    dist_z_all = filtered_z
     return np.array([dist_x_all, dist_y_all, dist_z_all])
 
 
@@ -316,7 +340,7 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
     abnomral_jump_score = 0
     traj_cost = []
     ab_index = []
-    if 0.9999 < prev_alpha < 1.0001 and 0.9999 < prev_k < 1.0001:
+    if 0.9999 < prev_alpha < 1.0001 and 1.9999 < prev_k < 2.0001:
         abnomral_jump_score += abnormal_penalty
 
     cutting_threshold = 2 * abnormal_penalty
@@ -339,7 +363,7 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
         if start_index == 1 or start_index == 2:
             if abnormal:
                 prev_alpha = 1.0
-                prev_k = 1.0
+                prev_k = 2.0
             before_node = next_path[1]
             next_node = next_path[2]
             time_gap = next_node[0] - before_node[0] - 1
@@ -359,7 +383,7 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
             for edge_index in range(3, len(next_path)):
                 if abnormal:
                     prev_alpha = 1.0
-                    prev_k = 1.0
+                    prev_k = 2.0
                 bebefore_node = next_path[edge_index - 2]
                 before_node = next_path[edge_index - 1]
                 next_node = next_path[edge_index]
@@ -382,7 +406,7 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
             for edge_index in range(3, len(next_path)):
                 if abnormal:
                     prev_alpha = 1.0
-                    prev_k = 1.0
+                    prev_k = 2.0
                 bebefore_node = next_path[edge_index - 2]
                 before_node = next_path[edge_index - 1]
                 next_node = next_path[edge_index]
@@ -441,7 +465,7 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
         else:
             for path_idx in range(len(prev_paths)):
                 alpha_values[tuple(prev_paths[path_idx])] = 1.0
-                k_values[tuple(prev_paths[path_idx])] = 1.0
+                k_values[tuple(prev_paths[path_idx])] = 2.0
                 prev_paths[path_idx] = tuple(prev_paths[path_idx])
 
 
@@ -517,7 +541,7 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
 
         if first_step:
             for next_path in next_paths:
-                ab_index = predict_long_seq(next_path, trajectories_costs, localizations, 1.0, 1.0, next_times, start_indice=start_indice)
+                ab_index = predict_long_seq(next_path, trajectories_costs, localizations, 1.0, 2.0, next_times, start_indice=start_indice)
                 if len(ab_index) > 0:
                     ab_indice[next_path] = ab_index 
 
@@ -533,7 +557,7 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
                                 ab_indice[next_path] = ab_index 
                             
             for next_path in next_paths:
-                ab_index = predict_long_seq(next_path, trajectories_costs, localizations, 1.0, 1.0, next_times, start_indice=start_indice)
+                ab_index = predict_long_seq(next_path, trajectories_costs, localizations, 1.0, 2.0, next_times, start_indice=start_indice)
                 if len(ab_index) > 0:
                     ab_indice[next_path] = ab_index
 
@@ -549,7 +573,7 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
         #    print(f'{traj} -> {cost}')
 
         if tuple(lowest_cost_traj) in ab_indice:
-            for ab_i in ab_indice[tuple(lowest_cost_traj)][0]:
+            for ab_i in ab_indice[tuple(lowest_cost_traj)][:1]:
                 if (lowest_cost_traj[ab_i], lowest_cost_traj[ab_i+1]) in next_graph.edges:
                     next_graph.remove_edge(lowest_cost_traj[ab_i], lowest_cost_traj[ab_i+1])
                 if (source_node, lowest_cost_traj[ab_i+1]) not in next_graph.edges:
@@ -564,6 +588,13 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
                     added_path.append(path)
                 added_path = tuple(added_path)
                 trajectories_costs[added_path] = None
+
+            next_paths = list(find_paths(next_graph, source=source_node))
+            for path_idx in range(len(next_paths)):
+                next_paths[path_idx] = tuple(next_paths[path_idx])
+            for next_path in next_paths:
+                if next_path not in trajectories_costs:
+                    trajectories_costs[next_path] = None
             continue
 
         while 1:
@@ -792,6 +823,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, jump_t
     global REG_MODEL
     global JUMP_THRESHOLD
 
+
     VERBOSE = verbose
     BATCH = batch
     TIME_FORECAST = max(1, min(10, time_forecast))
@@ -804,15 +836,15 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, jump_t
     POLY_FIT_DATA = np.load(f'{__file__.split("/Tracking.py")[0]}/models/theta_hat.npz')
     STD_FIT_DATA = np.load(f'{__file__.split("/Tracking.py")[0]}/models/std_sets.npz')
 
+
     output_xml = f'{output_path}/{input_video_path.split("/")[-1].split(".tif")[0]}_traces.xml'
     output_trj = f'{output_path}/{input_video_path.split("/")[-1].split(".tif")[0]}_traces.csv'
     output_trxyt = f'{output_path}/{input_video_path.split("/")[-1].split(".tif")[0]}_traces.trxyt'
     output_imgstack = f'{output_path}/{input_video_path.split("/")[-1].split(".tif")[0]}_traces.tiff'
     output_img = f'{output_path}/{input_video_path.split("/")[-1].split(".tif")[0]}_traces.png'
 
-    final_trajectories = []
-    
 
+    final_trajectories = []
     images = read_tif(input_video_path)
     IMAGES = images
     if images.shape[0] <= 1:
@@ -827,9 +859,11 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, jump_t
         from FreeTrace.module.load_models import RegModel
         REG_MODEL = RegModel(REG_LEGNTHS)
 
+
     t_steps, mean_nb_per_time, xyz_min, xyz_max = count_localizations(loc)
     raw_distributions = segmentation(loc, time_steps=t_steps, lag=time_forecast)
     max_jumps = approximation(raw_distributions, time_forecast=time_forecast, jump_threshold=JUMP_THRESHOLD)
+
 
     if VERBOSE:
         print(f'Mean nb of particles per frame: {mean_nb_per_time:.2f} particles/frame')
@@ -837,9 +871,9 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, jump_t
 
     final_trajectories = trajectory_inference(localization=loc, time_steps=t_steps,
                                               distribution=max_jumps, image_length=images.shape[0], realtime_visualization=realtime_visualization)
-
     if VERBOSE:
         PBAR.close()
+
 
     #write_xml(output_file=output_xml, trajectory_list=final_trajectories, snr='7', density='low', scenario='Vesicle', cutoff=CUTOFF)
     write_trajectory(output_trj, final_trajectories)
@@ -848,6 +882,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, jump_t
         print(f'Visualizing trajectories...')
         make_image_seqs(final_trajectories, output_dir=output_imgstack, img_stacks=images, time_steps=t_steps)
     
+
     if return_state != 0:
         return_state.value = 1
     return True
