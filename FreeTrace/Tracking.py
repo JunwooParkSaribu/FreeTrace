@@ -440,35 +440,7 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
         return []
     
 
-def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.graph, localizations, next_times, distribution, first_step):
-    selected_graph = nx.DiGraph()
-    source_node = (0, 0)
-    selected_graph.add_node(source_node)
-    alpha_values = {}
-    k_values = {}
-    start_indice = {}
-    init_graph = final_graph.copy()
-
-    if not first_step:
-        prev_paths = list(find_paths(saved_graph, source=source_node))
-        if TF:
-            for path_idx in range(len(prev_paths)):
-                prev_xys = np.array([localizations[txy[0]][txy[1]][:2] for txy in prev_paths[path_idx][1:]])[-ALPHA_MAX_LENGTH:]
-                if len(prev_xys) > 0:
-                    prev_x_pos = prev_xys[:, 0]
-                    prev_y_pos = prev_xys[:, 1]
-                    prev_alpha = predict_alphas(prev_x_pos, prev_y_pos)
-                    prev_k = predict_ks(prev_x_pos, prev_y_pos)
-                    alpha_values[tuple(prev_paths[path_idx])] = prev_alpha
-                    k_values[tuple(prev_paths[path_idx])] = prev_k
-                    prev_paths[path_idx] = tuple(prev_paths[path_idx])
-        else:
-            for path_idx in range(len(prev_paths)):
-                alpha_values[tuple(prev_paths[path_idx])] = 1.0
-                k_values[tuple(prev_paths[path_idx])] = 2.0
-                prev_paths[path_idx] = tuple(prev_paths[path_idx])
-
-
+def generate_next_paths(next_graph:nx.graph, init_graph:nx.graph, localizations, next_times, distribution, source_node):
     while True:
         start_g_len = len(next_graph.nodes)
         index = 0
@@ -517,28 +489,75 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
         end_g_len = len(next_graph.nodes)
         if start_g_len == end_g_len:
             break
+    return next_graph
 
+
+def match_prev_next(prev_paths, next_path, hashed_prev_next):
+    if next_path not in hashed_prev_next:
+        for prev_path in prev_paths:
+            if len(prev_path) > 1:
+                if prev_path[-1] in next_path:
+                    hashed_prev_next[next_path] = prev_path
+                    return hashed_prev_next[next_path]
+        hashed_prev_next[next_path] = None
+        return hashed_prev_next[next_path]
+    else:
+        return hashed_prev_next[next_path]
+
+
+def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.graph, localizations, next_times, distribution, first_step):
+    selected_graph = nx.DiGraph()
+    source_node = (0, 0)
+    selected_graph.add_node(source_node)
+    alpha_values = {}
+    k_values = {}
+    start_indice = {}
+    hashed_prev_next = {}
+    init_graph = final_graph.copy()
+
+    if not first_step:
+        prev_paths = list(find_paths(saved_graph, source=source_node))
+        if TF:
+            for path_idx in range(len(prev_paths)):
+                prev_xys = np.array([localizations[txy[0]][txy[1]][:2] for txy in prev_paths[path_idx][1:]])[-ALPHA_MAX_LENGTH:]
+                if len(prev_xys) > 0:
+                    prev_x_pos = prev_xys[:, 0]
+                    prev_y_pos = prev_xys[:, 1]
+                    prev_alpha = predict_alphas(prev_x_pos, prev_y_pos)
+                    prev_k = predict_ks(prev_x_pos, prev_y_pos)
+                    alpha_values[tuple(prev_paths[path_idx])] = prev_alpha
+                    k_values[tuple(prev_paths[path_idx])] = prev_k
+                    prev_paths[path_idx] = tuple(prev_paths[path_idx])
+        else:
+            for path_idx in range(len(prev_paths)):
+                alpha_values[tuple(prev_paths[path_idx])] = 1.0
+                k_values[tuple(prev_paths[path_idx])] = 2.0
+                prev_paths[path_idx] = tuple(prev_paths[path_idx])
+
+    # Generate next graph
+    next_graph = generate_next_paths(next_graph, init_graph, localizations, next_times, distribution, source_node)
     trajectories_costs = {tuple(next_path):None for next_path in find_paths(next_graph, source=source_node)}
 
     while True:
-        for next_path in find_paths(next_graph, source=source_node):
+        orphans = []
+        ab_indice = {}
+        cost_copy = {}
+
+        # Cost copy, conversion to tuple, start_index write.
+        next_paths = list(find_paths(next_graph, source=source_node))
+        for path_idx in range(len(next_paths)):
+            next_path = tuple(next_paths[path_idx])
             index_ind = 0
             for next_node in next_path:
                 if next_node in init_graph.nodes:
                     index_ind += 1
             start_indice[tuple(next_path)] = index_ind
-
-
-        ab_indice = {}
-        cost_copy = {}
-        next_paths = list(find_paths(next_graph, source=source_node))
-        for path_idx in range(len(next_paths)):
-            next_paths[path_idx] = tuple(next_paths[path_idx])
-        for next_path in next_paths:
             if next_path in trajectories_costs:
                 cost_copy[next_path] = trajectories_costs[next_path]
+            next_paths[path_idx] = tuple(next_paths[path_idx])
         trajectories_costs = cost_copy
-
+        
+        # Calculate cost
         if first_step:
             for next_path in next_paths:
                 ab_index = predict_long_seq(next_path, trajectories_costs, localizations, 1.0, 2.0, next_times, start_indice=start_indice)
@@ -547,20 +566,17 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
 
         else:
             for next_path in next_paths:
-                for prev_path in prev_paths:
-                    if len(prev_path) > 1:
-                        prev_alpha = alpha_values[prev_path]
-                        prev_k = k_values[prev_path]
-                        if prev_path[-1] in next_path:
-                            ab_index = predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, next_times, prev_path, start_indice=start_indice)
-                            if len(ab_index) > 0:
-                                ab_indice[next_path] = ab_index 
-                            
-            for next_path in next_paths:
-                ab_index = predict_long_seq(next_path, trajectories_costs, localizations, 1.0, 2.0, next_times, start_indice=start_indice)
+                prev_path = match_prev_next(prev_paths, next_path, hashed_prev_next)
+                if prev_path is None:
+                    ab_index = predict_long_seq(next_path, trajectories_costs, localizations, 1.0, 2.0, next_times, start_indice=start_indice)
+                else:
+                    prev_alpha = alpha_values[prev_path]
+                    prev_k = k_values[prev_path]
+                    ab_index = predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, next_times, prev_path, start_indice=start_indice)
                 if len(ab_index) > 0:
-                    ab_indice[next_path] = ab_index
+                    ab_indice[next_path] = ab_index 
 
+        # Cost sorting
         trajs = [path for path in trajectories_costs.keys()]
         costs = [trajectories_costs[path] for path in trajectories_costs.keys()]
         low_cost_args = np.argsort(costs)
@@ -572,6 +588,7 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
         #for cost, traj in zip(np.array(costs)[low_cost_args][::-1], next_trajectories[::-1]):
         #    print(f'{traj} -> {cost}')
 
+        # Abnormal trajectory cutting
         if tuple(lowest_cost_traj) in ab_indice:
             for ab_i in ab_indice[tuple(lowest_cost_traj)][:1]:
                 if (lowest_cost_traj[ab_i], lowest_cost_traj[ab_i+1]) in next_graph.edges:
@@ -597,6 +614,7 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
                     trajectories_costs[next_path] = None
             continue
 
+        # Prune the graph
         while 1:
             before_pruning = len(next_graph)
             for rm_node in lowest_cost_traj[1:]:
@@ -619,14 +637,17 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
             after_pruning = len(next_graph)
             if before_pruning == after_pruning:
                 break
-
-        next_graph.remove_nodes_from(lowest_cost_traj[1:])
-        pop_cost = trajectories_costs.pop(tuple(lowest_cost_traj))
-
+        
         # add edges from source to orphans
-        for orphan_node in next_graph.nodes:
+        for rm_node in lowest_cost_traj[1:]:
+            for neighbor in next_graph.neighbors(rm_node):
+                if neighbor not in lowest_cost_traj:
+                    orphans.append(neighbor)
+        next_graph.remove_nodes_from(lowest_cost_traj[1:])
+        for orphan_node in orphans:
             if not nx.has_path(next_graph, source_node, orphan_node):
                 next_graph.add_edge(source_node, orphan_node)
+        pop_cost = trajectories_costs.pop(tuple(lowest_cost_traj))
 
         # selected graph update
         for edge_index in range(1, len(lowest_cost_traj)):
