@@ -884,7 +884,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, jump_t
     t_steps, mean_nb_per_time, xyz_min, xyz_max = count_localizations(loc)
     raw_distributions = segmentation(loc, time_steps=t_steps, lag=time_forecast)
     max_jumps = approximation(raw_distributions, time_forecast=time_forecast, jump_threshold=JUMP_THRESHOLD)
-    print(max_jumps)
+
 
     if VERBOSE:
         print(f'Mean nb of particles per frame: {mean_nb_per_time:.2f} particles/frame')
