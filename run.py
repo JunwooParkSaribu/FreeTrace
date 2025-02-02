@@ -8,7 +8,7 @@ OUTPUT_DIR = 'outputs'
 
 
 WINSIZE = 7
-THRESHOLD = 1.0
+THRESHOLD = 1
 SAVE_VIDEO_LOC = False
 REAL_LOC = True
 LOC_GPU_AVAIL = True
@@ -34,8 +34,8 @@ if __name__ == "__main__":
                                        gpu_on=LOC_GPU_AVAIL, save_video=SAVE_VIDEO_LOC, realtime_visualization=REAL_LOC, verbose=1, batch=False)
         if loc:
             track = Tracking.run_process(input_video_path=video_name, output_path=OUTPUT_DIR,
-                                        time_forecast=TIME_FORECAST, cutoff=CUTOFF, jump_threshold=JUMP_THRESHOLD,
-                                        gpu_on=TRACK_GPU_AVAIL, save_video=SAVE_VIDEO_TRACK, realtime_visualization=REAL_TRACK, verbose=1, batch=False)
+                                         time_forecast=TIME_FORECAST, cutoff=CUTOFF, jump_threshold=JUMP_THRESHOLD,
+                                         gpu_on=TRACK_GPU_AVAIL, save_video=SAVE_VIDEO_TRACK, realtime_visualization=REAL_TRACK, verbose=1, batch=False)
             
     except Exception as e:
         sys.exit(f'Err code:{e} on file:{video_name}')
