@@ -20,16 +20,19 @@ class NormalTkExit(Exception):
 
 
 class RealTimePlot(tk.Tk):
-    def __init__(self, title='', job_type='loc', show_frame=False, *args, **kwargs):
+    def __init__(self, title='', job_type='loc', show_frame=False, show_option=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.wm_title(string=title)
         self.queue = Queue()
         self.force_terminate = Value('b', 0)
+        self.terminated_time_over = Value('b', 0)
         self.job_type = job_type
         self.past_t_steps = []
-        self.text_kwargs = dict(fontsize=20, color='C1')
+        self.text_kwargs = dict(fontsize=20)
+        self.props = dict(boxstyle='round', facecolor='grey', alpha=0.15)  # bbox features
         self.cmap_plt = 'gist_gray'
         self.show_frame = show_frame
+        self.show_option = show_option
         self.video_wait_max_time = 30 if job_type=='loc' else 120
         self.fps = 1
         self.max_queue_recv_size = 500
@@ -37,8 +40,9 @@ class RealTimePlot(tk.Tk):
         self.img_process = Process(target=self.start_main_loop, daemon=True)
 
     def clean_tk_widgets(self):
+        self.terminated_time_over.value = 1
         self.destroy()
-        del self.plt
+        del self.ax
         del self.canvas
         del self.figure
         self.force_terminate.value = 0
@@ -49,29 +53,31 @@ class RealTimePlot(tk.Tk):
         if self.force_terminate.value == 1:
             self.clean_tk_widgets()
         try:
-            self.plt.clear()
-            self.plt.margins(x=0, y=0)
+            self.ax.clear()
+            self.ax.margins(x=0, y=0)
             if self.job_type == 'loc':
                 img, coords, frame = self.queue.get(timeout=self.video_wait_max_time)
                 if frame == -1:
                     raise NormalTkExit
-                self.plt.imshow(img, cmap=self.cmap_plt)
-                if self.show_frame:
-                    self.plt.text(1, 6, f'{frame}', self.text_kwargs)
+                self.ax.imshow(img, cmap=self.cmap_plt)
                 if len(coords) > 0:
-                    self.plt.scatter(coords[:, 1], coords[:, 0], marker='+', c='red', alpha=0.6)
+                    self.ax.scatter(coords[:, 1], coords[:, 0], marker='+', c='red', alpha=0.6)
             else:
                 img, trajs, frame = self.queue.get(timeout=self.video_wait_max_time)
                 if frame == -1:
                     raise NormalTkExit
-                self.plt.imshow(img, cmap=self.cmap_plt)
-                if self.show_frame:
-                    self.plt.text(1, 6, f'{frame}', self.text_kwargs)
+                self.ax.imshow(img, cmap=self.cmap_plt)
                 if len(trajs) > 0:
                     for traj in trajs:
                         if len(traj) > 1:
-                            self.plt.plot(traj[:, 0], traj[:, 1], c='red', alpha=0.6)
+                            self.ax.plot(traj[:, 0], traj[:, 1], c='red', alpha=0.6)
+
+            if self.show_frame:
+                self.ax.set_title(f'Frame: {frame}', fontdict=self.text_kwargs)
+            if self.show_option:
+                self.ax.text(0, img.shape[0] + int(img.shape[0]/8), f'Max wait time: {self.video_wait_max_time}\n', fontsize=12, bbox=self.props)
             self.figure.canvas.draw()
+
             if self.q_idx % 2 == 0:
                 cur_qsize = self.queue.qsize()
                 if cur_qsize > self.max_queue_recv_size / 2:
@@ -83,7 +89,7 @@ class RealTimePlot(tk.Tk):
             self.clean_tk_widgets()
         except Exception as e:
             print(f'')
-            print(f'FreeTrace turns off the real-time viusualization if it waits more than [{self.video_wait_max_time}s], to reduce the usage of computational resource.')
+            print(f'FreeTrace turns off the real-time viusualization if it waits more than [{self.video_wait_max_time}s] / [{e}], to reduce the usage of computational resource.')
             print(f'FreeTrace is running if you have still non-inferred frames. Please don\'t shut down, it is just slowed down due to high number of particles / resolution.')
             print(f'')
             self.clean_tk_widgets()
@@ -116,7 +122,7 @@ class RealTimePlot(tk.Tk):
     def start_main_loop(self):
         self.queue.get()
         self.figure = plt.figure(figsize=(12, 12))
-        self.plt = self.figure.add_subplot(111)
+        self.ax = self.figure.add_subplot(111)
         self.canvas = FigureCanvasTkAgg(self.figure, self)
         self.canvas.draw()
         self.canvas.get_tk_widget().pack(padx=0, pady=0)
@@ -124,6 +130,8 @@ class RealTimePlot(tk.Tk):
         self.mainloop()
 
     def put_into_queue(self, data_zip, mod_n=1):
+        if self.terminated_time_over.value == 1:
+            return
         if self.queue.qsize() > self.max_queue_recv_size:
             return
         if self.job_type == 'loc':
