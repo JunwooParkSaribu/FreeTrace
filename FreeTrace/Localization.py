@@ -330,28 +330,22 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
             #print(f'{"h_map calcul":<35}:{(timer() - total_before_time):.2f}s')
             
             """
-            get = 0
+            import matplotlib.pyplot as plt
+            import glob
+            print(extended_imgs.shape, h_maps.shape)
             print('threshold:, ',single_thresholds)
-            plt.close('all')
-            plt.figure()
-            plt.imshow(extended_imgs[get])
-            for hm in h_maps:
-                plt.figure()
-                plt.imshow(hm[get], vmin=0., vmax=1.)
-            fig, ax = plt.subplots(subplot_kw=dict(projection='3d'))
-            from matplotlib.colors import LightSource
-            from matplotlib import cbook, cm
-            ls = LightSource(270, 45)
-            x = np.arange(hm[get].shape[0])
-            y = np.arange(hm[get].shape[1])
-            x, y = np.meshgrid(x, y)
-            z = hm[get][x, y]
-            # To use a custom hillshading mode, override the built-in shading and pass
-            # in the rgb colors of the shaded surface calculated from "shade".
-            rgb = ls.shade(z, cmap=cm.gist_earth, vert_exag=0.1, blend_mode='soft')
-            surf = ax.plot_surface(x, y, z, rstride=1, cstride=1, facecolors=rgb,
-                                linewidth=0, antialiased=True, shade=False)
-            plt.show()
+            for get in range(extended_imgs.shape[0]):
+                fig, axs = plt.subplots(1, 2, figsize=(8, 4))
+                axs[0].imshow(extended_imgs[get], cmap='gray')
+                axs[1].imshow(h_maps[0][get], cmap='gray')
+                plt_idx = len(glob.glob('tempo/*.png'))
+                axs[0].set_xticks([], [])
+                axs[0].set_yticks([], [])
+                axs[1].set_xticks([], [])
+                axs[1].set_yticks([], [])
+                plt.tight_layout()
+                plt.savefig(f'tempo/{plt_idx}.png')
+                plt.close('all')
             """
             
             indices = region_max_filter(h_maps, single_winsizes, single_thresholds, detect_range=shift)
