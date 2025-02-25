@@ -75,6 +75,9 @@ if __name__ == '__main__':
         end_frame = int(eval(sys.argv[4].strip()))
         crop_comparison = True
 
+    assert os.path.exists(roi_filename), f'{roi_filename} is not found... check again the ROI name.'
+    assert os.path.exists(csv_file), f'{csv_file} is not found... check again the csv name. The format should be same as trajectory result file of FreeTrace.'\
+
     global ROI_FILE
     ROI_FILE = roi_filename
     contours = ImagejRoi.fromfile(ROI_FILE).coordinates().astype(np.int32)
