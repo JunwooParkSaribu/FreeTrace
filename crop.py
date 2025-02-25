@@ -44,7 +44,7 @@ def crop_ROI_and_frame(csv_file, contours, start_frame, end_frame, crop_comparis
 
         if times[0] >= start_frame and times[-1] <= end_frame:
             filtered_trajectory_list.append(trajectory)
-    print(xmin, xmax, ymin, ymax)
+
     print(f'cropping info: ROI[{ROI_FILE}],  Frame:[{start_frame}, {end_frame}]')
     print(f'Number of trajectories before filtering:{len(trajectory_list)}, after filtering:{len(filtered_trajectory_list)}')
     write_trajectory(f'{".".join(csv_file.split("traces.csv")[:-1])}cropped_traces.csv', filtered_trajectory_list)
@@ -58,8 +58,9 @@ def crop_ROI_and_frame(csv_file, contours, start_frame, end_frame, crop_comparis
 
 if __name__ == '__main__':
     if not(len(sys.argv) == 3 or len(sys.argv) == 5 or len(sys.argv) == 6):
-        print('Example of command 1: python3 crop.py video_traces.csv roi_file.roi')
-        sys.exit('Example of command 2: python3 crop.py video_traces.csv roi_file.roi start_frame end_frame')
+        print('1. Example of command only with ROI: python3 crop.py video_traces.csv roi_file.roi')
+        print('2. Example of command only with frames: python3 crop.py video_traces.csv None start_frame end_frame')
+        sys.exit('3. Example of command with ROI and frames: python3 crop.py video_traces.csv roi_file.roi start_frame end_frame')
     
     csv_file = sys.argv[1].strip()  
     roi_filename = sys.argv[2].strip()
