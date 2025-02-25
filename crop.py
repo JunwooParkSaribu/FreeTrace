@@ -60,7 +60,8 @@ if __name__ == '__main__':
     if not(len(sys.argv) == 3 or len(sys.argv) == 5 or len(sys.argv) == 6):
         print('1. Example of command only with ROI: python3 crop.py video_traces.csv roi_file.roi')
         print('2. Example of command only with frames: python3 crop.py video_traces.csv None start_frame end_frame')
-        sys.exit('3. Example of command with ROI and frames: python3 crop.py video_traces.csv roi_file.roi start_frame end_frame')
+        print('3. Example of command with ROI and frames: python3 crop.py video_traces.csv roi_file.roi start_frame end_frame')
+        sys.exit('4. With visualzation: python3 crop.py video_traces.csv roi_file.roi start_frame end_frame 1')
     
     csv_file = sys.argv[1].strip()  
     roi_filename = sys.argv[2].strip()
