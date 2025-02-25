@@ -32,14 +32,15 @@ def crop_ROI_and_frame(csv_file, contours, start_frame, end_frame, crop_comparis
         xmax = max(np.max(xs), xmax)
         ymax = max(np.max(ys), ymax)
 
-        for x, y in zip(xs, ys):
-            masked = cv2.pointPolygonTest(contours, (x, y), False)
-            if masked == -1:
-                skip = 1
-                break
-        
-        if skip == 1:
-            continue
+        if contours is not None:
+            for x, y in zip(xs, ys):
+                masked = cv2.pointPolygonTest(contours, (x, y), False)
+                if masked == -1:
+                    skip = 1
+                    break
+            
+            if skip == 1:
+                continue
 
         if times[0] >= start_frame and times[-1] <= end_frame:
             filtered_trajectory_list.append(trajectory)
@@ -75,12 +76,14 @@ if __name__ == '__main__':
         end_frame = int(eval(sys.argv[4].strip()))
         crop_comparison = True
 
-    assert os.path.exists(roi_filename), f'{roi_filename} is not found... check again the ROI name.'
+    if roi_filename.lower() != 'none':
+        assert os.path.exists(roi_filename), f'{roi_filename} is not found... check again the ROI name.'
+        global ROI_FILE
+        ROI_FILE = roi_filename
+        contours = ImagejRoi.fromfile(ROI_FILE).coordinates().astype(np.int32)
+    else:
+        contours = None
     assert os.path.exists(csv_file), f'{csv_file} is not found... check again the csv name. The format should be same as trajectory result file of FreeTrace.'
-
-    global ROI_FILE
-    ROI_FILE = roi_filename
-    contours = ImagejRoi.fromfile(ROI_FILE).coordinates().astype(np.int32)
 
     print(f"input file name: {csv_file}")
     crop_ROI_and_frame(csv_file, contours, start_frame, end_frame, crop_comparison)
