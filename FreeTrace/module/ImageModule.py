@@ -631,36 +631,37 @@ def cps_visualization(image_save_path, video, cps_result, trace_result):
                     add_index=False, local_img=None, gt_trajectory=None, cps_result=cps_trajectories)
     
 
-def make_loc_depth_image(output_dir, coords, winsize=7, resolution=1, dim=2):  
+def make_loc_depth_image(output_dir, coords, winsize=7, resolution=2, dim=2):
+    resolution = int(max(1, min(3, resolution)))  # resolution in [1, 2, 3]
+    amp = 1
+    winsize += 16 * resolution
+    cov_std = 16 * resolution
+    amp_ = 10**amp
+    margin_pixel = 2
+    margin_pixel *= 10*amp_
+    amp_*= resolution
+    time_steps = np.arange(len(coords))
+    all_coords = []
+    for t in time_steps:
+        for coord in coords[t]:
+            all_coords.append(coord)
+    all_coords = np.array(all_coords)
+    if len(all_coords) == 0:
+        return
+
+    x_min = np.min(all_coords[:, 1])
+    x_max = np.max(all_coords[:, 1])
+    y_min = np.min(all_coords[:, 0])
+    y_max = np.max(all_coords[:, 0])
+    z_min = np.min(all_coords[:, 2])
+    z_max = np.max(all_coords[:, 2])
+    z_min, z_max = np.quantile(all_coords[:, 2], [0.01, 0.99])
+    all_coords[:, 1] -= x_min
+    all_coords[:, 0] -= y_min
+
     if dim == 2:
-        resolution = int(max(1, min(3, resolution)))  # resolution in [1, 2, 3]
-        amp = 1
-        winsize += 30 * resolution
-        cov_std = 30 * resolution
-        amp_ = 10**amp
-        margin_pixel = 2
-        margin_pixel *= 10*amp_
-        amp_*= resolution
         mycmap = plt.get_cmap('hot', lut=None)
         color_seq = [mycmap(i)[:3] for i in range(mycmap.N)]
-        time_steps = np.arange(len(coords))
-        all_coords = []
-        for t in time_steps:
-            for coord in coords[t]:
-                all_coords.append(coord)
-        all_coords = np.array(all_coords)
-        if len(all_coords) == 0:
-            return
-
-        x_min = np.min(all_coords[:, 1])
-        x_max = np.max(all_coords[:, 1])
-        y_min = np.min(all_coords[:, 0])
-        y_max = np.max(all_coords[:, 0])
-        z_min = np.min(all_coords[:, 2])
-        z_max = np.max(all_coords[:, 2])
-        all_coords[:, 1] -= x_min
-        all_coords[:, 0] -= y_min
-        all_coords[:, 2] -= z_min
         image = np.zeros((int((y_max - y_min)*amp_ + margin_pixel), int((x_max - x_min)*amp_ + margin_pixel)), dtype=np.float32)
         all_coords = np.round(all_coords * amp_)
         template = np.ones((1, (winsize)**2, 2), dtype=np.float32) * quantification(winsize)
@@ -672,13 +673,44 @@ def make_loc_depth_image(output_dir, coords, winsize=7, resolution=1, dim=2):
             row = min(max(0, coord_row), image.shape[0])
             col = min(max(0, coord_col), image.shape[1])
             image[row - winsize//2: row + winsize//2 + 1, col - winsize//2: col + winsize//2 + 1] += template
-        image = np.sqrt(image)
+        
+        img_min, img_max = np.quantile(image, [0.01, 0.995])
+        image = np.minimum(image, np.ones_like(image) * img_max)
         image = image / np.max(image)
-
-        plt.figure('Localization density', dpi=256)
+        plt.figure('Localization density', dpi=512)
         plt.imshow(image, cmap=mycmap, origin='upper')
         plt.axis('off')
-        plt.savefig(f'{output_dir}_loc_2d_density.png', bbox_inches='tight')
+        plt.savefig(f'{output_dir}_loc_{dim}d_density.png', bbox_inches='tight')
+        plt.close('all')
+    else:
+        z_coords = np.maximum((all_coords[:, 2] - z_min), np.zeros_like(all_coords[:, 2]))
+        z_coords = np.minimum(z_coords, np.ones_like(z_coords) * (z_max - z_min))
+        z_coords = z_coords / (z_max - z_min)
+        mycmap = plt.get_cmap('jet', lut=None)
+        color_seq = [mycmap(i)[:3] for i in range(mycmap.N)]
+        
+        image = np.zeros((int((y_max - y_min)*amp_ + margin_pixel), int((x_max - x_min)*amp_ + margin_pixel), 3), dtype=np.float32)
+        all_coords = np.round(all_coords * amp_)
+        template = np.ones((1, (winsize)**2, 2), dtype=np.float32) * quantification(winsize)
+        template = (np.exp((-1./2) * np.sum(template @ np.linalg.inv([[cov_std, 0], [0, cov_std]]) * template, axis=2))).reshape([winsize, winsize])
+
+        for idx, (roundup_coord, z_coord) in enumerate(zip(all_coords, z_coords)):
+            coord_col = int(roundup_coord[1] + margin_pixel//2)
+            coord_row = int(roundup_coord[0] + margin_pixel//2)
+            color_z = color_seq[min(int(np.round(len(color_seq) * z_coord)), len(color_seq)-1)]
+            row = min(max(0, coord_row), image.shape[0])
+            col = min(max(0, coord_col), image.shape[1])
+            image[row - winsize//2: row + winsize//2 + 1, col - winsize//2: col + winsize//2 + 1, 0] += template * color_z[0]
+            image[row - winsize//2: row + winsize//2 + 1, col - winsize//2: col + winsize//2 + 1, 1] += template * color_z[1]
+            image[row - winsize//2: row + winsize//2 + 1, col - winsize//2: col + winsize//2 + 1, 2] += template * color_z[2]
+        
+        img_min, img_max = np.quantile(image, [0.01, 0.995])
+        image = np.minimum(image, np.ones_like(image) * img_max)
+        image = image / np.max(image)
+        plt.figure('Localization density', dpi=512)
+        plt.imshow(image, origin='upper')
+        plt.axis('off')
+        plt.savefig(f'{output_dir}_loc_{dim}d_density.png', bbox_inches='tight')
         plt.close('all')
 
 
