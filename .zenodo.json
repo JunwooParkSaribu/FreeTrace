@@ -31,7 +31,7 @@
 
     "title": "FreeTrace",
 
-    "description": "Localization of light sources and tracking with fBm",
+    "description": "Localization of light sources and tracking with fBm. https://github.com/JunwooParkSaribu/FreeTrace",
 
     "keywords": ["fBm", "SPT", "microscopy", "ML", "segmentation"],
 
