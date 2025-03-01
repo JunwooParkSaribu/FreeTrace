@@ -43,6 +43,7 @@ old
 receptor*
 vesicle*
 test_samples
+3d_samples
 outputs
 *.html
 alpha_test*.tiff

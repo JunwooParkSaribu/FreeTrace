@@ -487,6 +487,16 @@ def image_regression(imgs, bgs, window_size, p0, decomp_n, amp=0, repeat=5):
     return pdfs, variables[:, 1], variables[:, 3], variables[:, 0], variables[:, 2], variables[:, 5], variables[:, 4]
 
 
+def calibration_3d(xyz_coords, reg_infos, calib_data):
+    for t in range(len(xyz_coords)):
+        for particle_idx in range(len(xyz_coords[t])):
+            xvar = reg_infos[t][particle_idx][0]
+            yvar = reg_infos[t][particle_idx][1]
+            z_coord = (yvar - xvar)
+            xyz_coords[t][particle_idx][2] = z_coord
+    return xyz_coords
+
+
 def make_red_circles(original_imgs, circle_imgs, localized_xys):
     stacked_imgs = []
     for img_n, coords in enumerate(localized_xys):
@@ -615,7 +625,7 @@ def main_process(imgs, forward_gauss_grids, backward_gauss_grids, *args):
     return xyz_coord, pdf, info
 
 
-def run(input_video_path:str, output_path:str, window_size=9, threshold=1.0, deflation=0, sigma=4.0, shift=1,
+def run(input_video_path:str, output_path:str, window_size=9, threshold=1.0, deflation=0, sigma=4.0, shift=1, z_calib=None,
         gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False, return_state=0):
     
     global VERBOSE
@@ -661,6 +671,7 @@ def run(input_video_path:str, output_path:str, window_size=9, threshold=1.0, def
     if WINSIZE % 2 == 0:
         WINSIZE += 1
 
+    dim = 2
     xyz_coords = []
     reg_pdfs = []
     reg_infos = []
@@ -718,8 +729,11 @@ def run(input_video_path:str, output_path:str, window_size=9, threshold=1.0, def
         PBAR.close()
 
     #reg_pdfs, xyz_coords, reg_infos = intensity_distribution(images, reg_pdfs, xyz_coords, reg_infos, sigma=sigma)
+    if z_calib is not None:
+        dim = 3
+        xyz_coords = calibration_3d(xyz_coords, reg_infos, z_calib)
     write_localization(loc_output_path, xyz_coords, reg_pdfs, reg_infos)
-    make_loc_depth_image(loc_output_path, xyz_coords, winsize=WINSIZE, resolution=1, dim=2)
+    make_loc_depth_image(loc_output_path, xyz_coords, winsize=WINSIZE, resolution=2, dim=dim)
 
     if save_video:
         print(f'Visualizing localizations...')
@@ -732,7 +746,7 @@ def run(input_video_path:str, output_path:str, window_size=9, threshold=1.0, def
     return True
 
 
-def run_process(input_video_path:str, output_path:str, window_size=7, threshold=1.0, deflation=0, sigma=4.0, shift=1,
+def run_process(input_video_path:str, output_path:str, window_size=7, threshold=1.0, deflation=0, sigma=4.0, shift=1, z_calib=None,
                 gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False) -> bool:
     """
     Create a process to localize the positions of particles from video.
@@ -758,6 +772,9 @@ def run_process(input_video_path:str, output_path:str, window_size=7, threshold=
         
         shift:
         Value to shift the sliding window.
+
+        z_calib:
+        write y_variance - x_varince on z coordinates. (developping)
         
         gpu_on:
         Accelerate the computation of localization.
@@ -785,6 +802,7 @@ def run_process(input_video_path:str, output_path:str, window_size=7, threshold=
         'deflation': deflation,
         'sigma': sigma,
         'shift': shift,
+        'z_calib': z_calib,
         'gpu_on': gpu_on,
         'save_video': save_video,
         'verbose': verbose,
