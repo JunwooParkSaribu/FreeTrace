@@ -733,7 +733,7 @@ def run(input_video_path:str, output_path:str, window_size=9, threshold=1.0, def
         dim = 3
         xyz_coords = calibration_3d(xyz_coords, reg_infos, z_calib)
     write_localization(loc_output_path, xyz_coords, reg_pdfs, reg_infos)
-    make_loc_depth_image(loc_output_path, xyz_coords, winsize=WINSIZE, resolution=2, dim=dim)
+    make_loc_depth_image(loc_output_path, xyz_coords, multiplier=16, winsize=WINSIZE, resolution=2, dim=dim)
 
     if save_video:
         print(f'Visualizing localizations...')
