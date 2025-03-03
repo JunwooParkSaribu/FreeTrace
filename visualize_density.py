@@ -236,4 +236,4 @@ if __name__ == '__main__':
         del loc_infos
 
     #make_loc_depth_image(loc_file, all_loc, multiplier=32, winsize=7, resolution=2, dim=2)
-    make_loc_depth_video(loc_file, all_loc, multiplier=4, frame_cumul=100, winsize=7, resolution=1, start_frame=1, end_frame=5000)
+    make_loc_depth_video(loc_file, all_loc, multiplier=4, frame_cumul=10, winsize=7, resolution=1, start_frame=1, end_frame=10000)
