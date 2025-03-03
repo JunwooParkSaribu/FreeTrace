@@ -190,24 +190,25 @@ def make_loc_depth_video(output_dir, coords, multiplier=16, frame_cumul=100, win
             if start_frame <= time <= end_frame:
                 image = np.zeros((int((y_max - y_min)*amp_ + margin_pixel), int((x_max - x_min)*amp_ + margin_pixel)), dtype=np.float16)
                 selected_coords = stacked_coords[time]
-                selected_coords[:, 1] -= x_min
-                selected_coords[:, 0] -= y_min
-                selected_coords = np.round(selected_coords * amp_)
+                if len(selected_coords) > 0:
+                    selected_coords[:, 1] -= x_min
+                    selected_coords[:, 0] -= y_min
+                    selected_coords = np.round(selected_coords * amp_)
 
-                for roundup_coord in selected_coords:
-                    coord_col = int(roundup_coord[0] + margin_pixel//2)
-                    coord_row = int(roundup_coord[1] + margin_pixel//2)
-                    row = min(max(0, coord_row), image.shape[0])
-                    col = min(max(0, coord_col), image.shape[1])
-                    image[row - winsize//2: row + winsize//2 + 1, col - winsize//2: col + winsize//2 + 1] += template
-                
-                img_min, img_max = np.quantile(image, [0.01, 0.995])
-                image = np.minimum(image, np.ones_like(image) * img_max)
-                image = image / np.max(image)
-                mapped_data = mycmap(image)
-                stacked_imgs.append(np.array(mapped_data * 255, dtype=np.uint8))
-                del image
-                del mapped_data
+                    for roundup_coord in selected_coords:
+                        coord_col = int(roundup_coord[0] + margin_pixel//2)
+                        coord_row = int(roundup_coord[1] + margin_pixel//2)
+                        row = min(max(0, coord_row), image.shape[0])
+                        col = min(max(0, coord_col), image.shape[1])
+                        image[row - winsize//2: row + winsize//2 + 1, col - winsize//2: col + winsize//2 + 1] += template
+                    
+                    img_min, img_max = np.quantile(image, [0.01, 0.995])
+                    image = np.minimum(image, np.ones_like(image) * img_max)
+                    image = image / np.max(image)
+                    mapped_data = mycmap(image)
+                    stacked_imgs.append(np.array(mapped_data * 255, dtype=np.uint8))
+                    del image
+                    del mapped_data
 
         stacked_imgs = np.array(stacked_imgs)
         stacked_imgs = stacked_imgs.astype(np.uint8)
@@ -228,12 +229,14 @@ if __name__ == '__main__':
         loc, loc_infos = read_localization(loc_file, None)
         if loc_idx == 0:
             for time in list(loc.keys()):
-                all_loc[time] = loc[time].copy()
+                all_loc[time] = list(loc[time]).copy()
         else:
             for time in list(loc.keys()):
-                all_loc[time].extend(loc[time].copy())
+                all_loc[time].extend(list(loc[time]).copy())
         del loc
         del loc_infos
+    for t_tmp in list(all_loc.keys()):
+        all_loc[t_tmp] = np.array(all_loc[t_tmp])
 
-    #make_loc_depth_image(loc_file, all_loc, multiplier=32, winsize=7, resolution=2, dim=2)
-    make_loc_depth_video(loc_file, all_loc, multiplier=4, frame_cumul=10, winsize=7, resolution=1, start_frame=1, end_frame=10000)
+    make_loc_depth_image(loc_file, all_loc, multiplier=4, winsize=7, resolution=2, dim=3)
+    #make_loc_depth_video(loc_file, all_loc, multiplier=4, frame_cumul=100, winsize=7, resolution=1, start_frame=1, end_frame=10000)
