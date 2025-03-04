@@ -217,6 +217,101 @@ def make_loc_depth_video(output_dir, coords, multiplier=16, frame_cumul=100, win
         #        writer.append_data(np.array(stacked_imgs[i]))
         tifffile.imwrite(f'{output_dir}_loc_{dim}d_density_video.tiff', data=stacked_imgs, imagej=True)
 
+
+def make_loc_radius_video(output_dir, coords, frame_cumul=100, radius=10, start_frame=1, end_frame=5000):
+    resolution = 2  # resolution in [1, 2, 3]
+    dim=2
+    winsize=7
+    multiplier = 4
+    winsize += multiplier * resolution
+    cov_std = 1
+    margin_pixel = 50
+    amp_= 4
+
+    time_steps = np.array(list(coords.keys()))
+    all_coords = []
+    stacked_imgs = []
+    stacked_coords = {t:[] for t in time_steps if start_frame <= t <= end_frame}
+    stacked_radii = {t:[] for t in time_steps if start_frame <= t <= end_frame}
+    count_max = 0
+    for t in time_steps:
+        if start_frame <= t <= end_frame:
+            print(f'calcul radius on cumulated molecules at frame:{t}')
+            st_tmp = []
+            for coord in coords[t]:
+                if len(coord) == 3:
+                    all_coords.append(coord)
+            for stack_t in range(t, t+frame_cumul):
+                if stack_t in time_steps:
+                    for stack_coord in coords[stack_t]:
+                        if len(stack_coord) == 3:
+                            st_tmp.append(stack_coord)
+            stacked_coords[t]=np.array(st_tmp, dtype=np.float32)
+
+            for i in range(len(stacked_coords[t])):
+                count = 0
+                for j in range(len(stacked_coords[t])):
+                    if np.sqrt(np.sum((stacked_coords[t][i] - stacked_coords[t][j])**2)) <= radius:
+                        count += 1
+                stacked_radii[t].append(count)
+            stacked_radii[t] = np.array(stacked_radii[t])
+            cur_max_count = np.max(stacked_radii[t])
+            count_max = max(cur_max_count, count_max)
+    all_coords = np.array(all_coords)
+
+    if len(all_coords) == 0:
+        return
+   
+    x_min = np.min(all_coords[:, 0])
+    x_max = np.max(all_coords[:, 0])
+    y_min = np.min(all_coords[:, 1])
+    y_max = np.max(all_coords[:, 1])
+    mycmap = plt.get_cmap('jet', lut=None)
+    color_seq = [mycmap(i)[:3] for i in range(mycmap.N)]
+    if dim == 2:
+        template = np.ones((1, (winsize)**2, 2), dtype=np.float16) * quantification(winsize)
+        template = (np.exp((-1./2) * np.sum(template @ np.linalg.inv([[cov_std, 0], [0, cov_std]]) * template, axis=2))).reshape([winsize, winsize])
+        template = template / np.max(template)
+
+        for time in time_steps:
+            if start_frame <= time <= end_frame:
+                print(f'Generating the image of frame:{time}')
+                image = np.zeros((int((y_max - y_min)*amp_ + margin_pixel), int((x_max - x_min)*amp_ + margin_pixel)), dtype=np.float16)
+                cmap_img = np.empty([image.shape[0], image.shape[1], 3], dtype=np.uint8)
+                selected_coords = stacked_coords[time]
+                selected_radii = stacked_radii[time]
+                if len(selected_coords) > 0:
+                    selected_coords[:, 1] -= x_min
+                    selected_coords[:, 0] -= y_min
+                    selected_coords = np.round(selected_coords * amp_)
+
+                    for roundup_coord, selec_rad in zip(selected_coords, selected_radii):
+                        coord_col = int(roundup_coord[0] + margin_pixel//2)
+                        coord_row = int(roundup_coord[1] + margin_pixel//2)
+                        row = min(max(0, coord_row), image.shape[0])
+                        col = min(max(0, coord_col), image.shape[1])
+                        image[row - winsize//2: row + winsize//2 + 1, col - winsize//2: col + winsize//2 + 1]\
+                            += (template * (selec_rad / count_max))
+                    
+                    image = np.minimum(image, np.ones_like(image))
+                    image = (image * 255).astype(int)
+                    for row in range(image.shape[0]):
+                        for col in range(image.shape[1]):
+                            cmap_img[row, col, 0] = int(color_seq[image[row, col]][0] * 255)
+                            cmap_img[row, col, 1] = int(color_seq[image[row, col]][1] * 255)
+                            cmap_img[row, col, 2] = int(color_seq[image[row, col]][2] * 255)
+    
+                    stacked_imgs.append(cmap_img)
+                    del image
+
+        stacked_imgs = np.array(stacked_imgs, dtype=np.uint8)
+
+        #with imageio.get_writer(f'{output_dir}_loc_{dim}d_density_video.gif', mode='I', fps=5, loop=1) as writer:
+        #    for i in range(len(stacked_imgs)):
+        #        writer.append_data(np.array(stacked_imgs[i]))
+        tifffile.imwrite(f'{output_dir}_loc_{dim}d_density_video.tiff', data=stacked_imgs, imagej=True)
+        
+
 if __name__ == '__main__':
     if len(sys.argv) < 2:
            sys.exit("Need loc.csv file to visualize density. Example) python3 visualize_density.py sample_loc.csv")
@@ -238,5 +333,6 @@ if __name__ == '__main__':
     for t_tmp in list(all_loc.keys()):
         all_loc[t_tmp] = np.array(all_loc[t_tmp])
 
-    make_loc_depth_image(loc_file, all_loc, multiplier=4, winsize=7, resolution=2, dim=3)
+    #make_loc_depth_image(loc_file, all_loc, multiplier=4, winsize=7, resolution=2, dim=3)
     #make_loc_depth_video(loc_file, all_loc, multiplier=4, frame_cumul=100, winsize=7, resolution=1, start_frame=1, end_frame=10000)
+    make_loc_radius_video(loc_file, all_loc, frame_cumul=50, radius=30, start_frame=4000, end_frame=7000)
