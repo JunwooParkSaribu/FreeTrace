@@ -6,8 +6,9 @@ import tifffile
 import imageio
 import itertools
 import functools
-
+import gc
 from scipy.spatial import distance
+
 
 def read_localization(input_file, video=None):
     locals = {}
@@ -221,20 +222,6 @@ def make_loc_depth_video(output_dir, coords, multiplier=16, frame_cumul=100, win
         tifffile.imwrite(f'{output_dir}_loc_{dim}d_density_video.tiff', data=stacked_imgs, imagej=True)
 
 
-import numpy as np
-def myfunc(image, color_seq):
-    print(image)
-    print(color_seq)
-    cmap_img = np.empty([image.shape[0], image.shape[1], 3], dtype=np.uint8)
-    for row in range(image.shape[0]):
-        for col in range(image.shape[1]):
-            colors_vals = (np.array(color_seq[image[row, col]]) * 255).astype(int)
-            cmap_img[row, col, 0] = colors_vals[0]
-            cmap_img[row, col, 1] = colors_vals[1]
-            cmap_img[row, col, 2] = colors_vals[2]
-    return cmap_img
-
-
 def make_loc_radius_video(output_dir, coords, frame_cumul=100, radius=10, start_frame=1, end_frame=5000):
     resolution = 2  # resolution in [1, 2, 3]
     dim=2
@@ -332,6 +319,7 @@ def make_loc_radius_video(output_dir, coords, frame_cumul=100, radius=10, start_
             cmap_img = (mycmap(stacked_imgs[i] / img_max)[:,:,:3]).astype(np.float16)
             mapped_imgs.append(cmap_img)
         del stacked_imgs
+        gc.collect()
         mapped_imgs = ((np.array(mapped_imgs, dtype=np.float16)) * 255).astype(np.uint8)
 
         #with imageio.get_writer(f'{output_dir}_loc_{dim}d_density_video.gif', mode='I', fps=5, loop=1) as writer:
@@ -363,4 +351,4 @@ if __name__ == '__main__':
 
     #make_loc_depth_image(loc_file, all_loc, multiplier=4, winsize=7, resolution=2, dim=3)
     #make_loc_depth_video(loc_file, all_loc, multiplier=4, frame_cumul=100, winsize=7, resolution=1, start_frame=1, end_frame=10000)
-    make_loc_radius_video(loc_file, all_loc, frame_cumul=500, radius=10, start_frame=1, end_frame=10000)
+    make_loc_radius_video(loc_file, all_loc, frame_cumul=1000, radius=10, start_frame=5000, end_frame=20000)
