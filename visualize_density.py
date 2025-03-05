@@ -1,3 +1,5 @@
+import cupyx.scipy.spatial
+import cupyx.scipy.spatial.distance
 import numpy as np
 import sys
 import matplotlib.pyplot as plt
@@ -142,7 +144,10 @@ def make_loc_depth_image(output_dir, coords, multiplier=16, winsize=7, resolutio
         plt.close('all')
 
 
-def make_loc_radius_video(output_dir, coords, frame_cumul=100, radius=10, start_frame=1, end_frame=5000):
+def make_loc_radius_video(output_dir, coords, frame_cumul=100, radius=10, start_frame=1, end_frame=5000, gpu=False):
+    if gpu:
+        import cupy as cp
+        from cuvs.distance import pairwise_distance
     resolution = 2  # resolution in [1, 2, 3]
     dim=2
     winsize=7
@@ -153,11 +158,14 @@ def make_loc_radius_video(output_dir, coords, frame_cumul=100, radius=10, start_
     amp_= 2
 
     time_steps = np.array(sorted(list(coords.keys())))
+    end_frame = min(end_frame, time_steps[-1])
+    start_frame = max(start_frame, time_steps[0])
+
     all_coords = []
-    stacked_imgs = []
     stacked_coords = {t:[] for t in time_steps if start_frame <= t <= end_frame}
     stacked_radii = {t:[] for t in time_steps if start_frame <= t <= end_frame}
     count_max = 0
+
     for t in time_steps:
         if start_frame <= t <= end_frame:
             if t%10 == 0: print(f'Calcul radius on cumulated molecules at frame:{t}')     
@@ -186,7 +194,14 @@ def make_loc_radius_video(output_dir, coords, frame_cumul=100, radius=10, start_
                 prev_tmps = st_tmp
             st_tmp = list(itertools.chain.from_iterable(st_tmp))
             stacked_coords[t]=np.array(st_tmp, dtype=np.float32)
-            paired_cdist = distance.cdist(stacked_coords[t], stacked_coords[t], 'euclidean')
+
+            if gpu:
+                cp_dist = cp.asarray(stacked_coords[t])
+                paired_cp_dist = pairwise_distance(cp_dist, cp_dist, metric='euclidean')
+                paired_cdist = cp.asnumpy(paired_cp_dist)
+            else:
+                paired_cdist = distance.cdist(stacked_coords[t], stacked_coords[t], 'euclidean')
+
             stacked_radii[t] = (paired_cdist <= radius).sum(axis=1)
             cur_max_count = np.max(stacked_radii[t])
             count_max = max(cur_max_count, count_max)
@@ -201,7 +216,9 @@ def make_loc_radius_video(output_dir, coords, frame_cumul=100, radius=10, start_
     y_max = np.max(all_coords[:, 1])
     mycmap = plt.get_cmap('jet', lut=None)
     #color_seq = (np.array([mycmap(i)[:3] for i in range(mycmap.N)]) * 255).astype(int)
-    img_max = 0
+    stack_idx = 0
+    stacked_imgs = np.zeros((end_frame - start_frame + 1, int((y_max - y_min)*amp_ + margin_pixel), int((x_max - x_min)*amp_ + margin_pixel)), dtype=np.float16)
+    
     if dim == 2:
         template = np.ones((1, (winsize)**2, 2), dtype=np.float16) * quantification(winsize)
         template = (np.exp((-1./2) * np.sum(template @ np.linalg.inv([[cov_std, 0], [0, cov_std]]) * template, axis=2))).reshape([winsize, winsize])
@@ -210,7 +227,6 @@ def make_loc_radius_video(output_dir, coords, frame_cumul=100, radius=10, start_
         for time in time_steps:
             if start_frame <= time <= end_frame:
                 if time%100 == 0: print(f'Generating the image of frame:{time}') 
-                image = np.zeros((int((y_max - y_min)*amp_ + margin_pixel), int((x_max - x_min)*amp_ + margin_pixel)), dtype=np.float16)
                 selected_coords = stacked_coords[time]
                 selected_radii = stacked_radii[time]
                 if len(selected_coords) > 0:
@@ -222,25 +238,20 @@ def make_loc_radius_video(output_dir, coords, frame_cumul=100, radius=10, start_
                     for coord_index, (roundup_coord, selec_rad) in enumerate(zip(selected_coords, selected_radii)):
                         col = roundup_coord[0]
                         row = roundup_coord[1]
-                        image[row - winsize//2: row + winsize//2 + 1, col - winsize//2: col + winsize//2 + 1]\
+                        stacked_imgs[stack_idx, row - winsize//2: row + winsize//2 + 1, col - winsize//2: col + winsize//2 + 1]\
                             += (template * (selec_rad / count_max))
-                    
-                    image = image[margin_pixel//2:image.shape[0]-margin_pixel//2, margin_pixel//2:image.shape[1]-margin_pixel//2]
-                    img_max = max(np.max(image), img_max)
-                    stacked_imgs.append(image)
-        stacked_imgs = np.array(stacked_imgs, dtype=np.float16)
-
+                stack_idx +=1
+        stacked_imgs = stacked_imgs[:, margin_pixel//2:stacked_imgs.shape[1]-margin_pixel//2, margin_pixel//2:stacked_imgs.shape[2]-margin_pixel//2]
         stacked_imgs = np.log(1 + stacked_imgs)
-        img_max = np.log(1 + img_max)
+        img_max = np.max(stacked_imgs)
 
-        mapped_imgs = []
+        mapped_imgs = np.empty([stacked_imgs.shape[0], stacked_imgs.shape[1], stacked_imgs.shape[2], 3], dtype=np.float16)
         for i in range(len(stacked_imgs)):
             if i%100 == 0: print(f'Mapping the image of frame:{i}') 
-            cmap_img = (mycmap(stacked_imgs[i] / img_max)[:,:,:3]).astype(np.float16)
-            mapped_imgs.append(cmap_img)
+            mapped_imgs[i] = (mycmap(stacked_imgs[i] / img_max)[:,:,:3]).astype(np.float16)
         del stacked_imgs
         gc.collect()
-        mapped_imgs = ((np.array(mapped_imgs, dtype=np.float16)) * 255).astype(np.uint8)
+        mapped_imgs = (mapped_imgs * 255).astype(np.uint8)
 
         #with imageio.get_writer(f'{output_dir}_loc_{dim}d_density_video.gif', mode='I', fps=5, loop=1) as writer:
         #    for i in range(len(stacked_imgs)):
@@ -249,6 +260,7 @@ def make_loc_radius_video(output_dir, coords, frame_cumul=100, radius=10, start_
 
 
 if __name__ == '__main__':
+    # https://docs.rapids.ai/install/?_gl=1*1lwgnt1*_ga*OTY3MzQ5Mzk0LjE3NDEyMDc2NDA.*_ga_RKXFW6CM42*MTc0MTIwNzY0MC4xLjEuMTc0MTIwNzgxMS4yOS4wLjA.
     if len(sys.argv) < 2:
            sys.exit("Need loc.csv file to visualize density. Example) python3 visualize_density.py sample_loc.csv")
 
@@ -270,4 +282,4 @@ if __name__ == '__main__':
         all_loc[t_tmp] = np.array(all_loc[t_tmp])
 
     #make_loc_depth_image(loc_file, all_loc, multiplier=4, winsize=7, resolution=2, dim=3)
-    make_loc_radius_video(loc_file, all_loc, frame_cumul=1000, radius=10, start_frame=5000, end_frame=20000)
+    make_loc_radius_video(loc_file, all_loc, frame_cumul=500, radius=100, start_frame=5500, end_frame=20000, gpu=True)
