@@ -497,26 +497,30 @@ def calibration_3d(xyz_coords, reg_infos, calib_data):
     return xyz_coords
 
 
-def make_red_circles(original_imgs, circle_imgs, localized_xys):
+def make_red_circles(imgs, localized_xys, hstack=False):
+    if hstack:
+        original_imgs = imgs.copy()
     stacked_imgs = []
     for img_n, coords in enumerate(localized_xys):
         xy_cum = []
         for center_coord in coords:
             x, y = int(round(center_coord[0])), int(round(center_coord[1]))
             if (x, y) in xy_cum:
-                circle_imgs[img_n] = draw_cross(circle_imgs[img_n], x, y, (0, 0, 1))
+                imgs[img_n] = draw_cross(imgs[img_n], x, y, (0, 0, 1))
             else:
-                circle_imgs[img_n] = draw_cross(circle_imgs[img_n], x, y, (1, 0, 0))
+                imgs[img_n] = draw_cross(imgs[img_n], x, y, (1, 0, 0))
             xy_cum.append((x, y))
-        stacked_imgs.append(np.hstack((original_imgs[img_n], circle_imgs[img_n])))
+        if hstack:
+            stacked_imgs.append(np.hstack((original_imgs[img_n], imgs[img_n])))
+        else:
+            stacked_imgs.append(imgs[img_n])
     return stacked_imgs
 
 
-def visualilzation(output_dir, images, localized_xys):
+def visualilzation(output_dir, images, localized_xys, hstack=False):
     orignal_imgs_3ch = np.array([images.copy(), images.copy(), images.copy()])
     orignal_imgs_3ch = np.ascontiguousarray(np.moveaxis(orignal_imgs_3ch, 0, 3))
-    circle_imgs = orignal_imgs_3ch.copy()
-    stacked_img = np.array(make_red_circles(orignal_imgs_3ch, circle_imgs, localized_xys))
+    stacked_img = np.array(make_red_circles(orignal_imgs_3ch, localized_xys, hstack))
     tifffile.imwrite(f'{output_dir}_locvideo.tiff', data=(stacked_img * 255).astype(np.uint8), imagej=True)
 
 
