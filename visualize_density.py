@@ -244,11 +244,12 @@ def make_loc_radius_video(output_dir, coords, frame_cumul=100, radius=10, start_
         stacked_imgs = stacked_imgs[:, margin_pixel//2:stacked_imgs.shape[1]-margin_pixel//2, margin_pixel//2:stacked_imgs.shape[2]-margin_pixel//2]
         stacked_imgs = np.log(1 + stacked_imgs)
         img_max = np.max(stacked_imgs)
+        stacked_imgs = stacked_imgs / img_max
 
         mapped_imgs = np.empty([stacked_imgs.shape[0], stacked_imgs.shape[1], stacked_imgs.shape[2], 3], dtype=np.float16)
         for i in range(len(stacked_imgs)):
             if i%100 == 0: print(f'Mapping the image of frame:{i}') 
-            mapped_imgs[i] = (mycmap(stacked_imgs[i] / img_max)[:,:,:3]).astype(np.float16)
+            mapped_imgs[i] = (mycmap(stacked_imgs[i])[:,:,:3]).astype(np.float16)
         del stacked_imgs
         gc.collect()
         mapped_imgs = (mapped_imgs * 255).astype(np.uint8)
@@ -282,4 +283,4 @@ if __name__ == '__main__':
         all_loc[t_tmp] = np.array(all_loc[t_tmp])
 
     #make_loc_depth_image(loc_file, all_loc, multiplier=4, winsize=7, resolution=2, dim=3)
-    make_loc_radius_video(loc_file, all_loc, frame_cumul=500, radius=100, start_frame=5500, end_frame=20000, gpu=True)
+    make_loc_radius_video(loc_file, all_loc, frame_cumul=500, radius=100, start_frame=5500, end_frame=25000, gpu=True)
