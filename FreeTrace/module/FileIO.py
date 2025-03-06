@@ -2,7 +2,6 @@ import os
 import sys
 import numpy as np
 from FreeTrace.module.TrajectoryObject import TrajectoryObj
-from FreeTrace.module.ImageModule import read_tif
 
 
 author_emails = [f'junwoo.park@sorbonne-universite.fr']
@@ -310,17 +309,6 @@ def read_parameters(param_file):
         sys.exit(f'ERR msg: {e}')
     finally:
         return params
-
-
-def check_video_ext(args, andi2=False):
-    if len(args) == 0:
-        print(f'no input file')
-        exit(1)
-    if '.tif' not in args and '.tiff' not in args:
-        print(f'video format err, only .tif or .tiff are acceptable')
-        exit(1)
-    else:
-        return read_tif(args, andi2)
     
 
 def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False, batch=False):

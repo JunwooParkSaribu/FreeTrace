@@ -4,8 +4,8 @@ import concurrent.futures
 from functools import lru_cache
 from FreeTrace.module import image_pad
 from FreeTrace.module import regression
-from FreeTrace.module.FileIO import write_localization, read_parameters, check_video_ext, initialization
-from FreeTrace.module.ImageModule import draw_cross, make_loc_depth_image
+from FreeTrace.module.FileIO import write_localization, initialization
+from FreeTrace.module.ImageModule import draw_cross, make_loc_depth_image, read_tif
 from tqdm import tqdm
 
 
@@ -663,7 +663,7 @@ def run(input_video_path:str, output_path:str, window_size=9, threshold=1.0, def
     MULTI_THRESHOLDS = None
 
 
-    images = check_video_ext(input_video_path, andi2=False)
+    images = read_tif(input_video_path)
     CUDA, _ = initialization(gpu_on, ptype=0, verbose=VERBOSE, batch=BATCH)
     if CUDA:
         from FreeTrace.module import gpu_module

@@ -3,6 +3,7 @@ import time
 import pandas as pd
 import numpy as np
 import cv2
+import os
 import imageio
 from PIL import Image
 import tifffile
@@ -11,6 +12,10 @@ import matplotlib.pyplot as plt
 from FreeTrace.module.TrajectoryObject import TrajectoryObj
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from multiprocessing import Queue, Process, Value
+from FreeTrace.module.FileIO import read_trajectory, read_localization
+from scipy import stats
+from scipy.spatial import distance
+import itertools
 
 
 class NormalTkExit(Exception):
@@ -508,7 +513,199 @@ def make_image_seqs(trajectory_list, output_dir, img_stacks, time_steps):
         ret_img_stacks.append(img)
     ret_img_stacks = (np.array(ret_img_stacks)*255).astype(np.uint8)
     tifffile.imwrite(output_dir, data=ret_img_stacks, imagej=True)
-    
+
+
+def remake_visual_trajectories(output_path:str, trajectory_file:str, raw_imgs:str, start_frame=1, end_frame=10000, upscaling:int=1):
+    assert 'traces.csv' in trajectory_file.split('/')[-1], "input trajectory file format is wrong, it needs video_traces.csv"
+    assert '.tif' in raw_imgs.split('/')[-1], "input image file format is wrong, it needs image.tiff"
+    filename = raw_imgs.strip().split('/')[-1].split('.tif')[0]
+    traj_list = read_trajectory(trajectory_file)
+    img_stacks = read_tif(raw_imgs)
+    start_frame = max(0, start_frame) - 1
+    end_frame = min(img_stacks.shape[0], end_frame)
+    img_stacks = img_stacks[start_frame:end_frame, :, :]
+
+    ret_img_stacks = []
+    for img, frame in zip(img_stacks, np.arange(start_frame, end_frame, 1) + 1):
+        if img.ndim == 2:
+            img = np.array([img, img, img])
+            img = np.moveaxis(img, 0, 2)
+        img = np.ascontiguousarray(img)
+        if upscaling >= 2:
+            img = cv2.resize(img, (img.shape[1]*upscaling, img.shape[0]*upscaling),
+                             interpolation=cv2.INTER_AREA)
+        for traj in traj_list:
+            times = traj.get_times()
+            if times[-1] < frame:
+                continue
+            indices = [i for i, time in enumerate(times) if time <= frame]
+            if traj.get_trajectory_length() >= 2:
+                xy = np.array([[int(np.around(x * upscaling)), int(np.around(y * upscaling))]
+                               for x, y, _ in traj.get_positions()[indices]], np.int32)
+                img_poly = cv2.polylines(img, [xy],
+                                         isClosed=False,
+                                         color=(traj.get_color()[0],
+                                                traj.get_color()[1],
+                                                traj.get_color()[2]),
+                                         thickness=1)
+        ret_img_stacks.append((img * 255).astype(np.uint8))
+    ret_img_stacks = np.array(ret_img_stacks, dtype=np.uint8)
+    tifffile.imwrite(f'{output_path}/{filename}_{start_frame+1}_{end_frame}_tracevideo.tiff', data=ret_img_stacks, imagej=True)
+
+
+def remake_visual_localizations(output_path:str, localization_file:str, raw_imgs:str, start_frame=1, end_frame=10000, upscaling:int=1):
+    assert 'loc.csv' in localization_file.split('/')[-1], "input localization file format is wrong, it needs video_loc.csv"
+    assert '.tif' in raw_imgs.split('/')[-1], "input image file format is wrong, it needs image.tiff"
+    filename = raw_imgs.strip().split('/')[-1].split('.tif')[0]
+    loc_list, loc_info = read_localization(localization_file)
+    img_stacks = read_tif(raw_imgs)
+    start_frame = max(1, start_frame)
+    end_frame = min(img_stacks.shape[0], end_frame)
+    img_stacks = img_stacks[start_frame-1:end_frame, :, :]
+
+    ret_img_stacks = []
+    for img_idx, frame in enumerate(np.arange(start_frame, end_frame+1, 1)):
+        coords = loc_list[frame]
+        img = img_stacks[img_idx]
+        img = (img * 255).astype(np.uint8)
+        if img.ndim == 2:
+            img = np.array([img, img, img])
+            img = np.moveaxis(img, 0, 2)
+        img = np.ascontiguousarray(img)
+        if upscaling >= 2:
+            img = cv2.resize(img, (img.shape[1]*upscaling, img.shape[0]*upscaling),
+                             interpolation=cv2.INTER_AREA)
+        xy_cum = []
+        for center_coord in coords:
+            x, y = int(round(center_coord[1] * upscaling)), int(round(center_coord[0] * upscaling))
+            if (x, y) in xy_cum:
+                img = draw_cross(img, x, y, (0, 0, 1))
+            else:
+                img = draw_cross(img, x, y, (1, 0, 0))
+            xy_cum.append((x, y))
+
+        ret_img_stacks.append(img)
+    ret_img_stacks = np.array(ret_img_stacks, dtype=np.uint8)
+    tifffile.imwrite(f'{output_path}/{filename}_{start_frame}_{end_frame}_locvideo.tiff', data=ret_img_stacks, imagej=True)
+
+
+def make_loc_radius_video(output_path:str, raw_imgs:str, localization_file:str, frame_cumul=100, radius=[1, 10], start_frame=1, end_frame=10000, alpha1=0.6, alpha2=0.4, gpu=False):
+    assert 'loc.csv' in localization_file.split('/')[-1], "input localization file format is wrong, it needs video_loc.csv"
+    coords, coord_info = read_localization(localization_file)
+    sequence_save_folder = f'{output_path}'
+    filename = localization_file.split('/')[-1].split('.csv')[0]
+    if not os.path.exists(sequence_save_folder):
+        os.mkdir(sequence_save_folder)
+
+    images = read_tif(raw_imgs)[start_frame-1:end_frame,:,:]
+    if gpu:
+        import cupy as cp
+        from cuvs.distance import pairwise_distance
+        mempool = cp.get_default_memory_pool()
+        mempool.set_limit(fraction=0.8)
+
+    time_steps = np.array(sorted(list(coords.keys())))
+    end_frame = min(end_frame, time_steps[-1])
+    start_frame = max(start_frame, time_steps[0])
+
+    all_coords = []
+    stacked_coords = {t:[] for t in time_steps if start_frame <= t <= end_frame}
+    stacked_radii = {t:[] for t in time_steps if start_frame <= t <= end_frame}
+    count_max = 0
+
+    for t in time_steps:
+        if start_frame <= t <= end_frame:
+            if t%10 == 0: print(f'Calcul radius on cumulated molecules at frame:{t}')     
+            for coord in coords[t]:
+                if len(coord) == 3:
+                    all_coords.append(coord)
+            if t == start_frame:
+                st_tmp = []
+                for stack_t in range(t, t+frame_cumul):
+                    time_st = []
+                    if stack_t in time_steps:
+                        for stack_coord in coords[stack_t]:
+                            if len(stack_coord) == 3:
+                                time_st.append(stack_coord)
+                    st_tmp.append(time_st)
+                prev_tmps=st_tmp
+            else:
+                stack_t = t+frame_cumul-1
+                time_st = []
+                if stack_t in time_steps:
+                    for stack_coord in coords[stack_t]:
+                        if len(stack_coord) == 3:
+                            time_st.append(stack_coord)
+                st_tmp = prev_tmps[1:]
+                st_tmp.append(time_st)
+                prev_tmps = st_tmp
+            st_tmp = list(itertools.chain.from_iterable(st_tmp))
+            stacked_coords[t]=np.array(st_tmp, dtype=np.float32)
+
+            if gpu:
+                cp_dist = cp.asarray(stacked_coords[t], dtype=cp.float16)
+                paired_cp_dist = pairwise_distance(cp_dist, cp_dist, metric='euclidean')
+                paired_cdist = cp.asnumpy(paired_cp_dist).astype(np.float16)
+            else:
+                paired_cdist = distance.cdist(stacked_coords[t], stacked_coords[t], 'euclidean')
+
+            stacked_radii[t] = ((paired_cdist > radius[0])*(paired_cdist <= radius[1])).sum(axis=1)
+            cur_max_count = np.max(stacked_radii[t])
+            count_max = max(cur_max_count, count_max)
+    all_coords = np.array(all_coords)
+    if len(all_coords) == 0:
+        return
+
+    image_idx = 0
+    x_min = np.min(all_coords[:, 0])
+    x_max = np.max(all_coords[:, 0])
+    y_min = np.min(all_coords[:, 1])
+    y_max = np.max(all_coords[:, 1])
+    mycmap = plt.get_cmap('jet', lut=None)
+    video_arr = np.empty([images.shape[0], images.shape[1], images.shape[2], 4], dtype=np.uint8)
+    X, Y = np.mgrid[x_min:x_max:complex(f'{images.shape[2]}j'), y_min:y_max:complex(f'{images.shape[1]}j')]
+    positions = np.vstack([X.ravel(), Y.ravel()])
+    for time in time_steps:
+        if start_frame <= time <= end_frame:
+            if time%50 == 0: print(f'Rendering the image of frame:{time}') 
+            selected_coords = stacked_coords[time]
+            selected_radii = stacked_radii[time]
+            if len(selected_coords) > 0:
+                values = np.vstack([selected_coords[:, 0], selected_coords[:, 1]])
+                kernel = stats.gaussian_kde(values, weights=(selected_radii / count_max))
+                kernel.set_bandwidth(bw_method=kernel.factor / 2.)
+                Z = np.reshape(kernel(positions).T, X.shape)
+                Z = Z * (np.max(selected_radii) / np.max(Z))
+                aximg = plt.imshow(Z.T, cmap=mycmap,
+                                   extent=[x_min, x_max, y_min, y_max], vmin=0, vmax=count_max, alpha=1.0, origin='upper')
+                rawimg = plt.imshow(images[image_idx: image_idx + frame_cumul,:,:].max(axis=(0)), alpha=1.0, cmap='grey', extent=[x_min, x_max, y_min, y_max], origin='upper')
+                arr = aximg.make_image(renderer=None, unsampled=True)[0][:,:,:4]
+                arr2 = rawimg.make_image(renderer=None, unsampled=True)[0][:,:,:4]
+                blended = cv2.addWeighted(arr, alpha1, arr2, alpha2, 0.0)
+                video_arr[image_idx] = blended
+            image_idx += 1
+    tifffile.imwrite(f'{sequence_save_folder}/{filename}_density_video_frame_{start_frame}_{end_frame}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}.tiff', data=video_arr, imagej=True)
+
+
+def make_red_circles(imgs, localized_xys, hstack=False):
+    if hstack:
+        original_imgs = imgs.copy()
+    stacked_imgs = []
+    for img_n, coords in enumerate(localized_xys):
+        xy_cum = []
+        for center_coord in coords:
+            x, y = int(round(center_coord[0])), int(round(center_coord[1]))
+            if (x, y) in xy_cum:
+                imgs[img_n] = draw_cross(imgs[img_n], x, y, (0, 0, 1))
+            else:
+                imgs[img_n] = draw_cross(imgs[img_n], x, y, (1, 0, 0))
+            xy_cum.append((x, y))
+        if hstack:
+            stacked_imgs.append(np.hstack((original_imgs[img_n], imgs[img_n])))
+        else:
+            stacked_imgs.append(imgs[img_n])
+    return np.array(stacked_imgs, dtype=np.uint8)
+
 
 def make_whole_img(trajectory_list, output_dir, img_stacks):
     if img_stacks.shape[1] * img_stacks.shape[2] < 1024 * 1024:
