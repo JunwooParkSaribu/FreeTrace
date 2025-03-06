@@ -395,4 +395,4 @@ if __name__ == '__main__':
         all_loc[t_tmp] = np.array(all_loc[t_tmp])
 
     #make_loc_depth_image(loc_file, all_loc, multiplier=4, winsize=7, resolution=2, dim=3)
-    make_loc_radius_video(video_path, loc_files, all_loc, frame_cumul=1000, radius=[3, 20], start_frame=15000, end_frame=25000, gpu=True)
+    make_loc_radius_video(video_path, loc_files, all_loc, frame_cumul=1000, radius=[3, 20], start_frame=15000, end_frame=20000, gpu=True)
