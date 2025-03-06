@@ -534,7 +534,7 @@ def draw_cross(img, row, col, color):
         if 0 <= r < img.shape[0] and 0 <= c < img.shape[1]:
             for i, couleur in enumerate(color):
                 if couleur >= 1:
-                    img[r, c, i] = 1
+                    img[r, c, i] = 255
                 else:
                     img[r, c, i] = 0
     return img
