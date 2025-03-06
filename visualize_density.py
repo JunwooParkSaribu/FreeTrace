@@ -345,7 +345,7 @@ def make_loc_radius_video(video_dir, output_dir, coords, frame_cumul=100, radius
     y_min = np.min(all_coords[:, 1])
     y_max = np.max(all_coords[:, 1])
     mycmap = plt.get_cmap('jet', lut=None)
-    video_arr = np.empty([images.shape[0], images.shape[1], images.shape[2], 3], dtype=np.uint8)
+    video_arr = np.empty([images.shape[0], images.shape[1], images.shape[2], 4], dtype=np.uint8)
     X, Y = np.mgrid[x_min:x_max:complex(f'{images.shape[2]}j'), y_min:y_max:complex(f'{images.shape[1]}j')]
     positions = np.vstack([X.ravel(), Y.ravel()])
     for time in time_steps:
