@@ -511,14 +511,14 @@ def make_red_circles(imgs, localized_xys, hstack=False):
                 imgs[img_n] = draw_cross(imgs[img_n], x, y, (1, 0, 0))
             xy_cum.append((x, y))
         if hstack:
-            stacked_imgs.append(np.hstack((original_imgs[img_n], imgs[img_n])) * 255)
+            stacked_imgs.append(np.hstack((original_imgs[img_n], imgs[img_n])))
         else:
-            stacked_imgs.append(imgs[img_n] * 255)
+            stacked_imgs.append(imgs[img_n])
     return np.array(stacked_imgs, dtype=np.uint8)
 
 
 def visualilzation(output_dir, images, localized_xys, hstack=False):
-    orignal_imgs_3ch = np.array([images.copy(), images.copy(), images.copy()])
+    orignal_imgs_3ch = np.array([images * 255, images * 255, images * 255], dtype=np.uint8)
     orignal_imgs_3ch = np.ascontiguousarray(np.moveaxis(orignal_imgs_3ch, 0, 3))
     stacked_img = make_red_circles(orignal_imgs_3ch, localized_xys, hstack)
     tifffile.imwrite(f'{output_dir}_locvideo.tiff', data=stacked_img, imagej=True)

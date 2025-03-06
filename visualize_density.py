@@ -144,16 +144,19 @@ def make_loc_depth_image(output_dir, coords, multiplier=16, winsize=7, resolutio
         plt.close('all')
 
 
-def make_loc_radius_video(output_dir, coords, frame_cumul=100, radius=10, start_frame=1, end_frame=5000, gpu=False):
+def make_loc_radius_video(output_dir, coords, frame_cumul=100, radius=[1, 10], start_frame=1, end_frame=10000, gauss=True, gpu=False):
     if gpu:
         import cupy as cp
         from cuvs.distance import pairwise_distance
+        mempool = cp.get_default_memory_pool()
+        mempool.set_limit(fraction=0.8)
+
     resolution = 2  # resolution in [1, 2, 3]
     dim=2
     winsize=7
     multiplier = 4
     winsize += multiplier * resolution
-    cov_std = 1
+    cov_std = 2
     margin_pixel = 50
     amp_= 2
 
@@ -196,13 +199,13 @@ def make_loc_radius_video(output_dir, coords, frame_cumul=100, radius=10, start_
             stacked_coords[t]=np.array(st_tmp, dtype=np.float32)
 
             if gpu:
-                cp_dist = cp.asarray(stacked_coords[t])
+                cp_dist = cp.asarray(stacked_coords[t], dtype=cp.float16)
                 paired_cp_dist = pairwise_distance(cp_dist, cp_dist, metric='euclidean')
-                paired_cdist = cp.asnumpy(paired_cp_dist)
+                paired_cdist = cp.asnumpy(paired_cp_dist).astype(np.float16)
             else:
                 paired_cdist = distance.cdist(stacked_coords[t], stacked_coords[t], 'euclidean')
 
-            stacked_radii[t] = (paired_cdist <= radius).sum(axis=1)
+            stacked_radii[t] = ((paired_cdist > radius[0])*(paired_cdist <= radius[1])).sum(axis=1)
             cur_max_count = np.max(stacked_radii[t])
             count_max = max(cur_max_count, count_max)
     all_coords = np.array(all_coords)
@@ -220,15 +223,17 @@ def make_loc_radius_video(output_dir, coords, frame_cumul=100, radius=10, start_
     stacked_imgs = np.zeros((end_frame - start_frame + 1, int((y_max - y_min)*amp_ + margin_pixel), int((x_max - x_min)*amp_ + margin_pixel)), dtype=np.float16)
     
     if dim == 2:
-        template = np.ones((1, (winsize)**2, 2), dtype=np.float16) * quantification(winsize)
-        template = (np.exp((-1./2) * np.sum(template @ np.linalg.inv([[cov_std, 0], [0, cov_std]]) * template, axis=2))).reshape([winsize, winsize])
-        template = template / np.max(template)
+        if gauss:
+            template = np.ones((1, (winsize)**2, 2), dtype=np.float16) * quantification(winsize)
+            template = (np.exp((-1./2) * np.sum(template @ np.linalg.inv([[cov_std, 0], [0, cov_std]]) * template, axis=2))).reshape([winsize, winsize])
+            template = template / np.max(template)
 
         for time in time_steps:
             if start_frame <= time <= end_frame:
                 if time%100 == 0: print(f'Generating the image of frame:{time}') 
                 selected_coords = stacked_coords[time]
                 selected_radii = stacked_radii[time]
+                max_rad_for_t = 0
                 if len(selected_coords) > 0:
                     selected_coords[:, 0] -= x_min
                     selected_coords[:, 1] -= y_min    
@@ -236,15 +241,20 @@ def make_loc_radius_video(output_dir, coords, frame_cumul=100, radius=10, start_
                     selected_coords += margin_pixel//2
 
                     for coord_index, (roundup_coord, selec_rad) in enumerate(zip(selected_coords, selected_radii)):
+                        max_rad_for_t = max(max_rad_for_t, selec_rad)
                         col = roundup_coord[0]
                         row = roundup_coord[1]
-                        stacked_imgs[stack_idx, row - winsize//2: row + winsize//2 + 1, col - winsize//2: col + winsize//2 + 1]\
-                            += (template * (selec_rad / count_max))
+                        if gauss:
+                            stacked_imgs[stack_idx, row - winsize//2: row + winsize//2 + 1, col - winsize//2: col + winsize//2 + 1]\
+                                = np.maximum((template * selec_rad), stacked_imgs[stack_idx, row - winsize//2: row + winsize//2 + 1, col - winsize//2: col + winsize//2 + 1])
+                        else:
+                            stacked_imgs[stack_idx, row, col] = selec_rad
+                    
+                    if gauss:
+                        stacked_imgs[stack_idx] = np.minimum(stacked_imgs[stack_idx], np.ones_like(stacked_imgs[stack_idx]) * max_rad_for_t)
                 stack_idx +=1
         stacked_imgs = stacked_imgs[:, margin_pixel//2:stacked_imgs.shape[1]-margin_pixel//2, margin_pixel//2:stacked_imgs.shape[2]-margin_pixel//2]
-        stacked_imgs = np.log(1 + stacked_imgs)
-        img_max = np.max(stacked_imgs)
-        stacked_imgs = stacked_imgs / img_max
+        stacked_imgs = stacked_imgs / np.max(stacked_imgs)
 
         mapped_imgs = np.empty([stacked_imgs.shape[0], stacked_imgs.shape[1], stacked_imgs.shape[2], 3], dtype=np.float16)
         for i in range(len(stacked_imgs)):
@@ -283,4 +293,4 @@ if __name__ == '__main__':
         all_loc[t_tmp] = np.array(all_loc[t_tmp])
 
     #make_loc_depth_image(loc_file, all_loc, multiplier=4, winsize=7, resolution=2, dim=3)
-    make_loc_radius_video(loc_file, all_loc, frame_cumul=500, radius=100, start_frame=5500, end_frame=25000, gpu=True)
+    make_loc_radius_video(loc_file, all_loc, frame_cumul=1000, radius=[3, 20], start_frame=15000, end_frame=25000, gpu=True, gauss=True)
