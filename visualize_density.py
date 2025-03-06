@@ -1,4 +1,3 @@
-import cupyx.scipy.spatial
 import cupyx.scipy.spatial.distance
 import numpy as np
 import sys
@@ -7,6 +6,10 @@ import tifffile
 import itertools
 import gc
 from scipy.spatial import distance
+from scipy import stats
+from FreeTrace.module.ImageModule import read_tif
+import os
+import cv2
 
 
 def read_localization(input_file, video=None):
@@ -144,19 +147,16 @@ def make_loc_depth_image(output_dir, coords, multiplier=16, winsize=7, resolutio
         plt.close('all')
 
 
-def make_loc_radius_video(output_dir, coords, frame_cumul=100, radius=[1, 10], start_frame=1, end_frame=10000, gauss=True, gpu=False):
+def make_loc_radius_video2(output_dir, coords, frame_cumul=100, radius=[1, 10], start_frame=1, end_frame=10000, gauss=True, gpu=False):
     if gpu:
         import cupy as cp
         from cuvs.distance import pairwise_distance
         mempool = cp.get_default_memory_pool()
         mempool.set_limit(fraction=0.8)
 
-    resolution = 2  # resolution in [1, 2, 3]
-    dim=2
-    winsize=7
-    multiplier = 4
-    winsize += multiplier * resolution
-    cov_std = 2
+    dim = 2
+    winsize = 31  # odd number.
+    cov_std = 2.5
     margin_pixel = 50
     amp_= 2
 
@@ -254,6 +254,7 @@ def make_loc_radius_video(output_dir, coords, frame_cumul=100, radius=[1, 10], s
                         stacked_imgs[stack_idx] = np.minimum(stacked_imgs[stack_idx], np.ones_like(stacked_imgs[stack_idx]) * max_rad_for_t)
                 stack_idx +=1
         stacked_imgs = stacked_imgs[:, margin_pixel//2:stacked_imgs.shape[1]-margin_pixel//2, margin_pixel//2:stacked_imgs.shape[2]-margin_pixel//2]
+        stacked_imgs = np.log(1 + stacked_imgs)
         stacked_imgs = stacked_imgs / np.max(stacked_imgs)
 
         mapped_imgs = np.empty([stacked_imgs.shape[0], stacked_imgs.shape[1], stacked_imgs.shape[2], 3], dtype=np.float16)
@@ -270,14 +271,115 @@ def make_loc_radius_video(output_dir, coords, frame_cumul=100, radius=[1, 10], s
         tifffile.imwrite(f'{output_dir}_loc_{dim}d_density_video.tiff', data=mapped_imgs, imagej=True)
 
 
+def make_loc_radius_video(video_dir, output_dir, coords, frame_cumul=100, radius=[1, 10], start_frame=1, end_frame=10000, gpu=False):
+    sequence_save_folder = './image_sequences'
+    filename = output_dir[0].split('/')[-1].split('.csv')[0]
+    density_save_folder = f'{sequence_save_folder}/{filename}'
+    if not os.path.exists(sequence_save_folder):
+        os.mkdir(sequence_save_folder)
+    if not os.path.exists(density_save_folder):
+        os.mkdir(density_save_folder)
+
+    images = read_tif(video_dir)[start_frame-1:end_frame,:,:]
+    if gpu:
+        import cupy as cp
+        from cuvs.distance import pairwise_distance
+        mempool = cp.get_default_memory_pool()
+        mempool.set_limit(fraction=0.8)
+
+    time_steps = np.array(sorted(list(coords.keys())))
+    end_frame = min(end_frame, time_steps[-1])
+    start_frame = max(start_frame, time_steps[0])
+
+    all_coords = []
+    stacked_coords = {t:[] for t in time_steps if start_frame <= t <= end_frame}
+    stacked_radii = {t:[] for t in time_steps if start_frame <= t <= end_frame}
+    count_max = 0
+
+    for t in time_steps:
+        if start_frame <= t <= end_frame:
+            if t%10 == 0: print(f'Calcul radius on cumulated molecules at frame:{t}')     
+            for coord in coords[t]:
+                if len(coord) == 3:
+                    all_coords.append(coord)
+            if t == start_frame:
+                st_tmp = []
+                for stack_t in range(t, t+frame_cumul):
+                    time_st = []
+                    if stack_t in time_steps:
+                        for stack_coord in coords[stack_t]:
+                            if len(stack_coord) == 3:
+                                time_st.append(stack_coord)
+                    st_tmp.append(time_st)
+                prev_tmps=st_tmp
+            else:
+                stack_t = t+frame_cumul-1
+                time_st = []
+                if stack_t in time_steps:
+                    for stack_coord in coords[stack_t]:
+                        if len(stack_coord) == 3:
+                            time_st.append(stack_coord)
+                st_tmp = prev_tmps[1:]
+                st_tmp.append(time_st)
+                prev_tmps = st_tmp
+            st_tmp = list(itertools.chain.from_iterable(st_tmp))
+            stacked_coords[t]=np.array(st_tmp, dtype=np.float32)
+
+            if gpu:
+                cp_dist = cp.asarray(stacked_coords[t], dtype=cp.float16)
+                paired_cp_dist = pairwise_distance(cp_dist, cp_dist, metric='euclidean')
+                paired_cdist = cp.asnumpy(paired_cp_dist).astype(np.float16)
+            else:
+                paired_cdist = distance.cdist(stacked_coords[t], stacked_coords[t], 'euclidean')
+
+            stacked_radii[t] = ((paired_cdist > radius[0])*(paired_cdist <= radius[1])).sum(axis=1)
+            cur_max_count = np.max(stacked_radii[t])
+            count_max = max(cur_max_count, count_max)
+    all_coords = np.array(all_coords)
+    if len(all_coords) == 0:
+        return
+
+    image_idx = 0
+    x_min = np.min(all_coords[:, 0])
+    x_max = np.max(all_coords[:, 0])
+    y_min = np.min(all_coords[:, 1])
+    y_max = np.max(all_coords[:, 1])
+    mycmap = plt.get_cmap('jet', lut=None)
+    video_arr = np.empty([images.shape[0], images.shape[1], images.shape[2], 3], dtype=np.uint8)
+    X, Y = np.mgrid[x_min:x_max:complex(f'{images.shape[2]}j'), y_min:y_max:complex(f'{images.shape[1]}j')]
+    positions = np.vstack([X.ravel(), Y.ravel()])
+    for time in time_steps:
+        if start_frame <= time <= end_frame:
+            if time%50 == 0: print(f'Rendering the image of frame:{time}') 
+            selected_coords = stacked_coords[time]
+            selected_radii = stacked_radii[time]
+            if len(selected_coords) > 0:
+                values = np.vstack([selected_coords[:, 0], selected_coords[:, 1]])
+                kernel = stats.gaussian_kde(values, weights=(selected_radii / count_max))
+                kernel.set_bandwidth(bw_method=kernel.factor / 2.)
+                Z = np.reshape(kernel(positions).T, X.shape)
+                Z = Z * (np.max(selected_radii) / np.max(Z))
+                aximg = plt.imshow(Z.T, cmap=mycmap,
+                                   extent=[x_min, x_max, y_min, y_max], vmin=0, vmax=count_max, alpha=0.7, origin='upper')
+                rawimg = plt.imshow(images[image_idx: image_idx + frame_cumul,:,:].max(axis=(0)), alpha=.6, cmap='grey', extent=[x_min, x_max, y_min, y_max], origin='upper')
+                arr = aximg.make_image(renderer=None, unsampled=True)[0][:,:,:4]
+                arr2 = rawimg.make_image(renderer=None, unsampled=True)[0][:,:,:4]
+                blended = cv2.addWeighted(arr, 0.4, arr2, 0.6, 0.0)
+                video_arr[image_idx] = blended
+            image_idx += 1
+    tifffile.imwrite(f'{density_save_folder}/density_video.tiff', data=video_arr, imagej=True)
+
+
 if __name__ == '__main__':
     # https://docs.rapids.ai/install/?_gl=1*1lwgnt1*_ga*OTY3MzQ5Mzk0LjE3NDEyMDc2NDA.*_ga_RKXFW6CM42*MTc0MTIwNzY0MC4xLjEuMTc0MTIwNzgxMS4yOS4wLjA.
     if len(sys.argv) < 2:
            sys.exit("Need loc.csv file to visualize density. Example) python3 visualize_density.py sample_loc.csv")
-
+    video_path = sys.argv[1]
     loc_files = []
-    for idx in range(len(sys.argv) - 1):
-        loc_files.append(sys.argv[1].strip())
+    for idx in range(2, len(sys.argv)):
+        loc_files.append(sys.argv[idx].strip())
+
+
     all_loc = {}
     for loc_idx, loc_file in enumerate(loc_files):
         loc, loc_infos = read_localization(loc_file, None)
@@ -293,4 +395,4 @@ if __name__ == '__main__':
         all_loc[t_tmp] = np.array(all_loc[t_tmp])
 
     #make_loc_depth_image(loc_file, all_loc, multiplier=4, winsize=7, resolution=2, dim=3)
-    make_loc_radius_video(loc_file, all_loc, frame_cumul=1000, radius=[3, 20], start_frame=15000, end_frame=25000, gpu=True, gauss=True)
+    make_loc_radius_video(video_path, loc_files, all_loc, frame_cumul=1000, radius=[3, 20], start_frame=15000, end_frame=25000, gpu=True)
