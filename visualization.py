@@ -274,7 +274,7 @@ if __name__ == '__main__':
     output_path = 'image_sequences'
     images = 'test_samples/20250219-RPE-1-1C9-JF200nM-Hoetchst03-cell11.tiff'
     localization_file = 'outputs/20250219-RPE-1-1C9-JF200nM-Hoetchst03-cell11_loc.csv'
-    make_loc_radius_video(output_path, images, localization_file, frame_cumul=1000, radius=[3, 25], start_frame=15000, end_frame=25000, alpha1=0.6, alpha2=0.4, gpu=True)
+    make_loc_radius_video(output_path, images, localization_file, frame_cumul=1000, radius=[3, 25], start_frame=15000, end_frame=25000, alpha1=0.65, alpha2=0.35, gpu=True)
     
 
     output_path = 'image_sequences'
