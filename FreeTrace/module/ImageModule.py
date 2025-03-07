@@ -589,8 +589,11 @@ def remake_visual_localizations(output_path:str, localization_file:str, raw_imgs
     tifffile.imwrite(f'{output_path}/{filename}_{start_frame}_{end_frame}_locvideo.tiff', data=ret_img_stacks, imagej=True)
 
 
-def make_loc_radius_video(output_path:str, raw_imgs:str, localization_file:str, frame_cumul=100, radius=[1, 10], start_frame=1, end_frame=10000, alpha1=0.6, alpha2=0.4, gpu=False):
+def make_loc_radius_video(output_path:str, raw_imgs:str, localization_file:str, frame_cumul=100, radius=[1, 10], start_frame=1, end_frame=10000, alpha1=0.65, alpha2=0.35, gpu=False):
     assert 'loc.csv' in localization_file.split('/')[-1], "input localization file format is wrong, it needs video_loc.csv"
+    assert len(radius) == 2, "radius should be 2 length of list such as [1, 10]."
+    assert radius[0] < radius[1] and radius[0] > 0, "radius[0] should be smaller than radius[1] and radius[0] should be greater than 0."
+    assert 0.999 < alpha1 + alpha2 < 1.001, "Sum of alpha1 and alpha2 should be equal to 1."
     coords, coord_info = read_localization(localization_file)
     sequence_save_folder = f'{output_path}'
     filename = localization_file.split('/')[-1].split('.csv')[0]
