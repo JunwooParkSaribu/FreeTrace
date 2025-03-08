@@ -7,6 +7,9 @@ import subprocess
 """
 Pre-requisite: Corresponding Cuda versions.
 https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&Distribution=Ubuntu&target_version=24.04&target_type=deb_network
+
+Additional packages for GPU:
+https://docs.rapids.ai/install/?_gl=1*1lwgnt1*_ga*OTY3MzQ5Mzk0LjE3NDEyMDc2NDA.*_ga_RKXFW6CM42*MTc0MTIwNzY0MC4xLjEuMTc0MTIwNzgxMS4yOS4wLjA.
 """
 
 
