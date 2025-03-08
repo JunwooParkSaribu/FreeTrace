@@ -174,6 +174,22 @@ def read_localization(input_file, video=None):
         sys.exit(f'Err msg: {e}')
 
 
+def read_multiple_locs(input_files: list[str]):
+    all_locs = {}
+    all_locs_info ={}
+    for input_file in input_files:
+        loc, loc_info = read_localization(input_file)
+        cur_t_steps = list(loc.keys())
+        for cur_t in cur_t_steps:
+            if cur_t in all_locs:
+                all_locs[cur_t].extend(loc[cur_t])
+                all_locs_info[cur_t].extend(loc_info[cur_t])
+            else:
+                all_locs[cur_t] = loc[cur_t]
+                all_locs_info[cur_t] = loc_info[cur_t]
+    return all_locs, all_locs_info
+
+
 def read_andi2_trajectory_label(input_file, index=None):
     trajectory = {}
     if type(input_file) is str:
