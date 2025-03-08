@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from FreeTrace.module.TrajectoryObject import TrajectoryObj
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from multiprocessing import Queue, Process, Value
-from FreeTrace.module.FileIO import read_trajectory, read_localization
+from FreeTrace.module.FileIO import read_trajectory, read_localization, read_multiple_locs
 from scipy import stats
 from scipy.spatial import distance
 import itertools
@@ -829,9 +829,11 @@ def cps_visualization(image_save_path, video, cps_result, trace_result):
     time_steps = np.arange(video.shape[0])
     make_image_seqs(trajectory_list, output_dir=image_save_path, img_stacks=video, time_steps=time_steps, cutoff=2,
                     add_index=False, local_img=None, gt_trajectory=None, cps_result=cps_trajectories)
-    
 
-def make_loc_depth_image(output_dir, coords, multiplier=16, winsize=7, resolution=2, dim=2):
+
+def make_loc_depth_image(output_dir:str, coords:list, multiplier=4, winsize=7, resolution=2, dim=2):
+    assert len(coords) > 0, "no coordinate data or path"
+
     resolution = int(max(1, min(3, resolution)))  # resolution in [1, 2, 3]
     amp = 1
     multiplier = multiplier - 1 if multiplier % 2 == 1 else multiplier
@@ -841,14 +843,27 @@ def make_loc_depth_image(output_dir, coords, multiplier=16, winsize=7, resolutio
     margin_pixel = 2
     margin_pixel *= 10*amp_
     amp_*= resolution
-    time_steps = np.arange(len(coords))
-    all_coords = []
-    for t in time_steps:
-        for coord in coords[t]:
-            all_coords.append(coord)
-    all_coords = np.array(all_coords)
-    if len(all_coords) == 0:
-        return
+
+    if type(coords[0]) is str:
+        locs, infos = read_multiple_locs(coords)
+        time_steps = sorted(list(locs.keys()))
+        all_coords = []
+        for t in time_steps:
+            all_coords.extend(locs[t])
+        all_coords = np.array(all_coords)
+        # xy exchange
+        xy_flip = all_coords[:,1].copy()
+        all_coords[:,1] = all_coords[:,0]
+        all_coords[:,0] = xy_flip
+    else:
+        time_steps = np.arange(len(coords))
+        all_coords = []
+        for t in time_steps:
+            for coord in coords[t]:
+                all_coords.append(coord)
+        all_coords = np.array(all_coords)
+        if len(all_coords) == 0:
+            return
 
     x_min = np.min(all_coords[:, 1])
     x_max = np.max(all_coords[:, 1])
@@ -878,11 +893,11 @@ def make_loc_depth_image(output_dir, coords, multiplier=16, winsize=7, resolutio
         img_min, img_max = np.quantile(image, [0.01, 0.995])
         image = np.minimum(image, np.ones_like(image) * img_max)
         image = image / np.max(image)
-        plt.figure('Localization density', dpi=512)
-        plt.imshow(image, cmap=mycmap, origin='upper')
-        plt.axis('off')
-        plt.savefig(f'{output_dir}_loc_{dim}d_density.png', bbox_inches='tight')
-        plt.close('all')
+        image = (image * 255).astype(np.uint8)
+        image = plt.imshow(image, cmap=mycmap, origin='upper')
+        image = image.make_image(renderer=None, unsampled=True)[0][:,:,:3]
+        image = Image.fromarray(image)
+        image.save(f'{output_dir}_loc_{dim}d_density.png', dpi=(300, 300))
     else:
         z_coords = np.maximum((all_coords[:, 2] - z_min), np.zeros_like(all_coords[:, 2]))
         z_coords = np.minimum(z_coords, np.ones_like(z_coords) * (z_max - z_min))
@@ -908,11 +923,9 @@ def make_loc_depth_image(output_dir, coords, multiplier=16, winsize=7, resolutio
         img_min, img_max = np.quantile(image, [0.01, 0.995])
         image = np.minimum(image, np.ones_like(image) * img_max)
         image = image / np.max(image)
-        plt.figure('Localization density', dpi=512)
-        plt.imshow(image, origin='upper')
-        plt.axis('off')
-        plt.savefig(f'{output_dir}_loc_{dim}d_density.png', bbox_inches='tight')
-        plt.close('all')
+        image = (image * 255).astype(np.uint8)
+        image = Image.fromarray(image)
+        image.save(f'{output_dir}_loc_{dim}d_density.png', dpi=(300, 300))
 
 
 def quantification(window_size):

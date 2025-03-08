@@ -185,8 +185,12 @@ def read_multiple_locs(input_files: list[str]):
                 all_locs[cur_t].extend(loc[cur_t])
                 all_locs_info[cur_t].extend(loc_info[cur_t])
             else:
-                all_locs[cur_t] = loc[cur_t]
-                all_locs_info[cur_t] = loc_info[cur_t]
+                all_locs[cur_t] = list(loc[cur_t])
+                all_locs_info[cur_t] = list(loc_info[cur_t])
+    
+    for t in all_locs.keys():
+        all_locs[t] = np.array(all_locs[t])
+        all_locs_info[t] = np.array(all_locs_info[t])
     return all_locs, all_locs_info
 
 
