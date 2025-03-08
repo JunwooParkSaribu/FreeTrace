@@ -5,9 +5,9 @@ import tifffile
 import itertools
 import gc
 from scipy.spatial import distance
-from FreeTrace.module.ImageModule import make_loc_radius_video, remake_visual_trajectories, remake_visual_localizations
+from FreeTrace.module.ImageModule import make_loc_radius_video, remake_visual_trajectories, remake_visual_localizations, make_loc_depth_image
 
-
+"""
 def read_localization(input_file, video=None):
     locals = {}
     locals_info = {}
@@ -265,19 +265,25 @@ def make_loc_radius_video2(output_dir, coords, frame_cumul=100, radius=[1, 10], 
         #    for i in range(len(stacked_imgs)):
         #        writer.append_data(np.array(stacked_imgs[i]))
         tifffile.imwrite(f'{output_dir}_loc_{dim}d_density_video.tiff', data=mapped_imgs, imagej=True)
-
+"""
 
 if __name__ == '__main__':
     # https://docs.rapids.ai/install/?_gl=1*1lwgnt1*_ga*OTY3MzQ5Mzk0LjE3NDEyMDc2NDA.*_ga_RKXFW6CM42*MTc0MTIwNzY0MC4xLjEuMTc0MTIwNzgxMS4yOS4wLjA.
+    """
+    output_path = 'outputs'
+    coords_path = ['outputs/Tubulin-A647-3D-stacks_1_0_loc.csv', 'outputs/Tubulin-A647-3D-stacks_1_1_loc.csv', 'outputs/Tubulin-A647-3D-stacks_2_0_loc.csv', 'outputs/Tubulin-A647-3D-stacks_2_1_loc.csv',
+                   'outputs/Tubulin-A647-3D-stacks_3_0_loc.csv', 'outputs/Tubulin-A647-3D-stacks_3_1_loc.csv', 'outputs/Tubulin-A647-3D-stacks_4_0_loc.csv', 'outputs/Tubulin-A647-3D-stacks_4_1_loc.csv']
+    make_loc_depth_image(output_path, coords_path, multiplier=4, winsize=7, resolution=2, dim=3)
+    """
 
-    
-    output_path = 'image_sequences'
-    images = 'test_samples/20250219-RPE-1-1C9-JF200nM-Hoetchst03-cell11.tiff'
+
+    output_path = 'outputs'
+    images = 'inputs/20250219-RPE-1-1C9-JF200nM-Hoetchst03-cell11.tiff'
     localization_file = 'outputs/20250219-RPE-1-1C9-JF200nM-Hoetchst03-cell11_loc.csv'
     make_loc_radius_video(output_path, images, localization_file, frame_cumul=1000, radius=[3, 25], start_frame=15000, end_frame=25000, alpha1=0.65, alpha2=0.35, gpu=True)
     
 
-    output_path = 'image_sequences'
+    output_path = 'outputs'
     images = 'inputs/sample0.tiff'
     localization_file = 'outputs/sample0_loc.csv'
     trajectory_file = 'outputs/sample0_traces.csv'
