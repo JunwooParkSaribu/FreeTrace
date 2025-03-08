@@ -268,7 +268,6 @@ def make_loc_radius_video2(output_dir, coords, frame_cumul=100, radius=[1, 10], 
 """
 
 if __name__ == '__main__':
-    # https://docs.rapids.ai/install/?_gl=1*1lwgnt1*_ga*OTY3MzQ5Mzk0LjE3NDEyMDc2NDA.*_ga_RKXFW6CM42*MTc0MTIwNzY0MC4xLjEuMTc0MTIwNzgxMS4yOS4wLjA.
     """
     output_path = 'outputs'
     coords_path = ['outputs/Tubulin-A647-3D-stacks_1_0_loc.csv', 'outputs/Tubulin-A647-3D-stacks_1_1_loc.csv', 'outputs/Tubulin-A647-3D-stacks_2_0_loc.csv', 'outputs/Tubulin-A647-3D-stacks_2_1_loc.csv',
