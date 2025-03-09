@@ -1,7 +1,7 @@
 import os
 import sys
-from datetime import datetime
 from tqdm import tqdm
+from datetime import datetime
 from FreeTrace import Tracking, Localization
 
 

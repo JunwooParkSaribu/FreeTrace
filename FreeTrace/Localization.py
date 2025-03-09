@@ -1,12 +1,13 @@
 import numpy as np
 import tifffile
 import concurrent.futures
+from tqdm import tqdm
 from functools import lru_cache
 from FreeTrace.module import image_pad
 from FreeTrace.module import regression
-from FreeTrace.module.FileIO import write_localization, initialization
-from FreeTrace.module.ImageModule import draw_cross, make_loc_depth_image, read_tif
-from tqdm import tqdm
+from FreeTrace.module.data_save import write_localization
+from FreeTrace.module.auxiliary import initialization, calibration_3d
+from FreeTrace.module.image_module import draw_cross, make_loc_depth_image, read_tif
 
 
 def region_max_filter2(maps, window_size, thresholds, detect_range=0):
@@ -487,16 +488,6 @@ def image_regression(imgs, bgs, window_size, p0, decomp_n, amp=0, repeat=5):
     return pdfs, variables[:, 1], variables[:, 3], variables[:, 0], variables[:, 2], variables[:, 5], variables[:, 4]
 
 
-def calibration_3d(xyz_coords, reg_infos, calib_data):
-    for t in range(len(xyz_coords)):
-        for particle_idx in range(len(xyz_coords[t])):
-            xvar = reg_infos[t][particle_idx][0]
-            yvar = reg_infos[t][particle_idx][1]
-            z_coord = (yvar - xvar)
-            xyz_coords[t][particle_idx][2] = z_coord
-    return xyz_coords
-
-
 def make_red_circles(imgs, localized_xys, hstack=False):
     if hstack:
         original_imgs = imgs.copy()
@@ -686,7 +677,7 @@ def run(input_video_path:str, output_path:str, window_size=9, threshold=1.0, def
 
     realtime_obj = None
     if realtime_visualization:
-        from FreeTrace.module.ImageModule import RealTimePlot
+        from FreeTrace.module.image_module import RealTimePlot
         realtime_obj = RealTimePlot(f'Localization : {input_video_path}', show_frame=True)
         realtime_obj.turn_on()
 

@@ -1,5 +1,6 @@
-import csv
 import os
+import csv
+import numpy as np
 
 
 def save_report(data: list, path='', all=False) -> list:
@@ -87,78 +88,6 @@ def save_report(data: list, path='', all=False) -> list:
     return report_names
 
 
-def save_diffcoef(data, path='', all=False):
-    """
-    @params : data(list), path(String), all(boolean)
-    Save diffusion coefficient of each trajectory and the ratio of population.
-    """
-    histones = {}
-
-    for chunked_data in data:
-        histones |= chunked_data
-
-    if not all:
-        histone_names = list(histones.keys())
-        filenames = set()
-        for histone in histone_names:
-            filenames.add(histone.split('\\')[-1].split('@')[0])
-
-        for filename in filenames:
-            h = {}
-            for histone in histone_names:
-                if filename in histone:
-                    h[histone] = histones[histone]
-            write_file_name = f'{path}/{filename}_diffcoef.csv'
-
-            with open(f'{path}/{filename}_ratio.txt', 'w', newline='') as ratio_file:
-                report_name = f'{path}/{filename}.csv'
-                ratio = DataAnalysis.ratio_calcul(report_name)
-                ratio_file.write(f'(immobile:hybrid:mobile):{ratio}\n')
-                ratio_file.close()
-
-            with open(write_file_name, 'w', newline='') as f:
-                fieldnames = ['filename', 'h2b_id', 'diffusion_coef']
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
-                writer.writeheader()
-
-                for i, key in enumerate(h):
-                    file_name = histones[key].get_file_name()
-                    h2b_id = histones[key].get_id()
-                    diff_coefs = histones[key].get_diff_coef()
-                    for j, diff_coef in enumerate(diff_coefs):
-                        if j == 0:
-                            writer.writerow({'filename': file_name, 'h2b_id': h2b_id, 'diffusion_coef': diff_coef})
-                        else:
-                            writer.writerow({'diffusion_coef': diff_coef})
-
-    else:
-        write_file_name = f'{path}/prediction_all_diffcoef.csv'
-        with open(f'{path}/prediction_all_ratio.txt', 'w', newline='') as ratio_file:
-            report_name = f'{path}/prediction_all.csv'
-            ratio = DataAnalysis.ratio_calcul(report_name)
-            ratio_file.write(f'(immobile:hybrid:mobile):{ratio}\n')
-            ratio_file.close()
-
-        with open(write_file_name, 'w', newline='') as f:
-            report_name = f'{path}/prediction_all.csv'
-            ratio = DataAnalysis.ratio_calcul(report_name)
-            f.write(f'(immobile:hybrid:mobile):{ratio}\n')
-
-            fieldnames = ['filename', 'h2b_id', 'diffusion_coef']
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
-
-            for i, key in enumerate(histones):
-                file_name = histones[key].get_file_name()
-                h2b_id = histones[key].get_id()
-                diff_coefs = histones[key].get_diff_coef()
-                for j, diff_coef in enumerate(diff_coefs):
-                    if j == 0:
-                        writer.writerow({'filename': file_name, 'h2b_id': h2b_id, 'diffusion_coef': diff_coef})
-                    else:
-                        writer.writerow({'diffusion_coef': diff_coef})
-
-
 def write_model_info(training_model, path: str, history: list, nb_histones: int, date: str) -> str:
     """
     @params : model(tensorflow model object), path(String), history(list), nb_histones(Integer), data(String)
@@ -195,6 +124,55 @@ def write_trxyt(file: str, trajectory_list: list, pixel_microns=1.0, frame_rate=
             for index, trajectory_obj in enumerate(trajectory_list):
                 for (xpos, ypos, zpos), time in zip(trajectory_obj.get_positions(), trajectory_obj.get_times()):
                     input_str += f'{index}\t{xpos * pixel_microns:.5f}\t{ypos * pixel_microns:.5f}\t{time * frame_rate:.3f}\n'
+            f.write(input_str)
+    except Exception as e:
+        print(f"Unexpected error, check the file: {file}")
+        print(e)
+
+
+def write_trxyt(file: str, trajectory_list: list, pixel_microns=1.0, frame_rate=1.0):
+    try:
+        with open(file, 'w', encoding="utf-8") as f:
+            input_str = ''
+            for index, trajectory_obj in enumerate(trajectory_list):
+                for (xpos, ypos, zpos), time in zip(trajectory_obj.get_positions(), trajectory_obj.get_times()):
+                    input_str += f'{index}\t{xpos * pixel_microns:.5f}\t{ypos * pixel_microns:.5f}\t{time * frame_rate:.3f}\n'
+            f.write(input_str)
+    except Exception as e:
+        print(f"Unexpected error, check the file: {file}")
+        print(e)
+
+
+def write_localization(output_dir, coords, all_pdfs, infos):
+    lines = f'frame,x,y,z,xvar,yvar,rho,norm_cst,intensity,window_size\n'
+    for frame, (coord, pdfs, info) in enumerate(zip(coords, all_pdfs, infos)):
+        for pos, (x_var, y_var, rho, amp), pdf in zip(coord, info, pdfs):
+            window_size = int(np.sqrt(len(pdf)))
+            peak_val = pdf[int((len(pdf) - 1) / 2)]
+            lines += f'{frame + 1}'
+            if len(pos) == 3:
+                lines += f',{pos[1]},{pos[0]},{pos[2]}'
+            elif len(pos) == 2:
+                lines += f',{pos[1]},{pos[0]},0.0'
+            elif len(pos) == 1:
+                lines += f',{pos[0]},0.0,0.0'
+            else:
+                print(f'Localization writing Err')
+                raise Exception
+            lines += f',{x_var},{y_var},{rho},{amp},{peak_val},{window_size}'
+            lines += f'\n'
+
+    with open(f'{output_dir}_loc.csv', 'w') as f:
+        f.write(lines)
+
+
+def write_trajectory(file: str, trajectory_list: list):
+    try:
+        with open(file, 'w', encoding="utf-8") as f:
+            input_str = 'traj_idx,frame,x,y,z\n'
+            for trajectory_obj in trajectory_list:
+                for (xpos, ypos, zpos), time in zip(trajectory_obj.get_positions(), trajectory_obj.get_times()):
+                    input_str += f'{trajectory_obj.get_index()},{time},{xpos},{ypos},{zpos}\n'
             f.write(input_str)
     except Exception as e:
         print(f"Unexpected error, check the file: {file}")

@@ -1,5 +1,5 @@
-from FreeTrace.module.TrajectoryObject import TrajectoryObj as trajobj
 import numpy as np
+from FreeTrace.module.trajectory_object import TrajectoryObj as trajobj
 
 
 def write_xml(output_file: str, trajectory_list: list, snr='4',

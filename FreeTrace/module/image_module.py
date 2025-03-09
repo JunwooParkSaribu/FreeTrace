@@ -1,21 +1,22 @@
 import sys
 import time
-import pandas as pd
-import numpy as np
 import cv2
 import os
+import pandas as pd
+import numpy as np
 import imageio
-from PIL import Image
 import tifffile
 import tkinter as tk
+import itertools
 import matplotlib.pyplot as plt
-from FreeTrace.module.TrajectoryObject import TrajectoryObj
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from multiprocessing import Queue, Process, Value
-from FreeTrace.module.FileIO import read_trajectory, read_localization, read_multiple_locs
+from tqdm import tqdm
+from PIL import Image
 from scipy import stats
 from scipy.spatial import distance
-import itertools
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from multiprocessing import Queue, Process, Value
+from FreeTrace.module.trajectory_object import TrajectoryObj
+from FreeTrace.module.data_load import read_trajectory, read_localization, read_multiple_locs
 
 
 class NormalTkExit(Exception):
@@ -551,6 +552,7 @@ def remake_visual_trajectories(output_path:str, trajectory_file:str, raw_imgs:st
         ret_img_stacks.append((img * 255).astype(np.uint8))
     ret_img_stacks = np.array(ret_img_stacks, dtype=np.uint8)
     tifffile.imwrite(f'{output_path}/{filename}_{start_frame+1}_{end_frame}_tracevideo.tiff', data=ret_img_stacks, imagej=True)
+    print(f'{output_path}/{filename}_{start_frame+1}_{end_frame}_tracevideo.tiff is successfully generated.')
 
 
 def remake_visual_localizations(output_path:str, localization_file:str, raw_imgs:str, start_frame=1, end_frame=10000, upscaling:int=1):
@@ -587,6 +589,7 @@ def remake_visual_localizations(output_path:str, localization_file:str, raw_imgs
         ret_img_stacks.append(img)
     ret_img_stacks = np.array(ret_img_stacks, dtype=np.uint8)
     tifffile.imwrite(f'{output_path}/{filename}_{start_frame}_{end_frame}_locvideo.tiff', data=ret_img_stacks, imagej=True)
+    print(f'{output_path}/{filename}_{start_frame}_{end_frame}_locvideo.tiff is successfully generated.')
 
 
 def make_loc_radius_video(output_path:str, raw_imgs:str, localization_file:str, frame_cumul=100, radius=[1, 10], start_frame=1, end_frame=10000, alpha1=0.65, alpha2=0.35, gpu=False):
@@ -600,7 +603,6 @@ def make_loc_radius_video(output_path:str, raw_imgs:str, localization_file:str, 
     if not os.path.exists(sequence_save_folder):
         os.mkdir(sequence_save_folder)
 
-    images = read_tif(raw_imgs)[start_frame-1:end_frame,:,:]
     if gpu:
         import cupy as cp
         from cuvs.distance import pairwise_distance
@@ -610,6 +612,8 @@ def make_loc_radius_video(output_path:str, raw_imgs:str, localization_file:str, 
     time_steps = np.array(sorted(list(coords.keys())))
     end_frame = min(end_frame, time_steps[-1])
     start_frame = max(start_frame, time_steps[0])
+    images = read_tif(raw_imgs)[start_frame-1:end_frame,:,:]
+    PBAR = tqdm(total=end_frame - start_frame + 1, desc="Radius calcul", unit="frame", ncols=120)
 
     all_coords = []
     stacked_coords = {t:[] for t in time_steps if start_frame <= t <= end_frame}
@@ -618,7 +622,7 @@ def make_loc_radius_video(output_path:str, raw_imgs:str, localization_file:str, 
 
     for t in time_steps:
         if start_frame <= t <= end_frame:
-            if t%10 == 0: print(f'Calcul radius on cumulated molecules at frame:{t}')     
+            PBAR.update(1)
             for coord in coords[t]:
                 if len(coord) == 3:
                     all_coords.append(coord)
@@ -656,6 +660,7 @@ def make_loc_radius_video(output_path:str, raw_imgs:str, localization_file:str, 
             cur_max_count = np.max(stacked_radii[t])
             count_max = max(cur_max_count, count_max)
     all_coords = np.array(all_coords)
+    PBAR.close()
     if len(all_coords) == 0:
         return
 
@@ -666,11 +671,14 @@ def make_loc_radius_video(output_path:str, raw_imgs:str, localization_file:str, 
     y_max = np.max(all_coords[:, 1])
     mycmap = plt.get_cmap('jet', lut=None)
     video_arr = np.empty([images.shape[0], images.shape[1], images.shape[2], 4], dtype=np.uint8)
+    PBAR = tqdm(total=video_arr.shape[0], desc="Rendering", unit="frame", ncols=120)
     X, Y = np.mgrid[x_min:x_max:complex(f'{images.shape[2]}j'), y_min:y_max:complex(f'{images.shape[1]}j')]
     positions = np.vstack([X.ravel(), Y.ravel()])
     for time in time_steps:
         if start_frame <= time <= end_frame:
-            if time%50 == 0: print(f'Rendering the image of frame:{time}') 
+            PBAR.update(1)
+            if images[image_idx: image_idx + frame_cumul,:,:].shape[0] == 0:
+                break
             selected_coords = stacked_coords[time]
             selected_radii = stacked_radii[time]
             if len(selected_coords) > 0:
@@ -687,7 +695,10 @@ def make_loc_radius_video(output_path:str, raw_imgs:str, localization_file:str, 
                 blended = cv2.addWeighted(arr, alpha1, arr2, alpha2, 0.0)
                 video_arr[image_idx] = blended
             image_idx += 1
+
     tifffile.imwrite(f'{sequence_save_folder}/{filename}_density_video_frame_{start_frame}_{end_frame}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}.tiff', data=video_arr, imagej=True)
+    PBAR.close()
+    print(f'{sequence_save_folder}/{filename}_density_video_frame_{start_frame}_{end_frame}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}.tiff is successfully generated.')
 
 
 def make_red_circles(imgs, localized_xys, hstack=False):

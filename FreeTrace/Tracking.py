@@ -10,10 +10,12 @@ import networkx as nx
 from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
 from sklearn.model_selection import GridSearchCV
 from scipy.stats import multivariate_normal
-from FreeTrace.module.TrajectoryObject import TrajectoryObj
-from FreeTrace.module.ImageModule import read_tif, make_image_seqs, make_whole_img
-from FreeTrace.module.XmlModule import write_xml
-from FreeTrace.module.FileIO import write_trajectory, read_localization, initialization
+from FreeTrace.module.trajectory_object import TrajectoryObj
+from FreeTrace.module.image_module import read_tif, make_image_seqs, make_whole_img
+from FreeTrace.module.data_save import write_trajectory
+from FreeTrace.module.data_load import read_localization
+from FreeTrace.module.auxiliary import initialization
+from FreeTrace.module.xml_module import write_xml
 
 
 @lru_cache
@@ -686,7 +688,7 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
 
     realtime_obj = None
     if realtime_visualization:
-        from FreeTrace.module.ImageModule import RealTimePlot
+        from FreeTrace.module.image_module import RealTimePlot
         realtime_obj = RealTimePlot('Tracking', job_type='track', show_frame=True)
         realtime_obj.turn_on()
 
