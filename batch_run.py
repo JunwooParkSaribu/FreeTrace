@@ -1,3 +1,7 @@
+"""
+Run FreeTrace on multiple .tiff files.
+"""
+
 import os
 import sys
 from tqdm import tqdm

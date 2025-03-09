@@ -1,3 +1,7 @@
+"""
+Manipulation of result data including cropping, remake of video with upscaling and etc.
+"""
+
 from FreeTrace.module.image_module import make_loc_radius_video, remake_visual_trajectories, remake_visual_localizations, make_loc_depth_image
 from FreeTrace.module.auxiliary import crop_trace_roi_and_frame
 
