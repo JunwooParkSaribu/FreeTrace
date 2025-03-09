@@ -1,5 +1,5 @@
 """
-Run FreeTrace on single .tiff file.
+Run FreeTrace on single .tiff file. 
 """
 
 import os
