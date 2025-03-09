@@ -148,8 +148,8 @@ def crop_trace_roi_and_frame(trace_file:str, roi_file:str|None, start_frame:0, e
 
     print(f'cropping info: ROI[{roi_file}],  Frame:[{start_frame}, {end_frame}]')
     print(f'Number of trajectories before filtering:{len(trajectory_list)}, after filtering:{len(filtered_trajectory_list)}')
-    write_trajectory(f'{".".join(trace_file.split("traces.csv")[:-1])}cropped_traces_{start_frame}_{end_frame}.csv', filtered_trajectory_list)
-    print(f'{".".join(trace_file.split("traces.csv")[:-1])}cropped_traces_{start_frame}_{end_frame}.csv is successfully generated.')
+    write_trajectory(f'{".".join(trace_file.split("traces.csv")[:-1])}cropped_{start_frame}_{end_frame}_traces.csv', filtered_trajectory_list)
+    print(f'{".".join(trace_file.split("traces.csv")[:-1])}cropped_{start_frame}_{end_frame}_traces.csv is successfully generated.')
 
     if crop_comparison:
         dummy_stack = np.empty((1, int(ymax+1), int(xmax+1), 1))
