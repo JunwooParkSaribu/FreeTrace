@@ -1,3 +1,7 @@
+"""
+Run FreeTrace on single .tiff file.
+"""
+
 import os
 import sys
 from FreeTrace import Tracking, Localization
