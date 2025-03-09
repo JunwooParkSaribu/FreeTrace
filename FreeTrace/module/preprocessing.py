@@ -1,9 +1,9 @@
 import numpy as np
 import pandas as pd
 import networkx as nx
-from itertools import product
-from FreeTrace.module import DataLoad
 from tqdm import tqdm
+from itertools import product
+from FreeTrace.module import data_load
 
 
 def preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=True, color=None):
@@ -302,16 +302,18 @@ def simple_preprocessing(data, pixelmicrons, framerate, cutoff, tamsd_calcul=Tru
     print('** preprocessing finished **')
     return analysis_data1, analysis_data2, msd, tamsd
 
+
 def post(sin):
     px = []
     for i in range(len(sin)):
         px.append(np.mean(np.array(sin)[np.random.RandomState(i).randint(0, len(sin), size=int(8))]))
     return np.array(px)
 
+
 def get_groundtruth_with_label(folder, label_folder, pixelmicrons, framerate, cutoff, tamsd_calcul=True):
     # load FreeTrace+Bi-ADD data with NaN since we have ground-truth.
-    data = DataLoad.read_multiple_h5s(folder)
-    label = DataLoad.read_mulitple_andi_labels(label_folder)
+    data = data_load.read_multiple_h5s(folder)
+    label = data_load.read_mulitple_andi_labels(label_folder)
     state_tmp = []
     for label_key in label.keys():
         state_tmp.extend(list(label[label_key][:, 2]))

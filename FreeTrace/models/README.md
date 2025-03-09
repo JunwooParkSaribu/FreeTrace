@@ -7,5 +7,6 @@ Python3.10 : tensorflow2.14 &#8594; pre-trained models [downloads](https://psilo
 </br> 
 Tensorflow performs an additional inference step for the trajectory reconstruction in tracking step.</br>
 This would make FreeTrace slower because of the additional inference, however the inference will be powered by neural networks for better quality.</br>
-If you don't want to turn on this additional inference, please set GPU_ON to False. With GPU_ON=False, FreeTrace doesn't use Tensorflow.</br>
+If you don't want to turn on this additional inference, please set the parameter of tracking, gpu_on to False. With gpu_on=False, FreeTrace won't use Tensorflow.</br>
+The downloads of above models and C compilations can be automatically done via importing FreeTrace.installtion in python interpreter on Linux.</br>
 ***
