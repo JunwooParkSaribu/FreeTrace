@@ -93,18 +93,21 @@ def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False, batch=False)
     return cuda, TF
 
 
-def crop_trace_roi_and_frame(trace_file:str, roi_file:str|None, start_frame:0, end_frame:9999999, crop_comparison=False):
+def crop_trace_roi_and_frame(trace_file:str, roi_file:str|None, start_frame:0, end_frame:9999999, option=0, crop_comparison=False):
     """
     Cropping trajectory result with ROI(region of interest) or frames.
     trace_file: video_traces.csv or equivalent format of trajectory result file.
     roi_file: region_of_interest.roi which containes the roi information in pixel.
     start_frame: start frame to crop the trajectory result with frame.
     end_frame: end frame to crop the trajectory result with frame.
+    option: 0 -> considers the trajectories stay only inside the ROI. 1 -> incldues all the trajectories passing trough the ROI.
     crop_comparison: boolean to visualize cropped result.
     """
 
     assert "traces.csv" in trace_file, "Wrong trajectory file format, result_traces.csv is needed to crop with ROI or frames"
     assert end_frame > start_frame, "The number of end frame must be greater than start frame."
+    assert option == 0 or option == 1, "The option must be 0 or 1. 0: consider the trajectories stay only inside the ROI. 1: incldues all the trajectories passed the ROI."
+
     if roi_file is None:
         contours = None
     elif type(roi_file) is str and len(roi_file) == 0:
@@ -133,18 +136,27 @@ def crop_trace_roi_and_frame(trace_file:str, roi_file:str|None, start_frame:0, e
         xmax = max(np.max(xs), xmax)
         ymax = max(np.max(ys), ymax)
 
-        if contours is not None:
-            for x, y in zip(xs, ys):
-                masked = cv2.pointPolygonTest(contours, (x, y), False)
-                if masked == -1:
-                    skip = 1
-                    break
-            
-            if skip == 1:
-                continue
+        if option == 0:
+            if contours is not None:
+                for x, y in zip(xs, ys):
+                    masked = cv2.pointPolygonTest(contours, (x, y), False)
+                    if masked == -1:
+                        skip = 1
+                        break
+                
+                if skip == 1:
+                    continue
 
-        if times[0] >= start_frame and times[-1] <= end_frame:
-            filtered_trajectory_list.append(trajectory)
+            if times[0] >= start_frame and times[-1] <= end_frame:
+                filtered_trajectory_list.append(trajectory)
+        else:
+            if contours is not None:
+                for x, y in zip(xs, ys):
+                    masked = cv2.pointPolygonTest(contours, (x, y), False)
+                    if masked == 1:
+                        if times[0] >= start_frame and times[-1] <= end_frame:
+                            filtered_trajectory_list.append(trajectory)
+                        break
 
     print(f'cropping info: ROI[{roi_file}],  Frame:[{start_frame}, {end_frame}]')
     print(f'Number of trajectories before filtering:{len(trajectory_list)}, after filtering:{len(filtered_trajectory_list)}')
