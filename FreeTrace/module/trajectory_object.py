@@ -10,9 +10,8 @@ class TrajectoryObj:
         self.localizations = localizations
         self.times = []
         self.closed = False
-        self.color = (np.random.randint(0, 256)/255.,
-                      np.random.randint(0, 256)/255.,
-                      np.random.randint(0, 256)/255.)
+        rints = np.random.default_rng(self.index).integers(low=0, high=256, size=3)
+        self.color = (rints[0]/255., rints[1]/255., rints[2]/255.)
         self.optimality = 0.
         self.positions = []
 
