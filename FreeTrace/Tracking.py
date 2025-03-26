@@ -410,20 +410,20 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
         log_p0, abnormal = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
         trajectories_costs[next_path] = initial_cost + abs(log_p0) 
     else:
-        """
+        
         before_node = next_path[1]
         next_node = next_path[2]
         time_gap = next_node[0] - before_node[0] - 1
         next_coord = localizations[next_node[0]][next_node[1]]
         cur_coord = localizations[before_node[0]][before_node[1]]
         input_mu = next_coord - cur_coord
-        log_p0, abnormal = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
-        if abnormal:
+        log_p0, abnormal1 = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
+        if abnormal1:
             abnomral_jump_score += abnormal_penalty
             ab_index.append(1)
-        time_score += time_gap * time_penalty
+        #time_score += time_gap * time_penalty
         traj_cost.append(abs(log_p0))
-        """
+        
 
         for edge_index in range(3, len(next_path)):
             if abnormal:
@@ -431,7 +431,7 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
                 prev_k = 2.0
                 if prev_path is not None:
                     prev_path = [prev_path[0]]
-
+            
             bebefore_node = next_path[edge_index - 2]
             before_node = next_path[edge_index - 1]
             next_node = next_path[edge_index]
@@ -439,11 +439,11 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
             next_coord = localizations[next_node[0]][next_node[1]]
             cur_coord = localizations[before_node[0]][before_node[1]]
             before_coord = localizations[bebefore_node[0]][bebefore_node[1]]
-
+            """
             input_mu = cur_coord - before_coord
             log_p0, abnormal1 = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
             traj_cost.append(abs(log_p0))
-
+            """
 
             if prev_path is not None and not abnormal:
                 prev_path.append(before_node)
@@ -453,7 +453,7 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
 
             log_p0, abnormal2 = predict_cauchy((next_coord - cur_coord), (cur_coord- before_coord), prev_alpha, time_gap, 0.5, prev_k)
             
-            if abnormal1 or abnormal2 and edge_index != len(next_path) - 1:
+            if abnormal2 and edge_index != len(next_path) - 1:
                 abnomral_jump_score += abnormal_penalty
                 ab_index.append(edge_index - 1)
             traj_cost.append(abs(log_p0))
@@ -469,9 +469,9 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
         if len(traj_cost) > 1:
             print(np.mean(traj_cost[:-1]), np.mean(traj_cost))
             if not terminal:
-                final_score = np.mean(traj_cost[:-1]) + abnomral_jump_score + time_score
+                final_score = np.mean(traj_cost[:-1]) + abnomral_jump_score + time_score + np.std(traj_cost[:-1])
             else:
-                final_score = np.mean(traj_cost) + abnomral_jump_score + time_score
+                final_score = np.mean(traj_cost) + abnomral_jump_score + time_score + np.std(traj_cost)
         else:
             final_score = abnormal_penalty + time_score + traj_cost[0]
 
@@ -503,6 +503,9 @@ def generate_next_paths(next_graph:nx.graph, init_graph:nx.graph, localizations,
                         jump_d_pos1 = []
                         jump_d_pos2 = []
                         node_loc = localizations[last_node[0]][last_node[1]]
+                        print(next_times)
+                        print(list(localizations.keys()))
+                        print(cumulative_last_nodes)
                         for next_idx, loc in enumerate(localizations[cur_time]):
                             if len(loc) == 3 and len(node_loc) == 3:
                                 jump_d_pos1.append([loc[0], loc[1], loc[2]])
@@ -780,7 +783,7 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
     light_prev_graph.add_node(source_node)
     next_graph.add_node(source_node)
     next_graph.add_edges_from([((0, 0), (t_avail_steps[0], index), {'jump_d':-1}) for index in range(len(localization[t_avail_steps[0]]))])
-    selected_time_steps = np.arange(t_avail_steps[0] + 1, t_avail_steps[0] + 1 + time_forecast)
+    selected_time_steps = np.arange(t_avail_steps[0], min(t_avail_steps[0] + 1 + time_forecast, t_avail_steps[-1] + 1))
     saved_time_steps = 1
     mysum = 0
 
@@ -799,6 +802,7 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
             PBAR.update(pbar_update)
 
         if len(set(selected_time_steps).intersection(set(t_avail_steps))) != 0:
+            print("SELECTED_TIME_STEPS:", selected_time_steps)
             selected_sub_graph = select_opt_graph2(final_graph, light_prev_graph, next_graph, localization, selected_time_steps, distribution, first_construction, last_time)
         else:
             selected_sub_graph = nx.DiGraph()
@@ -875,8 +879,13 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
                                     if (before_node, next_node) not in final_graph.edges:
                                         final_graph.add_edge(before_node, next_node)                    
 
-                   
-        
+        ## start time -> node min not in final graph from selected time steps
+        for time in selected_time_steps:
+            for node_idx in range(len(localization[time])):
+                node = tuple([time, node_idx])
+                if node not in final_graph.nodes:
+                    start_time = min(start_time, node[0])
+
         if last_time in selected_time_steps:
             if VERBOSE:
                 PBAR.update(image_length - mysum)
