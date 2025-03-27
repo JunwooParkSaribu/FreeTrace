@@ -76,6 +76,7 @@ def predict_cauchy(next_vec, prev_vec, alpha, lag, precision, prev_k):
 
     rho = 1/2. * ((lag)**alpha + (lag+2)**alpha - 2*(lag+1)**alpha)
     scale = math.sqrt(abs(1-rho**2))
+    tau = lag+1
     print("Cauchy")
     for vec1, vec2 in zip(next_vec[:dim], prev_vec[:dim]):
         if vec1 < 0:
@@ -89,7 +90,7 @@ def predict_cauchy(next_vec, prev_vec, alpha, lag, precision, prev_k):
         coord = vec1 / vec2
         if abs(coord-rho) > 8 * scale:
             abnormal = True
-        log_pdf += math.log(1/(math.pi * scale) * 1/(1 + ((coord-rho)/scale)**2))
+        log_pdf += math.log(1/(math.pi * scale) * 1/(tau + ((coord-rho*tau)/scale)**2)/tau)
         print(log_pdf, next_vec, prev_vec, alpha, lag, precision)
 
     return log_pdf, abnormal
