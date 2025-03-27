@@ -75,7 +75,7 @@ def predict_cauchy(next_vec, prev_vec, alpha, lag, precision, prev_k):
     abnormal = False
 
     rho = 1/2. * ((lag)**alpha + (lag+2)**alpha - 2*(lag+1)**alpha)
-    scale = math.sqrt(abs(1-rho**2))
+    scale = math.sqrt(abs(1-rho**2)) ## TODO
     tau = lag+1
     print("Cauchy")
     for vec1, vec2 in zip(next_vec[:dim], prev_vec[:dim]):
@@ -88,7 +88,7 @@ def predict_cauchy(next_vec, prev_vec, alpha, lag, precision, prev_k):
         else:
             vec2 += precision
         coord = vec1 / vec2
-        if abs(coord-rho) > 8 * scale:
+        if abs(coord-rho) > 8 * scale: ## TODO
             abnormal = True
         log_pdf += math.log(1/(math.pi * scale) * 1/(tau + ((coord-rho*tau)/scale)**2)/tau)
         print(log_pdf, next_vec, prev_vec, alpha, lag, precision)
@@ -463,9 +463,6 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
             time_gaps += (next_path[node_idx+1][0] - next_path[node_idx][0]) - 1
         time_score += time_gaps * time_penalty
         traj_cost = np.array(traj_cost)
-        #time_score += (max_path_len - len(next_path)) * time_penalty
-
-        
 
         if len(traj_cost) > 1:
             print(np.mean(traj_cost[:-1]), np.mean(traj_cost))
@@ -605,18 +602,17 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
     trajectories_costs = {tuple(next_path):None for next_path in find_paths(next_graph, source=source_node)}
     next_paths = list(find_paths(next_graph, source=source_node))
     ab_indice = {}
-    max_path_len = 0
     is_terminals = {}
+    orphans = []
 
     while True:
-        orphans = []
+        
         cost_copy = {}
 
         # Cost copy, conversion to tuple, start_index write.
         next_paths = list(find_paths(next_graph, source=source_node))
         print('\nSELECTED PATH --------------------------------------------##_#_#_#_#_#_#_#_#_#_#_')
         for path in next_paths:
-            max_path_len = max(max_path_len, len(path))
             print(path)
         print('SELEC END')
         if len(next_paths) == 1 and len(next_paths[0])==1 and tuple(next_paths[0][0]) == source_node:
@@ -694,7 +690,6 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
 
             next_paths = list(find_paths(next_graph, source=source_node))
             for path_idx in range(len(next_paths)):
-                print(next_paths[path_idx])
                 next_paths[path_idx] = tuple(next_paths[path_idx])
             for next_path in next_paths:
                 if next_path not in trajectories_costs:
@@ -728,10 +723,12 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
         
         """
         # add edges from source to orphans
+        print("ORPHA", lowest_cost_traj)
         for rm_node in lowest_cost_traj[1:-1]:
             for neighbor in next_graph.neighbors(rm_node):
                 if neighbor not in lowest_cost_traj and neighbor not in orphans:
                     orphans.append(neighbor)
+        print("orph", orphans)
         """
         if is_terminals[lowest_cost_traj]:
             for del_node in lowest_cost_traj[1:]:
@@ -769,7 +766,13 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
         prev_lowest = list(lowest_cost_traj).copy()
         prev_lowest = tuple(prev_lowest)
 
-    return selected_graph
+    for time in next_times:
+        for node_idx in range(len(localizations[time])):
+            cur_node = tuple([time, node_idx])
+            if len(localizations[time][node_idx]) == 3 and cur_node not in selected_graph.nodes and cur_node not in final_graph.nodes:
+                orphans.append(cur_node)
+
+    return selected_graph, len(orphans) > 0
 
 
 def forecast(localization: dict, t_avail_steps, distribution, image_length, realtime_visualization):
@@ -803,8 +806,7 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
             PBAR.update(pbar_update)
 
         if len(set(selected_time_steps).intersection(set(t_avail_steps))) != 0:
-            print("SELECTED_TIME_STEPS:", selected_time_steps)
-            selected_sub_graph = select_opt_graph2(final_graph, light_prev_graph, next_graph, localization, selected_time_steps, distribution, first_construction, last_time)
+            selected_sub_graph, has_orphan = select_opt_graph2(final_graph, light_prev_graph, next_graph, localization, selected_time_steps, distribution, first_construction, last_time)
         else:
             selected_sub_graph = nx.DiGraph()
             selected_sub_graph.add_node(source_node)
@@ -812,8 +814,10 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
         first_construction = False
         light_prev_graph = nx.DiGraph()
         light_prev_graph.add_node(source_node)
+
         if len(selected_sub_graph.nodes) > 1:
-            if last_time in selected_time_steps:
+            if last_time in selected_time_steps and not has_orphan:
+                print(has_orphan, selected_time_steps)
                 if VERBOSE:
                     PBAR.update(image_length - mysum)
                 for path in find_paths(selected_sub_graph, source=source_node):
@@ -884,13 +888,11 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
         for time in selected_time_steps:
             for node_idx in range(len(localization[time])):
                 node = tuple([time, node_idx])
+                print(node)
                 if node not in final_graph.nodes:
+                    print(node, '@@')
                     start_time = min(start_time, node[0])
-
-        if last_time in selected_time_steps:
-            if VERBOSE:
-                PBAR.update(image_length - mysum)
-            break
+        print(selected_time_steps, 'START TIME', start_time)
 
         if realtime_visualization:
             realtime_obj.put_into_queue((IMAGES, list(find_paths(final_graph, source=source_node)), selected_time_steps[:-1], localization), mod_n=1)
