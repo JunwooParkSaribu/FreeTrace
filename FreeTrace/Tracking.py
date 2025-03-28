@@ -856,8 +856,8 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, jump_t
     ALPHA_MAX_LENGTH = 10
     JUMP_THRESHOLD = jump_threshold
     CUDA, TF = initialization(GPU_AVAIL, REG_LEGNTHS, ptype=1, verbose=VERBOSE, batch=BATCH)
-    POLY_FIT_DATA = np.load(f'{__file__.split("/Tracking_old.py")[0]}/models/theta_hat.npz')
-    STD_FIT_DATA = np.load(f'{__file__.split("/Tracking_old.py")[0]}/models/std_sets.npz')
+    POLY_FIT_DATA = np.load(f'{__file__.split("/Tracking.py")[0]}/models/theta_hat.npz')
+    STD_FIT_DATA = np.load(f'{__file__.split("/Tracking.py")[0]}/models/std_sets.npz')
 
 
     output_xml = f'{output_path}/{input_video_path.split("/")[-1].split(".tif")[0]}_traces.xml'
