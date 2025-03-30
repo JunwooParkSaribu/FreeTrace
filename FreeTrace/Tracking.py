@@ -341,7 +341,7 @@ def metropolis_hastings(pdf, n_iter, burn=0.25):
     return np.array(samples)[int(len(samples)*burn):]
 
 
-def find_paths_(G, source=(0, 0), path=None, seen=None):
+def find_paths_as_iter(G, source=(0, 0), path=None, seen=None):
     if path is None:
         path = [source]
     if seen is None:
@@ -354,12 +354,12 @@ def find_paths_(G, source=(0, 0), path=None, seen=None):
             if n in seen:
                 yield path 
             else:
-                yield from find_paths_(G, n, path+[n], seen.union([n]))
+                yield from find_paths_as_iter(G, n, path+[n], seen.union([n]))
 
 
-def find_paths(G, source=(0, 0), path=None, seen=None):
+def find_paths_as_list(G, source=(0, 0), path=None, seen=None):
     return_path_list = []
-    path_list = list(find_paths_(G, source=(0, 0), path=None, seen=None))
+    path_list = list(find_paths_as_iter(G, source, path, seen))
     for path in path_list:
         if len(path) > 1:
             return_path_list.append(path)
@@ -489,7 +489,7 @@ def generate_next_paths(next_graph:nx.graph, init_graph:nx.graph, localizations,
         index = 0
         cumulative_last_nodes = []
         while True:
-            last_nodes = list([nodes[-1] for nodes in find_paths(next_graph, source=source_node)])
+            last_nodes = list([nodes[-1] for nodes in find_paths_as_iter(next_graph, source=source_node)])
             for last_node in last_nodes:
                 if last_node not in cumulative_last_nodes:
                     cumulative_last_nodes.append(last_node)
@@ -576,7 +576,7 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
     prev_lowest = [source_node]
 
     if not first_step:
-        prev_paths = list(find_paths(saved_graph, source=source_node))
+        prev_paths = find_paths_as_list(saved_graph, source=source_node)
         if TF:
             for path_idx in range(len(prev_paths)):
                 prev_xys = np.array([localizations[txy[0]][txy[1]][:2] for txy in prev_paths[path_idx][1:]])[-ALPHA_MAX_LENGTH:]
@@ -596,15 +596,15 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
 
     # Generate next graph
     next_graph, last_nodes = generate_next_paths(next_graph, init_graph, localizations, next_times, distribution, source_node)
-    trajectories_costs = {tuple(next_path):None for next_path in find_paths(next_graph, source=source_node)}
-    next_paths = list(find_paths(next_graph, source=source_node))
+    trajectories_costs = {tuple(next_path):None for next_path in find_paths_as_iter(next_graph, source=source_node)}
+    next_paths = find_paths_as_list(next_graph, source=source_node)
     ab_indice = {}
     is_terminals = {}
     orphans = []
 
     while True:
         cost_copy = {}
-        next_paths = list(find_paths(next_graph, source=source_node))
+        next_paths = find_paths_as_list(next_graph, source=source_node)
 
         if len(next_paths) <= 0:
             break
@@ -678,7 +678,7 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
                 added_path = tuple(added_path)
                 trajectories_costs[added_path] = None
 
-            next_paths = list(find_paths(next_graph, source=source_node))
+            next_paths = find_paths_as_list(next_graph, source=source_node)
             for path_idx in range(len(next_paths)):
                 next_paths[path_idx] = tuple(next_paths[path_idx])
             for next_path in next_paths:
@@ -736,7 +736,7 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
             break
             
         # newborn cost update
-        for next_path in find_paths(next_graph, source=source_node):
+        for next_path in find_paths_as_iter(next_graph, source=source_node):
             next_path = tuple(next_path)
             if next_path not in trajectories_costs:
                 trajectories_costs[next_path] = None
@@ -768,6 +768,7 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
     selected_time_steps = np.arange(t_avail_steps[0], min(t_avail_steps[0] + 1 + time_forecast, t_avail_steps[-1] + 1))
     saved_time_steps = 1
     mysum = 0
+    return_graphs = []
 
 
     realtime_obj = None
@@ -795,6 +796,7 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
         light_prev_graph = nx.DiGraph()
         light_prev_graph.add_node(source_node)
 
+        selected_paths = find_paths_as_list(selected_sub_graph, source=source_node)
         if len(selected_sub_graph.nodes) <= 1 and last_time in selected_time_steps:
             if VERBOSE:
                     PBAR.update(image_length - mysum)
@@ -803,7 +805,7 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
             if last_time in selected_time_steps and not has_orphan:
                 if VERBOSE:
                     PBAR.update(image_length - mysum)
-                for path in find_paths(selected_sub_graph, source=source_node):
+                for path in selected_paths:
                     without_source_path = path[1:]
                     if len(without_source_path) == 1:
                         if without_source_path[0] not in final_graph.nodes:
@@ -818,7 +820,7 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
                         final_graph.add_edge(source_node, tuple(without_source_path[0]))
                 break
             else:
-                for path in find_paths(selected_sub_graph, source=source_node):
+                for path in selected_paths:
                     terminal = selected_sub_graph.get_edge_data(path[0], path[1])['terminal']
                     if len(path) == 2:
                         if terminal and path[-1] not in final_graph.nodes:
@@ -875,7 +877,7 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
                     start_time = min(start_time, node[0])
 
         if realtime_visualization:
-            realtime_obj.put_into_queue((IMAGES, list(find_paths(final_graph, source=source_node)), selected_time_steps[:-1], localization), mod_n=1)
+            realtime_obj.put_into_queue((IMAGES, find_paths_as_iter(final_graph, source=source_node), selected_time_steps[:-1], localization), mod_n=1)
         
         saved_time_steps = selected_time_steps[-1]
         next_first_time = selected_time_steps[-1] + 1
@@ -906,7 +908,7 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
 
     trajectory_list = []
     traj_idx = 0
-    for path in find_paths(final_graph, source=source_node):
+    for path in find_paths_as_iter(final_graph, source=source_node):
         if len(path) >= CUTOFF + 1:
             traj = TrajectoryObj(index=traj_idx, localizations=localization)
             for node in path[1:]:
