@@ -116,22 +116,36 @@ try:
                         '-c', f'{freetrace_path}/module/image_pad.c', '-o', f'{freetrace_path}/module/image_pad.o'])
         subprocess.run(['clang', '-shared', '-g', '-fwrapv', '-undefined', 'dynamic_lookup', '-arch', 'arm64', '-arch', 'x86_64',
                         '-g', f'{freetrace_path}/module/image_pad.o', '-o', f'{freetrace_path}/module/image_pad.so'])
+        
         subprocess.run(['clang', '-Wno-unused-result', '-Wsign-compare', '-Wunreachable-code', '-fno-common', '-dynamic', '-DNDEBUG', '-g', '-fwrapv', '-O3', '-Wall', '-arch', 'arm64', '-arch', 'x86_64', '-g', '-fPIC', '-I', f'{include_path}',
                         '-c', f'{freetrace_path}/module/regression.c', '-o', f'{freetrace_path}/module/regression.o'])
         subprocess.run(['clang', '-shared', '-g', '-fwrapv', '-undefined', 'dynamic_lookup', '-arch', 'arm64', '-arch', 'x86_64',
                         '-g', f'{freetrace_path}/module/regression.o', '-o', f'{freetrace_path}/module/regression.so'])
+        
+        subprocess.run(['clang', '-Wno-unused-result', '-Wsign-compare', '-Wunreachable-code', '-fno-common', '-dynamic', '-DNDEBUG', '-g', '-fwrapv', '-O3', '-Wall', '-arch', 'arm64', '-arch', 'x86_64', '-g', '-fPIC', '-I', f'{include_path}',
+                        '-c', f'{freetrace_path}/module/cost_function.c', '-o', f'{freetrace_path}/module/cost_function.o'])
+        subprocess.run(['clang', '-shared', '-g', '-fwrapv', '-undefined', 'dynamic_lookup', '-arch', 'arm64', '-arch', 'x86_64',
+                        '-g', f'{freetrace_path}/module/cost_function.o', '-o', f'{freetrace_path}/module/cost_function.so'])
+        
     else:
         subprocess.run(['clang', '-Wno-unused-result', '-Wsign-compare', '-Wunreachable-code', '-fno-common', '-dynamic', '-DNDEBUG', '-g', '-fwrapv', '-O3', '-Wall', '-g', '-fPIC', '-I', f'{include_path}',
                         '-c', f'{freetrace_path}/module/image_pad.c', '-o', f'{freetrace_path}/module/image_pad.o'])
         subprocess.run(['clang', '-shared', '-g', '-fwrapv', '-undefined', 'dynamic_lookup',
                         '-g', f'{freetrace_path}/module/image_pad.o', '-o', f'{freetrace_path}/module/image_pad.so'])
+        
         subprocess.run(['clang', '-Wno-unused-result', '-Wsign-compare', '-Wunreachable-code', '-fno-common', '-dynamic', '-DNDEBUG', '-g', '-fwrapv', '-O3', '-Wall', '-g', '-fPIC', '-I', f'{include_path}',
                         '-c', f'{freetrace_path}/module/regression.c', '-o', f'{freetrace_path}/module/regression.o'])
         subprocess.run(['clang', '-shared', '-g', '-fwrapv', '-undefined', 'dynamic_lookup',
                         '-g', f'{freetrace_path}/module/regression.o', '-o', f'{freetrace_path}/module/regression.so'])
 
-    subprocess.run(['rm', f'{freetrace_path}/module/image_pad.o', f'{freetrace_path}/module/regression.o'])
-    if os.path.exists(f'{freetrace_path}/module/image_pad.so') and os.path.exists(f'{freetrace_path}/module/regression.so'):
+        subprocess.run(['clang', '-Wno-unused-result', '-Wsign-compare', '-Wunreachable-code', '-fno-common', '-dynamic', '-DNDEBUG', '-g', '-fwrapv', '-O3', '-Wall', '-g', '-fPIC', '-I', f'{include_path}',
+                        '-c', f'{freetrace_path}/module/cost_function.c', '-o', f'{freetrace_path}/module/cost_function.o'])
+        subprocess.run(['clang', '-shared', '-g', '-fwrapv', '-undefined', 'dynamic_lookup',
+                        '-g', f'{freetrace_path}/module/cost_function.o', '-o', f'{freetrace_path}/module/cost_function.so'])
+        
+
+    subprocess.run(['rm', f'{freetrace_path}/module/image_pad.o', f'{freetrace_path}/module/regression.o', f'{freetrace_path}/module/cost_function.o'])
+    if os.path.exists(f'{freetrace_path}/module/image_pad.so') and os.path.exists(f'{freetrace_path}/module/regression.so') and os.path.exists(f'{freetrace_path}/module/cost_function.so'):
         print('')
         print(f'***** module compiling finished successfully. *****')
 except Exception as e:
