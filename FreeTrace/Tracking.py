@@ -376,7 +376,7 @@ def predict_ks(x, y):
     return pred_logk[0]
 
 
-def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, next_times, prev_path=None, start_indice=None, last_time=-1, jump_threshold=20, selected_graph=None):
+def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, next_times, prev_path=None, start_indice=None, last_time=-1, jump_threshold=20, selected_graph=None, final_graph=None):
     traj_cost = []
     ab_index = []
     abnormal = False
@@ -394,7 +394,7 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
     if trajectories_costs[next_path] is not None or len(next_path) == 1:
         return ab_index, None
 
-    terminal = is_terminal(next_path[-1], localizations, jump_threshold, selected_graph)
+    terminal = is_terminal(next_path[-1], localizations, jump_threshold, selected_graph, final_graph)
 
     for idx in range(1, len(next_path) - 1):
         if (next_path[idx+1][0] - next_path[idx][0]) - 1 > TIME_FORECAST:
@@ -548,7 +548,7 @@ def match_prev_next(prev_paths, next_path, hashed_prev_next):
         return hashed_prev_next[next_path]
     
 
-def is_terminal(node, localizations, max_jump_d, selected_graph):
+def is_terminal(node, localizations, max_jump_d, selected_graph, final_graph):
     node_t = node[0]
     node_loc_idx = node[1]
     node_loc = localizations[node_t][node_loc_idx]
@@ -557,7 +557,7 @@ def is_terminal(node, localizations, max_jump_d, selected_graph):
         if next_t in localizations:
             for next_node_idx, search_loc in enumerate(localizations[next_t]):
                 next_node = tuple([next_t, next_node_idx])
-                if len(search_loc) == 3 and next_node not in selected_graph.nodes:
+                if len(search_loc) == 3 and next_node not in selected_graph.nodes and next_node not in final_graph.nodes:
                     jump_d = euclidean_displacement(node_loc, search_loc)[0]
                     if jump_d < max_jump_d:
                         return False
@@ -624,7 +624,7 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
         # Calculate cost
         if first_step:
             for next_path in next_paths:
-                ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, 1.0, 2.0, next_times, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph)
+                ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, 1.0, 2.0, next_times, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph, final_graph=final_graph)
                 if term is not None:
                     is_terminals[next_path] = term
                 if len(ab_index) > 0:
@@ -634,11 +634,11 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
             for next_path in next_paths:
                 prev_path = match_prev_next(prev_paths, next_path, hashed_prev_next)
                 if prev_path is None:
-                    ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, 1.0, 2.0, next_times, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph)
+                    ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, 1.0, 2.0, next_times, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph, final_graph=final_graph)
                 else:
                     prev_alpha = alpha_values[prev_path]
                     prev_k = k_values[prev_path]
-                    ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, next_times, prev_path, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph)
+                    ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, next_times, prev_path, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph, final_graph=final_graph)
                 if len(ab_index) > 0:
                     ab_indice[next_path] = ab_index 
                 if term is not None:
@@ -871,7 +871,7 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
         for time in selected_time_steps:
             for node_idx in range(len(localization[time])):
                 node = tuple([time, node_idx])
-                if node not in final_graph.nodes:
+                if len(localization[time][node_idx]) == 3 and node not in final_graph.nodes:
                     start_time = min(start_time, node[0])
 
         if realtime_visualization:
