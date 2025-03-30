@@ -9,6 +9,7 @@ from itertools import product
 import networkx as nx
 from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
 from sklearn.model_selection import GridSearchCV
+from FreeTrace.module import cost_function
 from FreeTrace.module.trajectory_object import TrajectoryObj
 from FreeTrace.module.image_module import read_tif, make_image_seqs, make_whole_img
 from FreeTrace.module.data_save import write_trajectory
@@ -53,22 +54,14 @@ def predict_multinormal(relativ_coord, alpha, k, lag):
 
     if np.sqrt(np.sum(relativ_coord**2)) > sigma_*mean_std:
         abnormal = True
-
-    """
-    multinormal_hash = {}
-    if (mean_std, lag) not in multinormal_hash:
-        multinormal_hash[(mean_std, lag)] = multivariate_normal(mean=[0, 0, 0], cov=[[mean_std*math.sqrt((lag+1)), 0, 0],
-                                                                                     [0, mean_std*math.sqrt((lag+1)), 0],
-                                                                                     [0, 0, mean_std*math.sqrt((lag+1))]], allow_singular=False)
-    log_pdf2 = multinormal_hash[(mean_std, lag)].logpdf(relativ_coord)
-    """
     
     relativ_coord = relativ_coord[:DIMENSION]
     log_pdf = np.sum(np.log(1/(np.sqrt(2*np.pi) * mean_std) * np.exp(-1./2 * (relativ_coord / mean_std)**2)))
     return log_pdf, abnormal
 
 
-def predict_cauchy(next_vec, prev_vec, alpha, lag, precision):
+"""
+def predict_cauchy(next_vec, prev_vec, alpha, lag, precision, dimension):
     log_pdf = 0
     abnormal = False
     delta_t = lag + 1
@@ -98,6 +91,7 @@ def predict_cauchy(next_vec, prev_vec, alpha, lag, precision):
             log_pdf += math.log( 1/(math.pi * scale) * 1 / ( ((coord_ratio - relativ_cov)/scale)**2 * (rho/relativ_cov) + (relativ_cov/rho) ) )
 
     return log_pdf, abnormal
+"""
 
 
 def greedy_shortest(srcs, dests):
@@ -455,7 +449,7 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
                     prev_xys = np.array([localizations[txy[0]][txy[1]][:2] for txy in prev_path[1:]])[-ALPHA_MAX_LENGTH:]
                     prev_alpha = predict_alphas(prev_xys[:,0], prev_xys[:,1])
 
-            log_p0, abnormal2 = predict_cauchy((next_coord - cur_coord), (cur_coord- before_coord), prev_alpha, time_gap, 0.5)
+            log_p0, abnormal2 = cost_function.predict_cauchy((next_coord - cur_coord), (cur_coord- before_coord), prev_alpha, time_gap, 0.5, DIMENSION)
 
             if terminal:
                 if abnormal2:
