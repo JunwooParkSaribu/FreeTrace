@@ -236,7 +236,7 @@ def approx_gauss(distributions):
     #resampled = distribution[np.random.randint(0, len(distribution), min(resample_nb, len(distribution)))]
     max_xyz = []
     max_euclid = 0
-    min_euclid = 6.5   #TODO increase over time? well...
+    min_euclid = 5.0   #TODO increase over time? well...
 
     qt_distrbutions = []
     for distribution in distributions:
