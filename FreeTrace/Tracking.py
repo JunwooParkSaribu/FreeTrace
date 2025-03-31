@@ -67,10 +67,6 @@ def predict_cauchy(next_vec, prev_vec, alpha, lag, precision, dimension):
     delta_t = lag + 1
 
     for vec1, vec2 in zip(next_vec[:DIMENSION], prev_vec[:DIMENSION]):
-        if vec1 < 0:
-            vec1 -= precision
-        else:
-            vec1 += precision
         if vec2 < 0:
             vec2 -= precision
         else:
@@ -78,7 +74,7 @@ def predict_cauchy(next_vec, prev_vec, alpha, lag, precision, dimension):
         coord_ratio = vec1 / vec2
 
         if 0.95 < alpha < 1.05:
-            if abs(coord_ratio) > 8: ## TODO
+            if abs(coord_ratio) > 10: ## TODO
                 abnormal = True
             log_pdf += math.log( 1/math.pi * 1/((coord_ratio)**2 + 1) )
 
@@ -86,7 +82,7 @@ def predict_cauchy(next_vec, prev_vec, alpha, lag, precision, dimension):
             rho = 1/2. * ((delta_t-1)**alpha - 2*delta_t**alpha + (delta_t+1)**alpha)
             relativ_cov = 1/2. * ((delta_t+1)**alpha - (delta_t)**alpha - (1)**alpha)
             scale = math.sqrt(abs(1-rho**2)) ## TODO
-            if abs(coord_ratio-rho) > 8 * scale: ## TODO
+            if abs(coord_ratio-relativ_cov) > 10: ## TODO
                 abnormal = True
             log_pdf += math.log( 1/(math.pi * scale) * 1 / ( ((coord_ratio - relativ_cov)/scale)**2 * (rho/relativ_cov) + (relativ_cov/rho) ) )
 
@@ -240,7 +236,7 @@ def approx_gauss(distributions):
     #resampled = distribution[np.random.randint(0, len(distribution), min(resample_nb, len(distribution)))]
     max_xyz = []
     max_euclid = 0
-    min_euclid = 5.0
+    min_euclid = 6.5   #TODO increase over time? well...
 
     qt_distrbutions = []
     for distribution in distributions:
@@ -308,7 +304,7 @@ def approximation(real_distribution, time_forecast, jump_threshold=float|None):
     if jump_threshold is None:
         max_euclid = approx_gauss(real_distribution)
         for t in range(time_forecast+1):
-            approx[t] = max_euclid  #TODO increase over time? well...
+            approx[t] = max_euclid 
     else:
         for t in range(time_forecast+1):
             approx[t] = jump_threshold
@@ -343,7 +339,7 @@ def metropolis_hastings(pdf, n_iter, burn=0.25):
 
 def find_paths_as_iter(G, source=(0, 0), path=None, seen=None):
     if path is None:
-        path = [source]
+        path = [tuple(source)]
     if seen is None:
         seen = {source}
     desc = nx.descendants_at_distance(G, source, 1)
@@ -354,7 +350,7 @@ def find_paths_as_iter(G, source=(0, 0), path=None, seen=None):
             if n in seen:
                 yield path 
             else:
-                yield from find_paths_as_iter(G, n, path+[n], seen.union([n]))
+                yield from find_paths_as_iter(G, n, path+[tuple(n)], seen.union([n]))
 
 
 def find_paths_as_list(G, source=(0, 0), path=None, seen=None):
@@ -362,7 +358,7 @@ def find_paths_as_list(G, source=(0, 0), path=None, seen=None):
     path_list = list(find_paths_as_iter(G, source, path, seen))
     for path in path_list:
         if len(path) > 1:
-            return_path_list.append(path)
+            return_path_list.append(tuple(path))
     return return_path_list
 
 
@@ -449,7 +445,7 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
                     prev_xys = np.array([localizations[txy[0]][txy[1]][:2] for txy in prev_path[1:]])[-ALPHA_MAX_LENGTH:]
                     prev_alpha = predict_alphas(prev_xys[:,0], prev_xys[:,1])
 
-            log_p0, abnormal2 = cost_function.predict_cauchy((next_coord - cur_coord), (cur_coord- before_coord), prev_alpha, time_gap, 0.5, DIMENSION)
+            log_p0, abnormal2 = cost_function.predict_cauchy((next_coord - cur_coord), (cur_coord- before_coord), prev_alpha, time_gap, 1.0, DIMENSION)
 
             if terminal:
                 if abnormal2:
@@ -468,9 +464,9 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
 
         if len(traj_cost) > 1:
             if not terminal:
-                final_score = np.mean(traj_cost[:-1]) + abnomral_jump_score + time_score + np.std(traj_cost[:-1])
+                final_score = np.mean(traj_cost[:-1]) + abnomral_jump_score + time_score# + np.std(traj_cost[:-1])
             else:
-                final_score = np.mean(traj_cost) + abnomral_jump_score + time_score + np.std(traj_cost)
+                final_score = np.mean(traj_cost) + abnomral_jump_score + time_score# + np.std(traj_cost)
         else:
             final_score = abnormal_penalty + time_score + traj_cost[0]
 
@@ -597,7 +593,6 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
     # Generate next graph
     next_graph, last_nodes = generate_next_paths(next_graph, init_graph, localizations, next_times, distribution, source_node)
     trajectories_costs = {tuple(next_path):None for next_path in find_paths_as_iter(next_graph, source=source_node)}
-    next_paths = find_paths_as_list(next_graph, source=source_node)
     ab_indice = {}
     is_terminals = {}
     orphans = []
@@ -655,9 +650,11 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
         lowest_cost_traj = tuple(lowest_cost_traj)
         
         """
+        print('##################################################################')
         for cost, traj in zip(np.array(costs)[low_cost_args][::-1][-30:], next_trajectories[::-1][-30:]):
             traj = tuple([tuple(x) for x in traj])
             print(f'{traj} -> {cost}', is_terminals[traj], lowest_cost_traj)
+        print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
         """
 
         # Abnormal trajectory cutting
