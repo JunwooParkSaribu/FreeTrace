@@ -58,6 +58,7 @@ subprocess.run(['sudo', 'apt', 'install', 'clang'])
 subprocess.run(['sudo', 'apt-get', 'install', 'python3-tk'])
 subprocess.run(['sudo', 'apt', 'install', 'python3-dev'])
 subprocess.run(['sudo', 'apt', 'install', 'python3-pip'])
+subprocess.run(['sudo', 'apt-get', 'install', 'libgl1'])
 
 
 if python_version == "3.10":
