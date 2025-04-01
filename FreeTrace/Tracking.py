@@ -363,7 +363,10 @@ def find_paths_as_list(G, source=(0, 0), path=None, seen=None):
 
 
 def predict_alphas(x, y):
-    pred_alpha = REG_MODEL.alpha_predict(np.array([x, y]))
+    if TF:
+        pred_alpha = REG_MODEL.alpha_predict(np.array([x, y]))
+    else:
+        pred_alpha = 1.0
     return pred_alpha
 
 
