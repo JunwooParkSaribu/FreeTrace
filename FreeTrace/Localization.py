@@ -727,17 +727,19 @@ def run(input_video_path:str, output_path:str, window_size=9, threshold=1.0, def
     if z_calib is not None:
         dim = 3
         xyz_coords = calibration_3d(xyz_coords, reg_infos, z_calib)
-    write_localization(loc_output_path, xyz_coords, reg_pdfs, reg_infos)
-    make_loc_depth_image(loc_output_path, xyz_coords, multiplier=4, winsize=WINSIZE, resolution=2, dim=dim)
 
     if save_video:
         print(f'Visualizing localizations...')
         visualilzation(loc_output_path, images, xyz_coords)
     if realtime_obj is not None:
         realtime_obj.turn_off()
-        del realtime_obj
+
     if return_state != 0:
         return_state.value = 1
+
+    write_localization(loc_output_path, xyz_coords, reg_pdfs, reg_infos)
+    make_loc_depth_image(loc_output_path, xyz_coords, multiplier=4, winsize=WINSIZE, resolution=2, dim=dim)
+
     return True
 
 
