@@ -1035,37 +1035,38 @@ def run_process(input_video_path:str, output_path:str, time_forecast=2, cutoff=2
 
     @params
         input_video_path:
-        Path of video (video.tiff)
+        Path of input video. Currently we only accept .tiff format. (video.tiff)
 
         output_path:
-        Path of outputs (video_traces.csv and supplementary outputs depending on the visualization options)
+        Path to save the output files. (video_traces.csv and supplementary outputs depending on the visualization options will be saved in this path)
         
-        time_forecast(frame):
-        Amount of frames to consider for the reconstruction of most probable trajectories for each calculation. 
+        time_forecast (frame):
+        Number of frames to consider in each time step for the reconstruction of most probable trajectories. 
         
-        cutoff(frame):
+        cutoff (frame):
         Minimum length of trajectory to consider.
 
-        jump_threshold(pixel): 
+        jump_threshold (pixel): 
         Maximum jump length of particles. If it is set to None, FreeTrace infers its maximum length with GMM, otherwise this value is fixed to the given value.
         The inferred maximum jump length is limited under diffraction light limit of particles in SPT, if you use FreeTrace for non-SPT particles, please set this value manually.
         
         gpu_on:
-        Perform neural network enhanced trajectory inference assuming fractional Brownian motion. With False, FreeTrace infers the trajectory assuming standard Brownian motion.
+        Perform neural network enhanced trajectory inferences assuming fractional Brownian motion (non-independent stochastic process).
+        With False, FreeTrace infers the trajectory assuming classical Brownian motion (independent stochastic process).
         
         save_video:
-        Save and visualize the reconstructed trajectories. (video_traces.tiff)
-        
+        Save a video of reconstructed trajectory result. (video_traces.tiff)
+   
         verbose:
-        Print the process.
+        Print the progress.
         
         realtime_visualization:
-        Real time visualization of process.
+        Real time visualization of progress.
 
     @return
         return:
         It returns True if the tracking of particles is finished succesfully, False otherwise.
-        The unit of saved particle coordinate is pixel.
+        The unit of saved particle coordinates are pixel.
     """
 
     from multiprocessing import Process, Value
