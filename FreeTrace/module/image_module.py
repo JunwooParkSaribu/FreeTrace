@@ -656,7 +656,7 @@ def make_loc_radius_video(output_path:str, raw_imgs:str, localization_file:str, 
             else:
                 paired_cdist = distance.cdist(stacked_coords[t], stacked_coords[t], 'euclidean')
 
-            stacked_radii[t] = ((paired_cdist > radius[0])*(paired_cdist <= radius[1])).sum(axis=1)
+            stacked_radii[t] = ((paired_cdist > radius[0])*(paired_cdist <= radius[1])).sum(axis=1) + 1  #pseudo count
             cur_max_count = np.max(stacked_radii[t])
             count_max = max(cur_max_count, count_max)
     all_coords = np.array(all_coords)
@@ -683,7 +683,10 @@ def make_loc_radius_video(output_path:str, raw_imgs:str, localization_file:str, 
             selected_radii = stacked_radii[time]
             if len(selected_coords) > 0:
                 values = np.vstack([selected_coords[:, 0], selected_coords[:, 1]])
-                kernel = stats.gaussian_kde(values, weights=(selected_radii / count_max))
+                try:
+                    kernel = stats.gaussian_kde(values, weights=(selected_radii / count_max))
+                except:
+                    kernel = stats.gaussian_kde(positions)
                 kernel.set_bandwidth(bw_method=kernel.factor / 2.)
                 Z = np.reshape(kernel(positions).T, X.shape)
                 Z = Z * (np.max(selected_radii) / np.max(Z))
