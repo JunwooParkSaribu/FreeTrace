@@ -620,7 +620,7 @@ def main_process(imgs, forward_gauss_grids, backward_gauss_grids, *args):
     return xyz_coord, pdf, info
 
 
-def run(input_video_path:str, output_path:str, window_size=9, threshold=1.0, deflation=0, sigma=4.0, shift=1, z_calib=None,
+def run(input_video_path:str, output_path:str, window_size=7, threshold=1.0, deflation=0, sigma=4.0, shift=1, z_calib=None,
         gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False, return_state=0):
     
     global VERBOSE

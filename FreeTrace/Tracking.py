@@ -927,7 +927,7 @@ def trajectory_inference(localization: dict, time_steps: np.ndarray, distributio
     return trajectory_list
 
 
-def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, jump_threshold=None, gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False, return_state=0):
+def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_threshold=None, gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False, return_state=0):
     global IMAGES
     global VERBOSE
     global BATCH
@@ -1026,7 +1026,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=0, jump_t
     return True
 
 
-def run_process(input_video_path:str, output_path:str, time_forecast=5, cutoff=2, jump_threshold=None|float,
+def run_process(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_threshold=None|float,
                 gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False) -> bool:
     """
     Create a process to run the tracking of particles to reconstruct the trajectories from localized molecules.
