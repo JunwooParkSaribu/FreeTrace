@@ -704,6 +704,157 @@ def make_loc_radius_video(output_path:str, raw_imgs:str, localization_file:str, 
     print(f'{sequence_save_folder}/{filename}_density_video_frame_{start_frame}_{end_frame}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}.tiff is successfully generated.')
 
 
+def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localization_file_list:list, frame_list:list, frame_cumul=100, radius=[1, 10], alpha1=0.65, alpha2=0.35, gpu=False):
+    import gc
+    for localization_file in localization_file_list:
+        assert 'loc.csv' in localization_file.split('/')[-1], "input localization file format is wrong, it needs video_loc.csv"
+    assert len(radius) == 2, "radius should be 2 length of list such as [1, 10]."
+    assert radius[0] < radius[1] and radius[0] > 0, "radius[0] should be smaller than radius[1] and radius[0] should be greater than 0."
+    assert 0.999 < alpha1 + alpha2 < 1.001, "Sum of alpha1 and alpha2 should be equal to 1."
+    assert len(raw_imgs_list) == len(localization_file_list) and len(localization_file_list) == len(frame_list)
+
+    sequence_save_folder = f'{output_path}'
+    if not os.path.exists(sequence_save_folder):
+        os.mkdir(sequence_save_folder)
+
+    if gpu:
+        import cupy as cp
+        from cuvs.distance import pairwise_distance
+        mempool = cp.get_default_memory_pool()
+        mempool.set_limit(fraction=0.8)
+
+    batch_coord_list = []
+    batch_filename_list = []
+    batch_time_steps_list = []
+    batch_frame_list = []
+    batch_all_coords_list = []
+    batch_stacked_coord_list = []
+    batch_stacked_radii_list = []
+    count_max = 0
+    tqdm_process_max = 0
+    mycmap = plt.get_cmap('jet', lut=None)
+
+
+    for localization_file, frame_tuple in zip(localization_file_list, frame_list):
+        start_frame, end_frame = frame_tuple
+        coords, coord_info = read_localization(localization_file)
+        filename = localization_file.split('/')[-1].split('.csv')[0]
+        time_steps = np.array(sorted(list(coords.keys())))
+        end_frame = min(end_frame, time_steps[-1])
+        start_frame = max(start_frame, time_steps[0])
+        batch_coord_list.append(coords)
+        batch_filename_list.append(filename)
+        batch_time_steps_list.append(time_steps)
+        batch_frame_list.append((start_frame, end_frame))
+        tqdm_process_max += end_frame - start_frame + 1
+    
+
+    PBAR = tqdm(total=tqdm_process_max, desc="Radius calcul", unit="frame", ncols=120)
+
+
+    for coords, time_steps, (start_frame, end_frame) in zip(batch_coord_list, batch_time_steps_list, batch_frame_list):
+        all_coords = []
+        stacked_coords = {t:[] for t in time_steps if start_frame <= t <= end_frame}
+        stacked_radii = {t:[] for t in time_steps if start_frame <= t <= end_frame}
+        
+
+        for t in time_steps:
+            if start_frame <= t <= end_frame:
+                PBAR.update(1)
+                for coord in coords[t]:
+                    if len(coord) == 3:
+                        all_coords.append(coord)
+                if t == start_frame:
+                    st_tmp = []
+                    for stack_t in range(t, t+frame_cumul):
+                        time_st = []
+                        if stack_t in time_steps:
+                            for stack_coord in coords[stack_t]:
+                                if len(stack_coord) == 3:
+                                    time_st.append(stack_coord)
+                        st_tmp.append(time_st)
+                    prev_tmps=st_tmp
+                else:
+                    stack_t = t+frame_cumul-1
+                    time_st = []
+                    if stack_t in time_steps:
+                        for stack_coord in coords[stack_t]:
+                            if len(stack_coord) == 3:
+                                time_st.append(stack_coord)
+                    st_tmp = prev_tmps[1:]
+                    st_tmp.append(time_st)
+                    prev_tmps = st_tmp
+                st_tmp = list(itertools.chain.from_iterable(st_tmp))
+                stacked_coords[t]=np.array(st_tmp, dtype=np.float32)
+
+                if gpu:
+                    cp_dist = cp.asarray(stacked_coords[t], dtype=cp.float16)
+                    paired_cp_dist = pairwise_distance(cp_dist, cp_dist, metric='euclidean')
+                    paired_cdist = cp.asnumpy(paired_cp_dist).astype(np.float16)
+                else:
+                    paired_cdist = distance.cdist(stacked_coords[t], stacked_coords[t], 'euclidean')
+
+                stacked_radii[t] = ((paired_cdist > radius[0])*(paired_cdist <= radius[1])).sum(axis=1) + 1  #pseudo count
+                cur_max_count = np.max(stacked_radii[t])
+                count_max = max(cur_max_count, count_max)
+        all_coords = np.array(all_coords)
+        
+        batch_all_coords_list.append(all_coords)
+        batch_stacked_coord_list.append(stacked_coords)
+        batch_stacked_radii_list.append(stacked_radii)
+
+
+    PBAR.close()
+    PBAR = tqdm(total=tqdm_process_max, desc="Rendering", unit="frame", ncols=120)
+
+
+    for vid_idx, (raw_imgs, all_coords, stacked_coords, stacked_radii, time_steps, filename, (start_frame, end_frame)) \
+        in enumerate(zip(raw_imgs_list, batch_all_coords_list, batch_stacked_coord_list, batch_stacked_radii_list, batch_time_steps_list, batch_filename_list, batch_frame_list)):
+        images = read_tif(raw_imgs)[start_frame-1:end_frame,:,:]
+        image_idx = 0
+        x_min = np.min(all_coords[:, 0])
+        x_max = np.max(all_coords[:, 0])
+        y_min = np.min(all_coords[:, 1])
+        y_max = np.max(all_coords[:, 1])
+        video_arr = np.empty([images.shape[0], images.shape[1], images.shape[2], 4], dtype=np.uint8)
+        
+        X, Y = np.mgrid[x_min:x_max:complex(f'{images.shape[2]}j'), y_min:y_max:complex(f'{images.shape[1]}j')]
+        positions = np.vstack([X.ravel(), Y.ravel()])
+        for time in time_steps:
+            if start_frame <= time <= end_frame:
+                PBAR.update(1)
+                if images[image_idx: image_idx + frame_cumul,:,:].shape[0] == 0:
+                    break
+                selec_coords = stacked_coords[time]
+                selec_radii = stacked_radii[time]
+                if len(selec_coords) > 0:
+                    values = np.vstack([selec_coords[:, 0], selec_coords[:, 1]])
+                    try:
+                        kernel = stats.gaussian_kde(values, weights=(selec_radii / count_max))
+                    except:
+                        kernel = stats.gaussian_kde(positions)
+                    kernel.set_bandwidth(bw_method=kernel.factor / 2.)
+                    Z = np.reshape(kernel(positions).T, X.shape)
+                    Z = Z * (np.max(selec_radii) / np.max(Z))
+                    aximg = plt.imshow(Z.T, cmap=mycmap,
+                                    extent=[x_min, x_max, y_min, y_max], vmin=0, vmax=count_max, alpha=1.0, origin='upper')
+                    rawimg = plt.imshow(images[image_idx: image_idx + frame_cumul,:,:].max(axis=(0)), alpha=1.0, cmap='grey', extent=[x_min, x_max, y_min, y_max], origin='upper')
+                    arr = aximg.make_image(renderer=None, unsampled=True)[0][:,:,:4]
+                    arr2 = rawimg.make_image(renderer=None, unsampled=True)[0][:,:,:4]
+                    blended = cv2.addWeighted(arr, alpha1, arr2, alpha2, 0.0)
+                    video_arr[image_idx] = blended
+                image_idx += 1
+
+        output_video_name = f'{sequence_save_folder}/{filename}_density_video_frame_{start_frame}_{end_frame}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}.tiff'
+        if os.path.exists(output_video_name):
+            output_video_name = f'{sequence_save_folder}/{filename}_density_video_frame_{start_frame}_{end_frame}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}_{vid_idx}.tiff'
+
+        tifffile.imwrite(output_video_name, data=video_arr, imagej=True)
+        print(f'\n--------->   {output_video_name} is successfully generated.   <---------')
+        gc.collect()
+    PBAR.close()
+
+
 def make_red_circles(imgs, localized_xys, hstack=False):
     if hstack:
         original_imgs = imgs.copy()
