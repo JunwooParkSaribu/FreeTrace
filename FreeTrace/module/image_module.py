@@ -704,10 +704,14 @@ def make_loc_radius_video(output_path:str, raw_imgs:str, localization_file:str, 
     print(f'{sequence_save_folder}/{filename}_density_video_frame_{start_frame}_{end_frame}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}.tiff is successfully generated.')
 
 
-def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localization_file_list:list, frame_list:list, frame_cumul=100, radius=[1, 10], max_density_count=None, color='jet', alpha1=0.65, alpha2=0.35, gpu=False):
+def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localization_file_list:list, frame_list:list, frame_cumul=100, radius=[3, 13], max_density=None, color='jet', alpha1=0.65, alpha2=0.35, gpu=False):
     import gc
     for localization_file in localization_file_list:
-        assert 'trace' in localization_file.split('/')[-1], "input trace file format is wrong, it needs video_traces.csv"
+        assert 'trace' in localization_file.split('/')[-1] or 'loc' in localization_file.split('/')[-1], "input trace/loc file format is wrong, it needs video_traces.csv or video_loc.csv"
+        if 'trace' in localization_file.split('/')[-1]:
+            FILE_FORMAT = 'trace'
+        else:
+            FILE_FORMAT = 'loc'
     assert len(radius) == 2, "radius should be 2 length of list such as [1, 10]."
     assert radius[0] < radius[1] and radius[0] > 0, "radius[0] should be smaller than radius[1] and radius[0] should be greater than 0."
     assert 0.999 < alpha1 + alpha2 < 1.001, "Sum of alpha1 and alpha2 should be equal to 1."
@@ -739,37 +743,38 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
 
     for localization_file, frame_tuple in zip(localization_file_list, frame_list):
         start_frame, end_frame = frame_tuple
-        coords = {}
-        for traj in read_trajectory(localization_file):
-            if int(traj.get_times()[0]) in coords:
-                coords[int(traj.get_times()[0])].append(traj.get_positions()[0])
-            else:
-                coords[int(traj.get_times()[0])] = [traj.get_positions()[0]]
-        #coords, coord_info = read_localization(localization_file)
-        filename = localization_file.split('/')[-1].split('.csv')[0]
-        time_steps = np.array(sorted(list(coords.keys())))
-        end_frame = min(end_frame, time_steps[-1])
-        start_frame = max(start_frame, time_steps[0])
-        time_steps = np.arange(start_frame, end_frame+1, 1)
-        for t in time_steps:
-            if t not in coords:
-                coords[t] = []
 
+        if FILE_FORMAT == 'trace':
+            coords = {}
+            for traj in read_trajectory(localization_file):
+                if int(traj.get_times()[0]) in coords:
+                    coords[int(traj.get_times()[0])].append(traj.get_positions()[0])
+                else:
+                    coords[int(traj.get_times()[0])] = [traj.get_positions()[0]]
+            time_steps = np.arange(start_frame, end_frame+1, 1)
+            for t in time_steps:
+                if t not in coords:
+                    coords[t] = []
+            batch_nb_molecules.append(len(read_trajectory(localization_file)))
+        else:
+            coords, coord_info = read_localization(localization_file)
+            time_steps = np.arange(start_frame, end_frame+1, 1)
+
+        filename = localization_file.split('/')[-1].split('.csv')[0]
         batch_coord_list.append(coords)
         batch_filename_list.append(filename)
         batch_time_steps_list.append(time_steps)
         batch_frame_list.append((start_frame, end_frame))
         tqdm_process_max += end_frame - start_frame + 1
-        batch_nb_molecules.append(len(read_trajectory(localization_file)))
+        
 
 
-    PBAR = tqdm(total=tqdm_process_max, desc="Radius calcul", unit="frame", ncols=120)
-    for coords, time_steps, nb_molecules, (start_frame, end_frame) in zip(batch_coord_list, batch_time_steps_list, batch_nb_molecules, batch_frame_list):
+    PBAR = tqdm(total=tqdm_process_max, desc="Radius calculation", unit="frame", ncols=120)
+    for coords, time_steps, (start_frame, end_frame) in zip(batch_coord_list, batch_time_steps_list, batch_frame_list):
         all_coords = []
         stacked_coords = {t:[] for t in time_steps if start_frame <= t <= end_frame}
         stacked_radii = {t:[] for t in time_steps if start_frame <= t <= end_frame}
         max_for_each_file = 0
-
         for t in time_steps:
             if start_frame <= t <= end_frame:
                 PBAR.update(1)
@@ -818,19 +823,16 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
     PBAR.close()
 
 
-    if max_density_count is None:
-        max_density_count = count_max
-    print(f'\n*** Maximum count of density in this batch: {max_density_count} ***\n')
-
-
+    """
     remax_count = 0
     for idx, (dummy, nb_molecules, time_steps) in enumerate(zip(batch_stacked_radii_list, batch_nb_molecules, batch_time_steps_list)):
         for t in time_steps:
             if len(batch_stacked_radii_list[idx][t]) > 0:
                 batch_stacked_radii_list[idx][t] = batch_stacked_radii_list[idx][t] / count_max
                 batch_stacked_radii_list[idx][t] = np.minimum(batch_stacked_radii_list[idx][t], np.ones_like(batch_stacked_radii_list[idx][t]))
-                #batch_stacked_radii_list[idx][t] = batch_stacked_radii_list[idx][t] / nb_molecules
+                batch_stacked_radii_list[idx][t] = batch_stacked_radii_list[idx][t] / nb_molecules
                 remax_count = max(remax_count, np.max(batch_stacked_radii_list[idx][t]))
+    """
     """
     for idx, time_steps in zip(range(len(batch_stacked_radii_list)), batch_time_steps_list):
         for t in time_steps:
@@ -841,11 +843,13 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
 
     Z_MAX = 0
     Z_batch = []
-    PBAR = tqdm(total=tqdm_process_max, desc="Density estimating with Gaussian kernel", unit="frame", ncols=120)
+    PBAR = tqdm(total=tqdm_process_max, desc="Density estimation with weighted Gaussian kernel", unit="frame", ncols=120)
     for vid_idx, (raw_imgs, all_coords, stacked_coords, stacked_radii, time_steps, filename, (start_frame, end_frame)) \
         in enumerate(zip(raw_imgs_list, batch_all_coords_list, batch_stacked_coord_list, batch_stacked_radii_list, batch_time_steps_list, batch_filename_list, batch_frame_list)):
         Z_all = []
+        saved_z_for_flat = None
         images = read_tif(raw_imgs)[start_frame-1:end_frame,:,:]
+
         x_min = np.min(all_coords[:, 0])
         x_max = np.max(all_coords[:, 0])
         y_min = np.min(all_coords[:, 1])
@@ -858,30 +862,43 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
                 PBAR.update(1)
                 selec_coords = stacked_coords[time]
                 selec_radii = stacked_radii[time]
-                if len(selec_coords) > 5:
+                if len(selec_coords) > 100:
                     values = np.vstack([selec_coords[:, 0], selec_coords[:, 1]])
                     kernel = stats.gaussian_kde(values, weights=selec_radii)
+                    kernel.set_bandwidth(bw_method=kernel.factor / 2.)
+                    Z = np.reshape(kernel(positions).T, X.shape)
+                    Z_MAX = max(Z_MAX, np.max(Z))
+                    Z_all.append(Z)
                 else:
-                    kernel = stats.gaussian_kde(positions)
-                kernel.set_bandwidth(bw_method=kernel.factor / 2.)
-                Z = np.reshape(kernel(positions).T, X.shape)
-                Z_MAX = max(Z_MAX, np.max(Z))
-                Z_all.append(Z)
+                    if saved_z_for_flat is None:
+                        kernel = stats.gaussian_kde(positions)
+                        kernel.set_bandwidth(bw_method=kernel.factor / 2.)
+                        Z = np.reshape(kernel(positions).T, X.shape)
+                        Z_MAX = max(Z_MAX, np.max(Z))
+                        Z_all.append(Z)
+                        saved_z_for_flat = Z
+                    else:
+                        Z_all.append(saved_z_for_flat)
         Z_batch.append(Z_all)
     PBAR.close()
+
+
+    if max_density is None:
+        max_density = Z_MAX
+    print(f'\n*** Maximum density in this batch: {max_density} ***\n')
 
 
     PBAR = tqdm(total=tqdm_process_max, desc="Rendering", unit="frame", ncols=120)
     for vid_idx, (raw_imgs, all_coords, stacked_coords, stacked_radii, time_steps, filename, (start_frame, end_frame)) \
         in enumerate(zip(raw_imgs_list, batch_all_coords_list, batch_stacked_coord_list, batch_stacked_radii_list, batch_time_steps_list, batch_filename_list, batch_frame_list)):
         images = read_tif(raw_imgs)[start_frame-1:end_frame,:,:]
+
         image_idx = 0
         x_min = np.min(all_coords[:, 0])
         x_max = np.max(all_coords[:, 0])
         y_min = np.min(all_coords[:, 1])
         y_max = np.max(all_coords[:, 1])
         video_arr = np.empty([images.shape[0], images.shape[1], images.shape[2], 4], dtype=np.uint8)
-        
         for time in time_steps:
             if start_frame <= time <= end_frame:
                 PBAR.update(1)
@@ -889,8 +906,8 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
                 if images[image_idx: image_idx + frame_cumul,:,:].shape[0] == 0:
                     break
 
-                aximg = plt.imshow((Z.T / Z_MAX) * max(0.0001, min(1.0, (count_max / max_density_count))), cmap=mycmap,
-                                extent=[x_min, x_max, y_min, y_max], vmin=0, vmax=1, alpha=1.0, origin='upper')
+                aximg = plt.imshow((Z.T / max_density), cmap=mycmap,
+                                extent=[x_min, x_max, y_min, y_max], vmin=0.0, vmax=1.0, alpha=1.0, origin='upper')
                 rawimg = plt.imshow(images[image_idx: image_idx + frame_cumul,:,:].max(axis=(0)), alpha=1.0, cmap='grey', extent=[x_min, x_max, y_min, y_max], origin='upper')
                 arr = aximg.make_image(renderer=None, unsampled=True)[0][:,:,:4]
                 arr2 = rawimg.make_image(renderer=None, unsampled=True)[0][:,:,:4]
