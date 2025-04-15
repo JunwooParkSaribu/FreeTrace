@@ -847,40 +847,43 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
     PBAR = tqdm(total=tqdm_process_max, desc="Density estimation with weighted Gaussian kernel", unit="frame", ncols=120)
     for vid_idx, (raw_imgs, all_coords, stacked_coords, stacked_radii, time_steps, filename, (start_frame, end_frame)) \
         in enumerate(zip(raw_imgs_list, batch_all_coords_list, batch_stacked_coord_list, batch_stacked_radii_list, batch_time_steps_list, batch_filename_list, batch_frame_list)):
-        Z_all = []
-        saved_z_for_flat = None
-        images = read_tif(raw_imgs)[start_frame-1:end_frame,:,:]
+        if os.path.exists(f'tmp_kernel/{filename}'):
+            Z_MAX = max(Z_MAX, np.max(np.load(f'tmp_kernel/{filename}.npz')['Z_stack']))
+        else:
+            Z_all = []
+            saved_z_for_flat = None
+            images = read_tif(raw_imgs)[start_frame-1:end_frame,:,:]
 
-        x_min = np.min(all_coords[:, 0])
-        x_max = np.max(all_coords[:, 0])
-        y_min = np.min(all_coords[:, 1])
-        y_max = np.max(all_coords[:, 1])
-        
-        X, Y = np.mgrid[x_min:x_max:complex(f'{images.shape[2]}j'), y_min:y_max:complex(f'{images.shape[1]}j')]
-        positions = np.vstack([X.ravel(), Y.ravel()])
-        for time in time_steps:
-            if start_frame <= time <= end_frame:
-                PBAR.update(1)
-                selec_coords = stacked_coords[time]
-                selec_radii = stacked_radii[time]
-                if len(selec_coords) > 100:
-                    values = np.vstack([selec_coords[:, 0], selec_coords[:, 1]])
-                    kernel = stats.gaussian_kde(values, weights=selec_radii)
-                    kernel.set_bandwidth(bw_method=kernel.factor / 2.)
-                    Z = (np.reshape(kernel(positions).T, X.shape)).astype(np.float16)
-                    Z_MAX = max(Z_MAX, np.max(Z))
-                    Z_all.append(Z)
-                else:
-                    if saved_z_for_flat is None:
-                        kernel = stats.gaussian_kde(positions)
+            x_min = np.min(all_coords[:, 0])
+            x_max = np.max(all_coords[:, 0])
+            y_min = np.min(all_coords[:, 1])
+            y_max = np.max(all_coords[:, 1])
+            
+            X, Y = np.mgrid[x_min:x_max:complex(f'{images.shape[2]}j'), y_min:y_max:complex(f'{images.shape[1]}j')]
+            positions = np.vstack([X.ravel(), Y.ravel()])
+            for time in time_steps:
+                if start_frame <= time <= end_frame:
+                    PBAR.update(1)
+                    selec_coords = stacked_coords[time]
+                    selec_radii = stacked_radii[time]
+                    if len(selec_coords) > 100:
+                        values = np.vstack([selec_coords[:, 0], selec_coords[:, 1]])
+                        kernel = stats.gaussian_kde(values, weights=selec_radii)
                         kernel.set_bandwidth(bw_method=kernel.factor / 2.)
                         Z = (np.reshape(kernel(positions).T, X.shape)).astype(np.float16)
                         Z_MAX = max(Z_MAX, np.max(Z))
                         Z_all.append(Z)
-                        saved_z_for_flat = Z
                     else:
-                        Z_all.append(saved_z_for_flat)
-        np.savez(f'tmp_kernel/{filename}', Z_stack = np.array(Z_all, dtype=np.float16))
+                        if saved_z_for_flat is None:
+                            kernel = stats.gaussian_kde(positions)
+                            kernel.set_bandwidth(bw_method=kernel.factor / 2.)
+                            Z = (np.reshape(kernel(positions).T, X.shape)).astype(np.float16)
+                            Z_MAX = max(Z_MAX, np.max(Z))
+                            Z_all.append(Z)
+                            saved_z_for_flat = Z
+                        else:
+                            Z_all.append(saved_z_for_flat)
+            np.savez(f'tmp_kernel/{filename}', Z_stack = np.array(Z_all, dtype=np.float16))
     PBAR.close()
 
 
