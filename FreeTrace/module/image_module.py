@@ -866,14 +866,14 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
                     values = np.vstack([selec_coords[:, 0], selec_coords[:, 1]])
                     kernel = stats.gaussian_kde(values, weights=selec_radii)
                     kernel.set_bandwidth(bw_method=kernel.factor / 2.)
-                    Z = np.reshape(kernel(positions).T, X.shape)
+                    Z = (np.reshape(kernel(positions).T, X.shape)).astype(np.float16)
                     Z_MAX = max(Z_MAX, np.max(Z))
                     Z_all.append(Z)
                 else:
                     if saved_z_for_flat is None:
                         kernel = stats.gaussian_kde(positions)
                         kernel.set_bandwidth(bw_method=kernel.factor / 2.)
-                        Z = np.reshape(kernel(positions).T, X.shape)
+                        Z = (np.reshape(kernel(positions).T, X.shape)).astype(np.float16)
                         Z_MAX = max(Z_MAX, np.max(Z))
                         Z_all.append(Z)
                         saved_z_for_flat = Z
