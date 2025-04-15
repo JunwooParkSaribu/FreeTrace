@@ -720,6 +720,8 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
     sequence_save_folder = f'{output_path}'
     if not os.path.exists(sequence_save_folder):
         os.mkdir(sequence_save_folder)
+    if not os.path.exists('tmp_kernel'):
+        os.mkdir('tmp_kernel')
 
     if gpu:
         import cupy as cp
@@ -842,7 +844,6 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
     
 
     Z_MAX = 0
-    Z_batch = []
     PBAR = tqdm(total=tqdm_process_max, desc="Density estimation with weighted Gaussian kernel", unit="frame", ncols=120)
     for vid_idx, (raw_imgs, all_coords, stacked_coords, stacked_radii, time_steps, filename, (start_frame, end_frame)) \
         in enumerate(zip(raw_imgs_list, batch_all_coords_list, batch_stacked_coord_list, batch_stacked_radii_list, batch_time_steps_list, batch_filename_list, batch_frame_list)):
@@ -879,7 +880,7 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
                         saved_z_for_flat = Z
                     else:
                         Z_all.append(saved_z_for_flat)
-        Z_batch.append(Z_all)
+        np.savez(f'tmp_kernel/{filename}', Z_stack = np.array(Z_all, dtype=np.float16))
     PBAR.close()
 
 
@@ -891,6 +892,7 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
     PBAR = tqdm(total=tqdm_process_max, desc="Rendering", unit="frame", ncols=120)
     for vid_idx, (raw_imgs, all_coords, stacked_coords, stacked_radii, time_steps, filename, (start_frame, end_frame)) \
         in enumerate(zip(raw_imgs_list, batch_all_coords_list, batch_stacked_coord_list, batch_stacked_radii_list, batch_time_steps_list, batch_filename_list, batch_frame_list)):
+        Z_stack = np.load(f'tmp_kernel/{filename}.npz')['Z_stack']
         images = read_tif(raw_imgs)[start_frame-1:end_frame,:,:]
 
         image_idx = 0
@@ -902,7 +904,7 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
         for time in time_steps:
             if start_frame <= time <= end_frame:
                 PBAR.update(1)
-                Z = Z_batch[vid_idx][image_idx]
+                Z = Z_stack[image_idx]
                 if images[image_idx: image_idx + frame_cumul,:,:].shape[0] == 0:
                     break
 
@@ -924,6 +926,16 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
         gc.collect()
 
     PBAR.close()
+    
+    try:
+        for filename in batch_filename_list:
+            if os.path.exists(f'tmp_kernel/{filename}.npz'):
+                os.remove(f'tmp_kernel/{filename}.npz')
+        if os.path.exists(f'tmp_kernel'):
+            os.removedirs(f'tmp_kernel')
+    except Exception as e:
+        print(e)
+        print("Temporary files were not removed.")
 
 
 def make_red_circles(imgs, localized_xys, hstack=False):
