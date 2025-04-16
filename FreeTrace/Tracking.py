@@ -375,7 +375,7 @@ def predict_ks(x, y):
     return pred_logk[0]
 
 
-def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, next_times, prev_path=None, start_indice=None, last_time=-1, jump_threshold=20, selected_graph=None, final_graph=None):
+def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, next_times, prev_path=None, start_indice=None, last_time=-1, jump_threshold=20, selected_graph=None, final_graph_nodes=None):
     traj_cost = []
     ab_index = []
     abnormal = False
@@ -393,7 +393,7 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
     if trajectories_costs[next_path] is not None or len(next_path) == 1:
         return ab_index, None
 
-    terminal = is_terminal(next_path[-1], localizations, jump_threshold, selected_graph, final_graph)
+    terminal = is_terminal(next_path[-1], localizations, jump_threshold, selected_graph, final_graph_nodes)
 
     for idx in range(1, len(next_path) - 1):
         if (next_path[idx+1][0] - next_path[idx][0]) - 1 > TIME_FORECAST:
@@ -444,7 +444,7 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
 
             if prev_path is not None and not abnormal:
                 prev_path.append(before_node)
-                if edge_index % ALPHA_MODULO == 0:
+                if (edge_index-2) % ALPHA_MODULO == 0:
                     prev_xys = np.array([localizations[txy[0]][txy[1]][:2] for txy in prev_path[1:]])[-ALPHA_MAX_LENGTH:]
                     prev_alpha = predict_alphas(prev_xys[:,0], prev_xys[:,1])
 
@@ -482,7 +482,7 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
         return [], terminal
     
 
-def generate_next_paths(next_graph:nx.graph, init_graph:nx.graph, localizations, next_times, distribution, source_node):
+def generate_next_paths(next_graph:nx.graph, final_graph_nodes:set, localizations, next_times, distribution, source_node):
     while True:
         start_g_len = len(next_graph.nodes)
         index = 0
@@ -517,12 +517,12 @@ def generate_next_paths(next_graph:nx.graph, init_graph:nx.graph, localizations,
                                         threshold = distribution[time_gap]
                                         if jump_d < threshold:
                                             next_node = (cur_time, next_idx)
-                                            if next_node not in init_graph.nodes:
+                                            if next_node not in final_graph_nodes:
                                                 next_graph.add_edge(last_node, next_node, jump_d=jump_d)
 
             for cur_time in next_times[index:index+1]:
                 for idx in range(len(localizations[cur_time])):
-                    if (cur_time, idx) not in next_graph and (cur_time, idx) not in init_graph and len(localizations[cur_time][0]) == 3:
+                    if (cur_time, idx) not in next_graph and (cur_time, idx) not in final_graph_nodes and len(localizations[cur_time][0]) == 3:
                         next_graph.add_edge((0, 0), (cur_time, idx), jump_d=-1)
 
             index += 1
@@ -547,7 +547,7 @@ def match_prev_next(prev_paths, next_path, hashed_prev_next):
         return hashed_prev_next[next_path]
     
 
-def is_terminal(node, localizations, max_jump_d, selected_graph, final_graph):
+def is_terminal(node, localizations, max_jump_d, selected_graph, final_graph_nodes):
     node_t = node[0]
     node_loc_idx = node[1]
     node_loc = localizations[node_t][node_loc_idx]
@@ -556,14 +556,14 @@ def is_terminal(node, localizations, max_jump_d, selected_graph, final_graph):
         if next_t in localizations:
             for next_node_idx, search_loc in enumerate(localizations[next_t]):
                 next_node = tuple([next_t, next_node_idx])
-                if len(search_loc) == 3 and next_node not in selected_graph.nodes and next_node not in final_graph.nodes:
+                if len(search_loc) == 3 and next_node not in selected_graph.nodes and next_node not in final_graph_nodes:
                     jump_d = euclidean_displacement(node_loc, search_loc)[0]
                     if jump_d < max_jump_d:
                         return False
     return True
 
 
-def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.graph, localizations, next_times, distribution, first_step, last_time):
+def select_opt_graph2(final_graph_node_set_hashed:set, saved_graph:nx.graph, next_graph:nx.graph, localizations, next_times, distribution, first_step, last_time):
     selected_graph = nx.DiGraph()
     source_node = (0, 0)
     selected_graph.add_node(source_node)
@@ -571,7 +571,6 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
     k_values = {}
     start_indice = {}
     hashed_prev_next = {}
-    init_graph = final_graph.copy()
     prev_lowest = [source_node]
 
     if not first_step:
@@ -594,7 +593,7 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
                 prev_paths[path_idx] = tuple(prev_paths[path_idx])
 
     # Generate next graph
-    next_graph, last_nodes = generate_next_paths(next_graph, init_graph, localizations, next_times, distribution, source_node)
+    next_graph, last_nodes = generate_next_paths(next_graph, final_graph_node_set_hashed, localizations, next_times, distribution, source_node)
     trajectories_costs = {tuple(next_path):None for next_path in find_paths_as_iter(next_graph, source=source_node)}
     ab_indice = {}
     is_terminals = {}
@@ -611,7 +610,7 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
             next_path = tuple(next_paths[path_idx])
             index_ind = 0
             for next_node in next_path:
-                if next_node in init_graph.nodes:
+                if next_node in final_graph_node_set_hashed:
                     index_ind += 1
             start_indice[tuple(next_path)] = index_ind
             if next_path in trajectories_costs:
@@ -622,7 +621,7 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
         # Calculate cost
         if first_step:
             for next_path in next_paths:
-                ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, 1.0, 2.0, next_times, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph, final_graph=final_graph)
+                ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, 1.0, 2.0, next_times, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph, final_graph_nodes=final_graph_node_set_hashed)
                 if term is not None:
                     is_terminals[next_path] = term
                 if len(ab_index) > 0:
@@ -632,11 +631,11 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
             for next_path in next_paths:
                 prev_path = match_prev_next(prev_paths, next_path, hashed_prev_next)
                 if prev_path is None:
-                    ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, 1.0, 2.0, next_times, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph, final_graph=final_graph)
+                    ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, 1.0, 2.0, next_times, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph, final_graph_nodes=final_graph_node_set_hashed)
                 else:
                     prev_alpha = alpha_values[prev_path]
                     prev_k = k_values[prev_path]
-                    ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, next_times, prev_path, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph, final_graph=final_graph)
+                    ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, next_times, prev_path, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph, final_graph_nodes=final_graph_node_set_hashed)
                 if len(ab_index) > 0:
                     ab_indice[next_path] = ab_index 
                 if term is not None:
@@ -697,7 +696,7 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
                 next_graph_copy.remove_node(rm_node)
                 for pred in predcessors:
                     for suc in sucessors:
-                        if pred not in init_graph.nodes and suc not in init_graph.nodes:
+                        if pred not in final_graph_node_set_hashed and suc not in final_graph_node_set_hashed:
                             if pred != source_node and (pred, suc) not in next_graph.edges:
                                 pred_loc = localizations[pred[0]][pred[1]]
                                 suc_loc = localizations[suc[0]][suc[1]]
@@ -747,7 +746,7 @@ def select_opt_graph2(final_graph:nx.graph, saved_graph:nx.graph, next_graph:nx.
     for time in next_times:
         for node_idx in range(len(localizations[time])):
             cur_node = tuple([time, node_idx])
-            if len(localizations[time][node_idx]) == 3 and cur_node not in selected_graph.nodes and cur_node not in final_graph.nodes:
+            if len(localizations[time][node_idx]) == 3 and cur_node not in selected_graph.nodes and cur_node not in final_graph_node_set_hashed:
                 orphans.append(cur_node)
 
     return selected_graph, len(orphans) > 0
@@ -768,7 +767,7 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
     selected_time_steps = np.arange(t_avail_steps[0], min(t_avail_steps[0] + 1 + time_forecast, t_avail_steps[-1] + 1))
     saved_time_steps = 1
     mysum = 0
-    return_graphs = []
+    final_graph_node_set_hashed = {source_node}
 
 
     realtime_obj = None
@@ -787,7 +786,7 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
             PBAR.update(pbar_update)
 
         if len(set(selected_time_steps).intersection(set(t_avail_steps))) != 0:
-            selected_sub_graph, has_orphan = select_opt_graph2(final_graph, light_prev_graph, next_graph, localization, selected_time_steps, distribution, first_construction, last_time)
+            selected_sub_graph, has_orphan = select_opt_graph2(final_graph_node_set_hashed, light_prev_graph, next_graph, localization, selected_time_steps, distribution, first_construction, last_time)
         else:
             selected_sub_graph = nx.DiGraph()
             selected_sub_graph.add_node(source_node)
@@ -808,13 +807,13 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
                 for path in selected_paths:
                     without_source_path = path[1:]
                     if len(without_source_path) == 1:
-                        if without_source_path[0] not in final_graph.nodes:
+                        if without_source_path[0] not in final_graph_node_set_hashed:
                             final_graph.add_edge(source_node, tuple(without_source_path[0]))
                     else:
                         for idx in range(len(without_source_path) - 1):
                             before_node = tuple(without_source_path[idx])
                             next_node = tuple(without_source_path[idx+1])
-                            if next_node not in final_graph.nodes:
+                            if next_node not in final_graph_node_set_hashed:
                                 final_graph.add_edge(before_node, next_node)
                     if not nx.has_path(final_graph, source_node, tuple(without_source_path[0])):
                         final_graph.add_edge(source_node, tuple(without_source_path[0]))
@@ -823,8 +822,9 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
                 for path in selected_paths:
                     terminal = selected_sub_graph.get_edge_data(path[0], path[1])['terminal']
                     if len(path) == 2:
-                        if terminal and path[-1] not in final_graph.nodes:
+                        if terminal and path[-1] not in final_graph_node_set_hashed:
                             final_graph.add_edge(source_node, path[-1])
+                            final_graph_node_set_hashed.add(path[-1])
                         else:
                             start_time = min(start_time, path[-1][0])
                     else:
@@ -832,21 +832,26 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
                             start_time = min(start_time, path[-2][0])
                             if len(path) == 3:
                                 before_node = path[1]
-                                if before_node not in final_graph.nodes:
+                                if before_node not in final_graph_node_set_hashed:
                                     final_graph.add_edge(source_node, before_node)
+                                    final_graph_node_set_hashed.add(before_node)
                                 node_pairs.append([path[1]])            
                             elif len(path) > 3:
-                                for edge_index in range(2, len(path) - 1):
-                                    before_node = path[edge_index - 1]
-                                    next_node = path[edge_index]
-                                    if before_node in final_graph.nodes:
-                                        if (before_node, next_node) not in final_graph.edges:
-                                            final_graph.add_edge(before_node, next_node)
-                                    else:
-                                        if (source_node, before_node) not in final_graph.edges:
-                                            final_graph.add_edge(source_node, before_node)
-                                        if (before_node, next_node) not in final_graph.edges:
-                                            final_graph.add_edge(before_node, next_node)
+                                first_node = path[1]
+                                if first_node in final_graph_node_set_hashed:
+                                    for edge_index in range(2, len(path) - 1):
+                                        before_node = path[edge_index - 1]
+                                        next_node = path[edge_index]
+                                        final_graph.add_edge(before_node, next_node)
+                                        final_graph_node_set_hashed.add(next_node)
+                                else:
+                                    final_graph.add_edge(source_node, first_node)
+                                    final_graph_node_set_hashed.add(first_node)
+                                    for edge_index in range(2, len(path) - 1):
+                                        before_node = path[edge_index - 1]
+                                        next_node = path[edge_index]
+                                        final_graph.add_edge(before_node, next_node)
+                                        final_graph_node_set_hashed.add(next_node)
 
                                 node_pairs.append([path[-3], path[-2]])
                                 ancestors = list(nx.ancestors(final_graph, path[-2]))
@@ -855,25 +860,34 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
                                     for idx in range(len(sorted_ancestors[:ALPHA_MAX_LENGTH+3]) - 1):
                                         light_prev_graph.add_edge(sorted_ancestors[idx+1], sorted_ancestors[idx])
                                     if sorted_ancestors[idx+1] != source_node:
-                                        light_prev_graph.add_edge(source_node, sorted_ancestors[idx+1]) 
+                                        light_prev_graph.add_edge(source_node, sorted_ancestors[idx+1])
                         else:
-                            for edge_index in range(2, len(path)):
-                                before_node = path[edge_index - 1]
-                                next_node = path[edge_index]
-                                if before_node in final_graph.nodes:
-                                    if (before_node, next_node) not in final_graph.edges:
-                                        final_graph.add_edge(before_node, next_node)
-                                else:
-                                    if (source_node, before_node) not in final_graph.edges:
-                                        final_graph.add_edge(source_node, before_node)
-                                    if (before_node, next_node) not in final_graph.edges:
-                                        final_graph.add_edge(before_node, next_node)                    
+                            first_node = path[1]
+                            second_node = path[2]
+                            if first_node in final_graph_node_set_hashed:
+                                final_graph.add_edge(first_node, second_node)
+                                final_graph_node_set_hashed.add(second_node)
+                                for edge_index in range(3, len(path)):
+                                    before_node = path[edge_index - 1]
+                                    next_node = path[edge_index]
+                                    final_graph.add_edge(before_node, next_node)
+                                    final_graph_node_set_hashed.add(next_node)
+                            else:
+                                final_graph.add_edge(source_node, first_node)
+                                final_graph.add_edge(first_node, second_node)
+                                final_graph_node_set_hashed.add(first_node)
+                                final_graph_node_set_hashed.add(second_node)
+                                for edge_index in range(3, len(path)):
+                                    before_node = path[edge_index - 1]
+                                    next_node = path[edge_index]
+                                    final_graph.add_edge(before_node, next_node)
+                                    final_graph_node_set_hashed.add(next_node)
 
         ## start time -> node min not in final graph from selected time steps
         for time in selected_time_steps:
             for node_idx in range(len(localization[time])):
                 node = tuple([time, node_idx])
-                if len(localization[time][node_idx]) == 3 and node not in final_graph.nodes:
+                if len(localization[time][node_idx]) == 3 and node not in final_graph_node_set_hashed:
                     start_time = min(start_time, node[0])
 
         if realtime_visualization:
