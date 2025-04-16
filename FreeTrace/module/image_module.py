@@ -527,19 +527,27 @@ def remake_visual_trajectories(output_path:str, trajectory_file:str, raw_imgs:st
     img_stacks = img_stacks[start_frame:end_frame, :, :]
 
     ret_img_stacks = []
-    for img, frame in zip(img_stacks, np.arange(start_frame, end_frame, 1) + 1):
+    for img, frame in tqdm(zip(img_stacks, np.arange(start_frame, end_frame, 1) + 1), total=len(img_stacks)):
         if img.ndim == 2:
             img = np.array([img, img, img])
             img = np.moveaxis(img, 0, 2)
         img = np.ascontiguousarray(img)
+
         if upscaling >= 2:
             img = cv2.resize(img, (img.shape[1]*upscaling, img.shape[0]*upscaling),
                              interpolation=cv2.INTER_AREA)
+        
+        new_traj_list = traj_list.copy()
         for traj in traj_list:
             times = traj.get_times()
+            if times[0] > frame:
+                continue
             if times[-1] < frame:
+                new_traj_list.remove(traj)
                 continue
             indices = [i for i, time in enumerate(times) if time <= frame]
+            if len(indices) == 0:
+                continue
             if traj.get_trajectory_length() >= 2:
                 xy = np.array([[int(np.around(x * upscaling)), int(np.around(y * upscaling))]
                                for x, y, _ in traj.get_positions()[indices]], np.int32)
@@ -549,6 +557,7 @@ def remake_visual_trajectories(output_path:str, trajectory_file:str, raw_imgs:st
                                                 traj.get_color()[1],
                                                 traj.get_color()[2]),
                                          thickness=1)
+        traj_list = new_traj_list
         ret_img_stacks.append((img * 255).astype(np.uint8))
     ret_img_stacks = np.array(ret_img_stacks, dtype=np.uint8)
     tifffile.imwrite(f'{output_path}/{filename}_{start_frame+1}_{end_frame}_tracevideo.tiff', data=ret_img_stacks, imagej=True)
@@ -566,7 +575,7 @@ def remake_visual_localizations(output_path:str, localization_file:str, raw_imgs
     img_stacks = img_stacks[start_frame-1:end_frame, :, :]
 
     ret_img_stacks = []
-    for img_idx, frame in enumerate(np.arange(start_frame, end_frame+1, 1)):
+    for img_idx, frame in tqdm(enumerate(np.arange(start_frame, end_frame+1, 1)), total=len(np.arange(start_frame, end_frame+1, 1))):
         coords = loc_list[frame]
         img = img_stacks[img_idx]
         img = (img * 255).astype(np.uint8)
