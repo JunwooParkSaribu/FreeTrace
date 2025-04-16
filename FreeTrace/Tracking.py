@@ -920,6 +920,9 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
     if realtime_obj is not None:
         realtime_obj.turn_off()
 
+    if not nx.is_directed_acyclic_graph(final_graph):
+        sys.exit("!! Graph is not DAG. !!")
+
     trajectory_list = []
     traj_idx = 0
     for path in find_paths_as_iter(final_graph, source=source_node):
@@ -933,6 +936,8 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
 
 
 def trajectory_inference(localization: dict, time_steps: np.ndarray, distribution: dict, image_length=None, realtime_visualization=False):
+    if len(time_steps) > 10000:
+        sys.setrecursionlimit(5000)
     t_avail_steps = []
     for time in np.sort(time_steps):
         if len(localization[time][0]) == 3:
