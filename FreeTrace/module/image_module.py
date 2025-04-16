@@ -704,7 +704,8 @@ def make_loc_radius_video(output_path:str, raw_imgs:str, localization_file:str, 
     print(f'{sequence_save_folder}/{filename}_density_video_frame_{start_frame}_{end_frame}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}.tiff is successfully generated.')
 
 
-def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localization_file_list:list, frame_list:list, frame_cumul=100, radius=[3, 13], max_density=None, color='jet', alpha1=0.65, alpha2=0.35, gpu=False):
+def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localization_file_list:list, frame_list:list, 
+                                frame_cumul=100, radius=[3, 13], nb_min_particles=100, max_density=None, color='jet', alpha1=0.65, alpha2=0.35, gpu=False):
     import gc
     for localization_file in localization_file_list:
         assert 'trace' in localization_file.split('/')[-1] or 'loc' in localization_file.split('/')[-1], "input trace/loc file format is wrong, it needs video_traces.csv or video_loc.csv"
@@ -866,7 +867,7 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
                     PBAR.update(1)
                     selec_coords = stacked_coords[time]
                     selec_radii = stacked_radii[time]
-                    if len(selec_coords) > 100:
+                    if len(selec_coords) > nb_min_particles:
                         values = np.vstack([selec_coords[:, 0], selec_coords[:, 1]])
                         kernel = stats.gaussian_kde(values, weights=selec_radii)
                         kernel.set_bandwidth(bw_method=kernel.factor / 2.)
