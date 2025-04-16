@@ -517,9 +517,9 @@ def make_image_seqs(trajectory_list, output_dir, img_stacks, time_steps):
 
 
 def remake_visual_trajectories(output_path:str, trajectory_file:str, raw_imgs:str, start_frame=1, end_frame=10000, upscaling:int=1):
-    assert 'traces.csv' in trajectory_file.split('/')[-1], "input trajectory file format is wrong, it needs video_traces.csv"
+    assert 'traces' in trajectory_file.split('/')[-1], "input trajectory file format is wrong, it needs video_traces.csv"
     assert '.tif' in raw_imgs.split('/')[-1], "input image file format is wrong, it needs image.tiff"
-    filename = raw_imgs.strip().split('/')[-1].split('.tif')[0]
+    filename = trajectory_file.strip().split('/')[-1].split('.csv')[0]
     traj_list = read_trajectory(trajectory_file)
     img_stacks = read_tif(raw_imgs)
     start_frame = max(0, start_frame) - 1
