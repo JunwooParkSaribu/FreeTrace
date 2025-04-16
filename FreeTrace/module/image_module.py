@@ -713,6 +713,9 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
             FILE_FORMAT = 'trace'
         else:
             FILE_FORMAT = 'loc'
+    for file_path, image_path in zip(localization_file_list, raw_imgs_list):
+        assert os.path.exists(file_path), f'Couldn\'t find the file: {file_path}, please check again this file name'
+        assert os.path.exists(image_path), f'Couldn\'t find the video: {image_path}, please check again this video name'
     assert len(radius) == 2, "radius should be 2 length of list such as [1, 10]."
     assert radius[0] < radius[1] and radius[0] > 0, "radius[0] should be smaller than radius[1] and radius[0] should be greater than 0."
     assert 0.999 < alpha1 + alpha2 < 1.001, "Sum of alpha1 and alpha2 should be equal to 1."
