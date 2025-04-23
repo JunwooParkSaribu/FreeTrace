@@ -991,7 +991,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_t
     CUTOFF = cutoff
     GPU_AVAIL = gpu_on
     REG_LEGNTHS = [3, 5, 8]
-    LOC_PRECISION_ERR = 1.0
+    LOC_PRECISION_ERR = 0.5
     ALPHA_MAX_LENGTH = 10
     ALPHA_MODULO = 3
     DIMENSION = 2
