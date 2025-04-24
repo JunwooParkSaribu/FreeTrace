@@ -3,10 +3,12 @@ from tensorflow.keras.models import load_model # type: ignore
 
 
 class RegModel:
-    def __init__(self, reg_model_nums):
+    def __init__(self, reg_model_nums:list):
         self.reg_model_nums = reg_model_nums
         self.alpha_models = None
         self.k_model = None
+        self.crits = reg_model_nums.copy()
+        self.crits.append(1024)
         self.load_models(self.reg_model_nums)
 
     def load_models(self, model_nums):
@@ -36,7 +38,7 @@ class RegModel:
 
     def alpha_predict(self, inputs):
         if len(inputs) == 2:
-            if len(inputs[0]) < 3:
+            if len(inputs[0]) < self.reg_model_nums[0]:
                 return 1.0
             alpha_signal, model_num = self.call(inputs)
             pred_alphas = self.alpha_models[model_num].predict_on_batch(alpha_signal)
@@ -46,7 +48,7 @@ class RegModel:
                 pred_alpha = np.mean(pred_alphas)
             return pred_alpha
         elif len(inputs) == 3:
-            if len(inputs[0]) < 3:
+            if len(inputs[0]) < self.reg_model_nums[0]:
                 return 1.0
             alpha_preds = []
             for inputs_ in inputs:
@@ -71,12 +73,11 @@ class RegModel:
 
     def model_selection(self, length):
         index = 0
-        crits = [3, 5, 8, 999]
         while True:
-            if crits[index] <= length < crits[index+1]:
+            if self.crits[index] <= length < self.crits[index+1]:
                 return self.reg_model_nums[index]
             index += 1
-            if index >= len(crits):
+            if index >= len(self.crits):
                 return self.reg_model_nums[-2]
 
     def log_displacements(self, xs, ys):
