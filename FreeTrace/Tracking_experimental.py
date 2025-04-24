@@ -61,7 +61,7 @@ def predict_multinormal(relativ_coord, alpha, k, lag):
 
 def build_emp_pdf(emp_distribution, bins):
     global EMP_PDF
-    if len(emp_distribution) < 500:
+    if len(emp_distribution) < 1000:
         jump_hist, _ = np.histogram(np.random.exponential(2, size=10000), bins=bins, density=True)
     else:
         jump_hist, _ = np.histogram(emp_distribution, bins=bins, density=True)
@@ -115,6 +115,7 @@ def greedy_shortest(srcs, dests):
     x_distribution = []
     y_distribution = []
     z_distribution = []
+    jump_distribution = []
     superposed_locals = dests
     superposed_len = len(superposed_locals)
     linked_src = [False] * len(srcs)
@@ -150,8 +151,9 @@ def greedy_shortest(srcs, dests):
             linked_src[src] = True
             x_distribution.append(x_diff[minarg])
             y_distribution.append(y_diff[minarg])
-            z_distribution.append(z_diff[minarg]) 
-    return x_distribution[:-1], y_distribution[:-1], z_distribution[:-1]
+            z_distribution.append(z_diff[minarg])
+            jump_distribution.append(linkage[src][dest])
+    return x_distribution[:-1], y_distribution[:-1], z_distribution[:-1], jump_distribution
 
 
 def segmentation(localization: dict, time_steps: np.ndarray, lag=2):
@@ -159,8 +161,11 @@ def segmentation(localization: dict, time_steps: np.ndarray, lag=2):
     dist_x_all = []
     dist_y_all = []
     dist_z_all = []
+    seg_distribution = {}
+    for i in range(lag + 1):
+        seg_distribution[i] = []
 
-    for i, time_step in enumerate(time_steps[:-1]):
+    for i, time_step in enumerate(time_steps[:-lag-1:1]):
         dests = [[] for _ in range(lag + 1)]
         srcs = localization[time_step]
         for j in range(i+1, i+lag+2):
@@ -168,10 +173,11 @@ def segmentation(localization: dict, time_steps: np.ndarray, lag=2):
             dests[j - i - 1].extend(dest)
         for dest in dests:
             if srcs[0].shape[0] > 1 and dest[0].shape[0] > 1:
-                dist_x, dist_y, dist_z = greedy_shortest(srcs=srcs, dests=dest)
+                dist_x, dist_y, dist_z, jump_dist = greedy_shortest(srcs=srcs, dests=dest)
                 dist_x_all.extend(dist_x)
                 dist_y_all.extend(dist_y)
                 dist_z_all.extend(dist_z)
+                seg_distribution[lag].extend(jump_dist)
 
 
     ndim = 2 if np.var(dist_z_all) < 1e-5 else 3
@@ -206,7 +212,7 @@ def segmentation(localization: dict, time_steps: np.ndarray, lag=2):
     dist_x_all = filtered_x
     dist_y_all = filtered_y
     dist_z_all = filtered_z
-    return np.array([dist_x_all, dist_y_all, dist_z_all])
+    return np.array([dist_x_all, dist_y_all, dist_z_all]), seg_distribution
 
 
 def count_localizations(localization):
@@ -991,7 +997,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_t
     CUTOFF = cutoff
     GPU_AVAIL = gpu_on
     REG_LEGNTHS = [3, 5, 8]
-    LOC_PRECISION_ERR = 0.5
+    LOC_PRECISION_ERR = 1.0
     ALPHA_MAX_LENGTH = 10
     ALPHA_MODULO = 3
     DIMENSION = 2
@@ -1028,18 +1034,16 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_t
 
 
     t_steps, mean_nb_per_time, xyz_min, xyz_max = count_localizations(loc)
-    raw_distributions = segmentation(loc, time_steps=t_steps, lag=time_forecast)
+    raw_distributions, jump_distribution = segmentation(loc, time_steps=t_steps, lag=time_forecast)
     max_jumps = approximation(raw_distributions, time_forecast=time_forecast, jump_threshold=JUMP_THRESHOLD)
-    build_emp_pdf(np.sum(raw_distributions**2, axis=0), bins=EMP_BINS)
+    build_emp_pdf(jump_distribution[0], bins=EMP_BINS)
 
 
     if VERBOSE:
         print(f'Mean nb of particles per frame: {mean_nb_per_time:.2f} particles/frame')
         PBAR = tqdm(total=t_steps[-1], desc="Tracking", unit="frame", ncols=120)
 
-    final_trajectories = trajectory_inference(localization=loc, time_steps=t_steps,
-                                                distribution=max_jumps, image_length=images.shape[0], realtime_visualization=realtime_visualization)
-    """
+
     try:
         final_trajectories = trajectory_inference(localization=loc, time_steps=t_steps,
                                                   distribution=max_jumps, image_length=images.shape[0], realtime_visualization=realtime_visualization)
@@ -1049,13 +1053,13 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_t
         if VERBOSE:
             PBAR.close()
         sys.exit(0)
-    """
+
 
     if VERBOSE:
         PBAR.close()
 
 
-    #write_xml(output_file=output_xml, trajectory_list=final_trajectories, snr='7', density='low', scenario='Vesicle', cutoff=CUTOFF)
+    write_xml(output_file=output_xml, trajectory_list=final_trajectories, snr='7', density='low', scenario='Vesicle', cutoff=CUTOFF)
     write_trajectory(output_trj, final_trajectories)
     make_whole_img(final_trajectories, output_dir=output_img, img_stacks=images)
     if save_video:
