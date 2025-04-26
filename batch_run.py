@@ -60,7 +60,7 @@ if __name__ == "__main__":
                 except Exception as e:
                     failed_tasks.append(file)
                     print(f"ERROR on {file}, code:{e}")
-                    with open('./outputs/error_log.txt', 'a') as error_log:
+                    with open(f'{OUTPUT_DIR}/error_log.txt', 'a') as error_log:
                         dt_string = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
                         input_str = f'{file} has an err[{e}]. DATE: {dt_string}\n'        
                         error_log.write(input_str)
