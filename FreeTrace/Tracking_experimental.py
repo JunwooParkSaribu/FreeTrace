@@ -73,6 +73,10 @@ def empirical_pdf(coords):
 
 
 def regularization(numer, denom, expect):
+    if abs(numer) <= 1e-6:
+        numer += 1e-3
+    if abs(denom) <= 1e-6:
+        denom += 1e-3 
     scaler = min(math.sqrt(scaling_func(numer) + 2.0*scaling_func(denom))/2, 1.0)
     scaled_ratio = (numer / denom) + (expect - numer/denom) * (scaler)**(1./3)
     #print(f'scaler_{numer}/{denom}: {scaler},   -> {scaled_ratio},  {count_zeros(numer)}@{count_zeros(denom)}')
@@ -416,7 +420,7 @@ def predict_ks(x, y):
     return pred_logk[0]
     
 
-def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, next_times, prev_path=None, start_indice=None, last_time=-1, jump_threshold=20, selected_graph=None, final_graph_nodes=None, flag=0):
+def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, next_times, prev_path=None, start_indice=None, last_time=-1, jump_threshold=20, selected_graph=None, final_graph_nodes=None):
     traj_cost = []
     ab_index = []
     abnormal = False
@@ -434,7 +438,7 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
     if trajectories_costs[next_path] is not None or len(next_path) == 1:
         return ab_index, None
 
-    terminal = is_terminal(next_path[-1], localizations, jump_threshold, selected_graph, final_graph_nodes, flag=flag)
+    terminal = is_terminal(next_path[-1], localizations, jump_threshold, selected_graph, final_graph_nodes)
 
     for idx in range(1, len(next_path) - 1):
         if (next_path[idx+1][0] - next_path[idx][0]) - 1 > TIME_FORECAST:
@@ -589,16 +593,10 @@ def is_terminal(node, localizations, max_jump_d, selected_graph, final_graph_nod
         if next_t in localizations:
             for next_node_idx, search_loc in enumerate(localizations[next_t]):
                 next_node = tuple([next_t, next_node_idx])
-                if flag == 0:
-                    if len(search_loc) == 3 and next_node not in selected_graph.nodes and next_node not in final_graph_nodes:
-                        jump_d = euclidean_displacement(node_loc, search_loc)[0]
-                        if jump_d < max_jump_d:
-                            return False
-                else:
-                    if len(search_loc) == 3 and next_node in selected_graph.nodes and next_node not in final_graph_nodes:
-                        jump_d = euclidean_displacement(node_loc, search_loc)[0]
-                        if jump_d < max_jump_d:
-                            return False 
+                if len(search_loc) == 3 and next_node not in selected_graph.nodes and next_node not in final_graph_nodes:
+                    jump_d = euclidean_displacement(node_loc, search_loc)[0]
+                    if jump_d < max_jump_d:
+                        return False
     return True
 
 
@@ -646,17 +644,16 @@ def split_to_subgraphs(graph:nx.graph, source_node=(0, 0)):
 
 
 def select_opt_graph2(final_graph_node_set_hashed:set, saved_graph:nx.graph, next_graph:nx.graph, localizations, next_times, distribution, first_step, last_time):
+    source_node = (0, 0)
     selected_graph = nx.DiGraph()
+    selected_graph.add_node(source_node)
     init_alpha = 1.0
     init_K = 0.3
-    source_node = (0, 0)
-    selected_graph.add_node(source_node)
     alpha_values = {}
     k_values = {}
     start_indice = {}
     hashed_prev_next = {}
     
-
     if not first_step:
         prev_paths = find_paths_as_list(saved_graph, source=source_node)
         if TF:
@@ -686,8 +683,10 @@ def select_opt_graph2(final_graph_node_set_hashed:set, saved_graph:nx.graph, nex
         cost_sums = [-1e-5] * NB_TO_OPTIMUM
         lowest_idices = np.arange(NB_TO_OPTIMUM)
 
-        is_terminals = {}
         for llxx, lowest_idx in enumerate(lowest_idices):
+            tmp_graph = nx.DiGraph()
+            tmp_graph.add_node(source_node)
+            is_terminals = {}
             trajectories_costs = {tuple(next_path):None for next_path in find_paths_as_iter(sub_graph_, source=source_node)}
             sub_graph = sub_graph_.copy()
             ab_indice = {}
@@ -717,7 +716,7 @@ def select_opt_graph2(final_graph_node_set_hashed:set, saved_graph:nx.graph, nex
                 # Calculate cost
                 if first_step:
                     for next_path in next_paths:
-                        ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, init_alpha, init_K, next_times, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph, final_graph_nodes=final_graph_node_set_hashed, flag=0)
+                        ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, init_alpha, init_K, next_times, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=tmp_graph, final_graph_nodes=final_graph_node_set_hashed)
                         if term is not None:
                             is_terminals[next_path] = term
                         if len(ab_index) > 0:
@@ -727,11 +726,11 @@ def select_opt_graph2(final_graph_node_set_hashed:set, saved_graph:nx.graph, nex
                     for next_path in next_paths:
                         prev_path = match_prev_next(prev_paths, next_path, hashed_prev_next)
                         if prev_path is None:
-                            ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, init_alpha, init_K, next_times, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph, final_graph_nodes=final_graph_node_set_hashed, flag=0)
+                            ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, init_alpha, init_K, next_times, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=tmp_graph, final_graph_nodes=final_graph_node_set_hashed)
                         else:
                             prev_alpha = alpha_values[prev_path]
                             prev_k = k_values[prev_path]
-                            ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, next_times, prev_path, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph, final_graph_nodes=final_graph_node_set_hashed, flag=0)
+                            ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, next_times, prev_path, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=tmp_graph, final_graph_nodes=final_graph_node_set_hashed)
                         if len(ab_index) > 0:
                             ab_indice[next_path] = ab_index 
                         if term is not None:
@@ -830,6 +829,12 @@ def select_opt_graph2(final_graph_node_set_hashed:set, saved_graph:nx.graph, nex
                 pop_cost = trajectories_costs[lowest_cost_traj]
                 cost_sums[lowest_idx] += pop_cost
 
+                # tmp graph update
+                terminal_lowest_cost = is_terminals[lowest_cost_traj]
+                for edge_index in range(1, len(lowest_cost_traj)):
+                    before_node = lowest_cost_traj[edge_index - 1]
+                    next_node = lowest_cost_traj[edge_index]
+                    tmp_graph.add_edge(before_node, next_node, terminal=terminal_lowest_cost)
 
                 if len(list(sub_graph.neighbors(source_node))) ==0 or tuple(lowest_cost_traj) == tuple(prev_lowest):
                     break
@@ -1178,7 +1183,7 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
         realtime_obj.turn_off()
 
     if not nx.is_directed_acyclic_graph(final_graph):
-        sys.exit("!! Graph is not DAG. !!")
+        sys.exit("!!! Result graph is not DAG. !!!")
 
     trajectory_list = []
     traj_idx = 0
@@ -1193,8 +1198,7 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
 
 
 def trajectory_inference(localization: dict, time_steps: np.ndarray, distribution: dict, image_length=None, realtime_visualization=False):
-    if len(time_steps) > 10000:
-        sys.setrecursionlimit(5000)
+    sys.setrecursionlimit(10000)
     t_avail_steps = []
     for time in np.sort(time_steps):
         if len(localization[time][0]) == 3:
@@ -1280,7 +1284,10 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_t
         print(f'Mean nb of particles per frame: {mean_nb_per_time:.2f} particles/frame')
         PBAR = tqdm(total=t_steps[-1], desc="Tracking", unit="frame", ncols=120)
 
-
+    
+    final_trajectories = trajectory_inference(localization=loc, time_steps=t_steps,
+                                                distribution=max_jumps, image_length=images.shape[0], realtime_visualization=realtime_visualization)
+    """
     try:
         final_trajectories = trajectory_inference(localization=loc, time_steps=t_steps,
                                                   distribution=max_jumps, image_length=images.shape[0], realtime_visualization=realtime_visualization)
@@ -1290,7 +1297,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_t
         if VERBOSE:
             PBAR.close()
         sys.exit(0)
-
+    """
 
     if VERBOSE:
         PBAR.close()
