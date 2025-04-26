@@ -588,12 +588,13 @@ def remake_visual_localizations(output_path:str, localization_file:str, raw_imgs
                              interpolation=cv2.INTER_AREA)
         xy_cum = []
         for center_coord in coords:
-            x, y = int(round(center_coord[1] * upscaling)), int(round(center_coord[0] * upscaling))
-            if (x, y) in xy_cum:
-                img = draw_cross(img, x, y, (0, 0, 1))
-            else:
-                img = draw_cross(img, x, y, (1, 0, 0))
-            xy_cum.append((x, y))
+            if len(center_coord) == 3:
+                x, y = int(round(center_coord[1] * upscaling)), int(round(center_coord[0] * upscaling))
+                if (x, y) in xy_cum:
+                    img = draw_cross(img, x, y, (0, 0, 1))
+                else:
+                    img = draw_cross(img, x, y, (1, 0, 0))
+                xy_cum.append((x, y))
 
         ret_img_stacks.append(img)
     ret_img_stacks = np.array(ret_img_stacks, dtype=np.uint8)
