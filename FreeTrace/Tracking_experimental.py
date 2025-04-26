@@ -52,8 +52,6 @@ def predict_multinormal(relativ_coord, alpha, k, lag):
     alpha_index, k_index = indice_fetch(alpha, k)
     mean_std = std_fetch(alpha_index, k_index)
     mean_std = mean_std * math.sqrt(lag + 1)
-    #if (abs(relativ_coord) > sigma_ * mean_std).any():
-    #    abnormal = True
     relativ_coord = relativ_coord[:DIMENSION]
     log_pdf = np.sum(np.log(1/(np.sqrt(2*np.pi) * mean_std) * np.exp(-1./2 * (relativ_coord / mean_std)**2)))
     return log_pdf, abnormal
@@ -74,37 +72,55 @@ def empirical_pdf(coords):
     return np.log(EMP_PDF[idx] + 1e-7)
 
 
+def regularization(numer, denom, expect):
+    scaler = min(math.sqrt(scaling_func(numer) + 2.0*scaling_func(denom))/2, 1.0)
+    scaled_ratio = (numer / denom) + (expect - numer/denom) * (scaler)**(1./3)
+    #print(f'scaler_{numer}/{denom}: {scaler},   -> {scaled_ratio},  {count_zeros(numer)}@{count_zeros(denom)}')
+    return scaled_ratio
+
+
+def count_zeros(number:float):
+    count = 1
+    if abs(number) > 0.999:
+        return 0
+    str_number = str(number)
+    str_number = str_number.split('.')[-1]
+    for x in str_number:
+        if x == '0':
+            count += 1
+        else:
+            return count
+    return min(2, count)
+
+
+def scaling_func(numer:float):
+    return max(0, min(2, -math.log10(abs(numer))))
+
+
 def predict_cauchy(next_vec, prev_vec, alpha, before_lag, lag, precision, dimension):
     log_pdf = 0
     abnormal = False
     delta_s = before_lag + 1
     delta_t = lag + 1
     coord_ratios = []
-    for vec1, vec2 in zip(next_vec[:DIMENSION], prev_vec[:DIMENSION]):
-        if vec1 < 0:
-            vec1 -= precision
-        else:
-            vec1 += precision
-        if vec2 < 0:
-            vec2 -= precision
-        else:
-            vec2 += precision
-        coord_ratio = vec1 / vec2
-        coord_ratios.append(coord_ratio)
-    coord_ratios = np.array(coord_ratios)
     
     if abs(alpha - 1.0) < 1e-4:
         alpha += 1e-4
-    
     rho = math.pow(2, alpha - 1) -1
     std_ratio = math.sqrt((math.pow(2*delta_t, alpha) - 2*math.pow(delta_t, alpha)) / (math.pow(2*delta_s, alpha) - 2*math.pow(delta_s, alpha)))
     scale = math.sqrt(1 - math.pow(rho, 2)) * std_ratio
+    
+    for vec1, vec2 in zip(next_vec[:DIMENSION], prev_vec[:DIMENSION]):
+        coord_ratio = regularization(vec1, vec2, rho*std_ratio)
+        coord_ratios.append(coord_ratio)
+    coord_ratios = np.array(coord_ratios)
+
     for coord_ratio in coord_ratios:
         density = 1.0/(math.pi * scale) * 1.0 / (( math.pow((coord_ratio - rho*std_ratio), 2) / (math.pow(scale, 2) * std_ratio) ) + (std_ratio))
         log_pdf += math.log(density)
-    if (abs(coord_ratios - std_ratio*rho) > 6*scale).any():
+    if (abs(coord_ratios - std_ratio*rho) > 6.0*scale).any():
         abnormal = True
-
+    #print(coord_ratios, std_ratio*rho, log_pdf, abnormal, next_vec, prev_vec, scale)
     return log_pdf, abnormal
 
 
@@ -400,7 +416,7 @@ def predict_ks(x, y):
     return pred_logk[0]
     
 
-def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, next_times, prev_path=None, start_indice=None, last_time=-1, jump_threshold=20, selected_graph=None, final_graph_nodes=None):
+def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, next_times, prev_path=None, start_indice=None, last_time=-1, jump_threshold=20, selected_graph=None, final_graph_nodes=None, flag=0):
     traj_cost = []
     ab_index = []
     abnormal = False
@@ -418,7 +434,7 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
     if trajectories_costs[next_path] is not None or len(next_path) == 1:
         return ab_index, None
 
-    terminal = is_terminal(next_path[-1], localizations, jump_threshold, selected_graph, final_graph_nodes)
+    terminal = is_terminal(next_path[-1], localizations, jump_threshold, selected_graph, final_graph_nodes, flag=flag)
 
     for idx in range(1, len(next_path) - 1):
         if (next_path[idx+1][0] - next_path[idx][0]) - 1 > TIME_FORECAST:
@@ -429,16 +445,14 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
         print(next_path)
         raise Exception
     elif len(next_path) == 2:
-        trajectories_costs[next_path] = initial_cost + abnormal_penalty
+        trajectories_costs[next_path] = time_penalty
     elif len(next_path) == 3:
         before_node = next_path[1]
         next_node = next_path[2]
         time_gap = next_node[0] - before_node[0] - 1
-        next_coord = localizations[next_node[0]][next_node[1]]
-        cur_coord = localizations[before_node[0]][before_node[1]]
-        input_mu = next_coord - cur_coord
-        log_p0, abnormal = predict_multinormal(input_mu, prev_alpha, prev_k, time_gap)
-        trajectories_costs[next_path] = initial_cost + abs(log_p0) 
+        log_p0 = empirical_pdf(np.array([0.15, 0.15, 0.0]))
+        time_score = time_gap * time_penalty
+        trajectories_costs[next_path] = time_score + (abs(log_p0 - 5))
     else:
         if terminal:
             last_idx = -1
@@ -459,7 +473,7 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
             for edge_j in range(edge_i + 1, edge_i + 2):
                 if abnormal:
                     prev_alpha = 1.0
-                    prev_k = 2.0
+                    prev_k = 0.3
                     if prev_path is not None:
                         prev_path = [prev_path[0]]
                 
@@ -490,7 +504,7 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
         if len(traj_cost) > 1:
             final_score = np.mean(traj_cost) + abnomral_jump_score + time_score
         else:
-            final_score = 2000 #traj_cost[0] + abnomral_jump_score + time_score
+            final_score = time_score + traj_cost[0]
 
         trajectories_costs[next_path] = final_score
         #print(trajectories_costs[next_path], traj_cost, abnomral_jump_score, time_score, ab_index, next_path, prev_alpha, prev_k, pdf_mu_measure(prev_alpha), np.std(traj_cost[:-1]), terminal)
@@ -566,7 +580,7 @@ def match_prev_next(prev_paths, next_path, hashed_prev_next):
         return hashed_prev_next[next_path]
     
 
-def is_terminal(node, localizations, max_jump_d, selected_graph, final_graph_nodes):
+def is_terminal(node, localizations, max_jump_d, selected_graph, final_graph_nodes, flag=0):
     node_t = node[0]
     node_loc_idx = node[1]
     node_loc = localizations[node_t][node_loc_idx]
@@ -575,11 +589,60 @@ def is_terminal(node, localizations, max_jump_d, selected_graph, final_graph_nod
         if next_t in localizations:
             for next_node_idx, search_loc in enumerate(localizations[next_t]):
                 next_node = tuple([next_t, next_node_idx])
-                if len(search_loc) == 3 and next_node not in selected_graph.nodes and next_node not in final_graph_nodes:
-                    jump_d = euclidean_displacement(node_loc, search_loc)[0]
-                    if jump_d < max_jump_d:
-                        return False
+                if flag == 0:
+                    if len(search_loc) == 3 and next_node not in selected_graph.nodes and next_node not in final_graph_nodes:
+                        jump_d = euclidean_displacement(node_loc, search_loc)[0]
+                        if jump_d < max_jump_d:
+                            return False
+                else:
+                    if len(search_loc) == 3 and next_node in selected_graph.nodes and next_node not in final_graph_nodes:
+                        jump_d = euclidean_displacement(node_loc, search_loc)[0]
+                        if jump_d < max_jump_d:
+                            return False 
     return True
+
+
+def split_to_subgraphs(graph:nx.graph, source_node=(0, 0)):
+    subgraphs = []
+    first_edges = list(nx.bfs_edges(graph, source_node, depth_limit=1))
+    graph_copy_without_source = graph.copy()
+    graph_copy_without_source.remove_node(source_node)
+    graph_copy_without_source = graph_copy_without_source.to_undirected()
+
+    while True:
+        bfs_nodes = []
+        node_list = list(graph_copy_without_source.nodes)
+        if len(node_list) == 0:
+            break
+        arb_node = node_list[0]
+
+        bfs_edges = list(nx.bfs_edges(graph_copy_without_source, arb_node))
+        for bfs_edge in bfs_edges:
+            if bfs_edge[0] not in bfs_nodes:
+                bfs_nodes.append(bfs_edge[0])
+            if bfs_edge[1] not in bfs_nodes:
+                bfs_nodes.append(bfs_edge[1])
+
+        sub_graph_ = nx.DiGraph()
+        for node in bfs_nodes:
+            edges = list(graph_copy_without_source.edges(node))
+            for edge in edges:
+                if edge[0][0] < edge[1][0]:
+                    sub_graph_.add_edge(edge[0], edge[1])
+                else:
+                    sub_graph_.add_edge(edge[1], edge[0])
+
+        graph_copy_without_source.remove_nodes_from(sub_graph_.nodes)
+        
+        if len(bfs_edges) == 0 and len(node_list) > 0:
+            sub_graph_.add_edge(source_node, arb_node)
+            graph_copy_without_source.remove_node(arb_node)
+
+        for first_edge in first_edges:
+            if first_edge[1] in sub_graph_.nodes:
+                sub_graph_.add_edge(first_edge[0], first_edge[1])
+        subgraphs.append(sub_graph_)
+    return subgraphs
 
 
 def select_opt_graph2(final_graph_node_set_hashed:set, saved_graph:nx.graph, next_graph:nx.graph, localizations, next_times, distribution, first_step, last_time):
@@ -592,7 +655,7 @@ def select_opt_graph2(final_graph_node_set_hashed:set, saved_graph:nx.graph, nex
     k_values = {}
     start_indice = {}
     hashed_prev_next = {}
-    prev_lowest = [source_node]
+    
 
     if not first_step:
         prev_paths = find_paths_as_list(saved_graph, source=source_node)
@@ -615,154 +678,327 @@ def select_opt_graph2(final_graph_node_set_hashed:set, saved_graph:nx.graph, nex
 
     # Generate next graph
     next_graph, last_nodes = generate_next_paths(next_graph, final_graph_node_set_hashed, localizations, next_times, distribution, source_node)
-    trajectories_costs = {tuple(next_path):None for next_path in find_paths_as_iter(next_graph, source=source_node)}
-    ab_indice = {}
-    is_terminals = {}
     orphans = []
 
-    while True:
-        cost_copy = {}
-        next_paths = find_paths_as_list(next_graph, source=source_node)
+    subgraphs = split_to_subgraphs(next_graph, source_node)
+    for sub_idx, sub_graph_ in enumerate(subgraphs):
+        #print(f"\nSub_graph idx: {sub_idx+1}/{len(subgraphs)}\n")
+        cost_sums = [-1e-5] * NB_TO_OPTIMUM
+        lowest_idices = np.arange(NB_TO_OPTIMUM)
 
-        if len(next_paths) <= 0:
-            break
-        
-        for path_idx in range(len(next_paths)):
-            next_path = tuple(next_paths[path_idx])
-            index_ind = 0
-            for next_node in next_path:
-                if next_node in final_graph_node_set_hashed:
-                    index_ind += 1
-            start_indice[tuple(next_path)] = index_ind
-            if next_path in trajectories_costs:
-                cost_copy[next_path] = trajectories_costs[next_path]
-            next_paths[path_idx] = tuple(next_paths[path_idx])
-        trajectories_costs = cost_copy
-        
-        # Calculate cost
-        if first_step:
-            for next_path in next_paths:
-                ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, init_alpha, init_K, next_times, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph, final_graph_nodes=final_graph_node_set_hashed)
-                if term is not None:
-                    is_terminals[next_path] = term
-                if len(ab_index) > 0:
-                    ab_indice[next_path] = ab_index 
+        is_terminals = {}
+        for llxx, lowest_idx in enumerate(lowest_idices):
+            trajectories_costs = {tuple(next_path):None for next_path in find_paths_as_iter(sub_graph_, source=source_node)}
+            sub_graph = sub_graph_.copy()
+            ab_indice = {}
+            initial_ = True
+            prev_lowest = [source_node]
+            while True:
+                cost_copy = {}
+                next_paths = find_paths_as_list(sub_graph, source=source_node)
 
-        else:
-            for next_path in next_paths:
-                prev_path = match_prev_next(prev_paths, next_path, hashed_prev_next)
-                if prev_path is None:
-                    ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, init_alpha, init_K, next_times, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph, final_graph_nodes=final_graph_node_set_hashed)
+                if len(next_paths) <= 0:
+                    break
+                if initial_ and lowest_idx >= len(next_paths):
+                    break
+                
+                for path_idx in range(len(next_paths)):
+                    next_path = tuple(next_paths[path_idx])
+                    index_ind = 0
+                    for next_node in next_path:
+                        if next_node in final_graph_node_set_hashed:
+                            index_ind += 1
+                    start_indice[tuple(next_path)] = index_ind
+                    if next_path in trajectories_costs:
+                        cost_copy[next_path] = trajectories_costs[next_path]
+                    next_paths[path_idx] = next_path
+                trajectories_costs = cost_copy
+
+                # Calculate cost
+                if first_step:
+                    for next_path in next_paths:
+                        ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, init_alpha, init_K, next_times, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph, final_graph_nodes=final_graph_node_set_hashed, flag=0)
+                        if term is not None:
+                            is_terminals[next_path] = term
+                        if len(ab_index) > 0:
+                            ab_indice[next_path] = ab_index 
+
                 else:
-                    prev_alpha = alpha_values[prev_path]
-                    prev_k = k_values[prev_path]
-                    ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, next_times, prev_path, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph, final_graph_nodes=final_graph_node_set_hashed)
-                if len(ab_index) > 0:
-                    ab_indice[next_path] = ab_index 
-                if term is not None:
-                    is_terminals[next_path] = term
+                    for next_path in next_paths:
+                        prev_path = match_prev_next(prev_paths, next_path, hashed_prev_next)
+                        if prev_path is None:
+                            ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, init_alpha, init_K, next_times, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph, final_graph_nodes=final_graph_node_set_hashed, flag=0)
+                        else:
+                            prev_alpha = alpha_values[prev_path]
+                            prev_k = k_values[prev_path]
+                            ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, next_times, prev_path, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph, final_graph_nodes=final_graph_node_set_hashed, flag=0)
+                        if len(ab_index) > 0:
+                            ab_indice[next_path] = ab_index 
+                        if term is not None:
+                            is_terminals[next_path] = term
 
-        # Cost sorting
-        trajs = [path for path in trajectories_costs.keys()]
-        costs = [trajectories_costs[path] for path in trajectories_costs.keys()]
-        low_cost_args = np.argsort(costs)
-        next_trajectories = np.array(trajs, dtype=object)[low_cost_args]
-        lowest_cost_traj = list(next_trajectories[0])
-        for i in range(len(lowest_cost_traj)):
-            lowest_cost_traj[i] = tuple(lowest_cost_traj[i])
-        lowest_cost_traj = tuple(lowest_cost_traj)
+                # Cost sorting
+                trajs = [path for path in trajectories_costs.keys()]
+                costs = [trajectories_costs[path] for path in trajectories_costs.keys()]
+                low_cost_args = np.argsort(costs)
+                next_trajectories = np.array(trajs, dtype=object)[low_cost_args]
+                if initial_:
+                    lowest_cost_traj = list(next_trajectories[lowest_idx])
+                else:
+                    lowest_cost_traj = list(next_trajectories[0])
+                initial_ = False
+                for i in range(len(lowest_cost_traj)):
+                    lowest_cost_traj[i] = tuple(lowest_cost_traj[i])
+                lowest_cost_traj = tuple(lowest_cost_traj)
+                
+
+                """
+                print('##################################################################')
+                for cost, traj in zip(np.array(costs)[low_cost_args][::-1][-30:], next_trajectories[::-1][-30:]):
+                    traj = tuple([tuple(x) for x in traj])
+                    print(f'{traj} -> {cost}', is_terminals[traj], lowest_cost_traj)
+                print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+                """
+
+
+                # Abnormal trajectory cutting
+                if lowest_cost_traj in ab_indice:
+                    for ab_i in ab_indice[tuple(lowest_cost_traj)][:1]:
+                        if (lowest_cost_traj[ab_i], lowest_cost_traj[ab_i+1]) in sub_graph.edges:
+                            sub_graph.remove_edge(lowest_cost_traj[ab_i], lowest_cost_traj[ab_i+1])
+                        if (source_node, lowest_cost_traj[ab_i+1]) not in sub_graph.edges:
+                            sub_graph.add_edge(source_node, lowest_cost_traj[ab_i+1])
+                        added_path = [source_node]
+                        for path in lowest_cost_traj[ab_i+1:]:
+                            added_path.append(path)
+                        added_path = tuple(added_path)
+                        trajectories_costs[added_path] = None
+                        added_path = [source_node]
+                        for path in lowest_cost_traj[1:ab_i+1]:
+                            added_path.append(path)
+                        added_path = tuple(added_path)
+                        trajectories_costs[added_path] = None
+
+                    next_paths = find_paths_as_list(sub_graph, source=source_node)
+                    for path_idx in range(len(next_paths)):
+                        next_paths[path_idx] = tuple(next_paths[path_idx])
+                    for next_path in next_paths:
+                        if next_path not in trajectories_costs:
+                            trajectories_costs[next_path] = None
+                    continue
+
+
+                # Prune the graph
+                while 1:
+                    before_pruning = len(sub_graph)
+                    for rm_node in lowest_cost_traj[1:]:
+                        predcessors = list(sub_graph.predecessors(rm_node)).copy()
+                        sucessors = list(sub_graph.successors(rm_node)).copy()
+                        sub_graph_copy = sub_graph.copy()
+                        sub_graph_copy.remove_node(rm_node)
+                        for pred in predcessors:
+                            for suc in sucessors:
+                                if pred not in final_graph_node_set_hashed and suc not in final_graph_node_set_hashed:
+                                    if pred != source_node and (pred, suc) not in sub_graph.edges:
+                                        pred_loc = localizations[pred[0]][pred[1]]
+                                        suc_loc = localizations[suc[0]][suc[1]]
+                                        jump_d = euclidean_displacement(pred_loc, suc_loc)[0]
+                                        time_gap = suc[0] - pred[0] - 1
+                                        if time_gap in distribution:
+                                            threshold = distribution[time_gap]
+                                            if jump_d < threshold:
+                                                sub_graph.add_edge(pred, suc, jump_d=jump_d)
+                    after_pruning = len(sub_graph)
+                    if before_pruning == after_pruning:
+                        break
+                
+
+                if is_terminals[lowest_cost_traj]:
+                    for del_node in lowest_cost_traj[1:]:
+                        sub_graph.remove_node(del_node)
+                else:
+                    if len(lowest_cost_traj) == 2:
+                        sub_graph.remove_node(lowest_cost_traj[-1])
+                    else:
+                        for del_node in lowest_cost_traj[1:-1]:
+                            sub_graph.remove_node(del_node)
+                
+                for sub_node in list(sub_graph.nodes):
+                    if sub_node not in last_nodes and not nx.has_path(sub_graph, source_node, sub_node):
+                        sub_graph.add_edge(source_node, sub_node)
+
+                pop_cost = trajectories_costs[lowest_cost_traj]
+                cost_sums[lowest_idx] += pop_cost
+
+
+                if len(list(sub_graph.neighbors(source_node))) ==0 or tuple(lowest_cost_traj) == tuple(prev_lowest):
+                    break
+                    
+                # newborn cost update
+                for next_path in find_paths_as_iter(sub_graph, source=source_node):
+                    next_path = tuple(next_path)
+                    if next_path not in trajectories_costs:
+                        trajectories_costs[next_path] = None
+                    
+                prev_lowest = list(lowest_cost_traj).copy()
+                prev_lowest = tuple(prev_lowest)
+
         
-        """
-        print('##################################################################')
-        for cost, traj in zip(np.array(costs)[low_cost_args][::-1][-30:], next_trajectories[::-1][-30:]):
-            traj = tuple([tuple(x) for x in traj])
-            print(f'{traj} -> {cost}', is_terminals[traj], lowest_cost_traj)
-        print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
-        """
+        for cost_idx in range(len(cost_sums)):
+            if cost_sums[cost_idx] < 0:
+                cost_sums[cost_idx] = 99999
+        lowest_cost_idx = np.argmin(cost_sums)
+        #print(lowest_cost_idx, cost_sums, ' <----@@@')
 
-        # Abnormal trajectory cutting
-        if lowest_cost_traj in ab_indice:
-            for ab_i in ab_indice[tuple(lowest_cost_traj)][:1]:
-                if (lowest_cost_traj[ab_i], lowest_cost_traj[ab_i+1]) in next_graph.edges:
-                    next_graph.remove_edge(lowest_cost_traj[ab_i], lowest_cost_traj[ab_i+1])
-                if (source_node, lowest_cost_traj[ab_i+1]) not in next_graph.edges:
-                    next_graph.add_edge(source_node, lowest_cost_traj[ab_i+1])
-                added_path = [source_node]
-                for path in lowest_cost_traj[ab_i+1:]:
-                    added_path.append(path)
-                added_path = tuple(added_path)
-                trajectories_costs[added_path] = None
-                added_path = [source_node]
-                for path in lowest_cost_traj[1:ab_i+1]:
-                    added_path.append(path)
-                added_path = tuple(added_path)
-                trajectories_costs[added_path] = None
-
-            next_paths = find_paths_as_list(next_graph, source=source_node)
+        sub_graph = sub_graph_.copy()
+        prev_lowest = [source_node]
+        trajectories_costs = {tuple(next_path):None for next_path in find_paths_as_iter(sub_graph, source=source_node)}
+        initial_ = True
+        while True:
+            cost_copy = {}
+            next_paths = find_paths_as_list(sub_graph, source=source_node)
+            if len(next_paths) <= 0:
+                break
+            
             for path_idx in range(len(next_paths)):
+                next_path = tuple(next_paths[path_idx])
+                index_ind = 0
+                for next_node in next_path:
+                    if next_node in final_graph_node_set_hashed:
+                        index_ind += 1
+                start_indice[tuple(next_path)] = index_ind
+                if next_path in trajectories_costs:
+                    cost_copy[next_path] = trajectories_costs[next_path]
                 next_paths[path_idx] = tuple(next_paths[path_idx])
-            for next_path in next_paths:
+            trajectories_costs = cost_copy
+            
+            # Calculate cost
+            if first_step:
+                for next_path in next_paths:
+                    ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, init_alpha, init_K, next_times, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph, final_graph_nodes=final_graph_node_set_hashed)
+                    if term is not None:
+                        is_terminals[next_path] = term
+                    if len(ab_index) > 0:
+                        ab_indice[next_path] = ab_index 
+
+            else:
+                for next_path in next_paths:
+                    prev_path = match_prev_next(prev_paths, next_path, hashed_prev_next)
+                    if prev_path is None:
+                        ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, init_alpha, init_K, next_times, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph, final_graph_nodes=final_graph_node_set_hashed)
+                    else:
+                        prev_alpha = alpha_values[prev_path]
+                        prev_k = k_values[prev_path]
+                        ab_index, term = predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, next_times, prev_path, start_indice=start_indice, last_time=last_time, jump_threshold=distribution[0], selected_graph=selected_graph, final_graph_nodes=final_graph_node_set_hashed)
+                    if len(ab_index) > 0:
+                        ab_indice[next_path] = ab_index 
+                    if term is not None:
+                        is_terminals[next_path] = term
+
+            # Cost sorting
+            trajs = [path for path in trajectories_costs.keys()]
+            costs = [trajectories_costs[path] for path in trajectories_costs.keys()]
+            low_cost_args = np.argsort(costs)
+            next_trajectories = np.array(trajs, dtype=object)[low_cost_args]
+            if initial_:
+                lowest_cost_traj = list(next_trajectories[lowest_cost_idx])
+                initial_ = False
+            else:
+                lowest_cost_traj = list(next_trajectories[0])
+            for i in range(len(lowest_cost_traj)):
+                lowest_cost_traj[i] = tuple(lowest_cost_traj[i])
+            lowest_cost_traj = tuple(lowest_cost_traj)
+            
+            """
+            print('---------------------------------------------------------------------')
+            for cost, traj in zip(np.array(costs)[low_cost_args][::-1][-30:], next_trajectories[::-1][-30:]):
+                traj = tuple([tuple(x) for x in traj])
+                print(f'{traj} -> {cost}', is_terminals[traj], lowest_cost_traj)
+            print('=====================================================================')
+            """
+
+            # Abnormal trajectory cutting
+            if lowest_cost_traj in ab_indice:
+                for ab_i in ab_indice[tuple(lowest_cost_traj)][:1]:
+                    if (lowest_cost_traj[ab_i], lowest_cost_traj[ab_i+1]) in sub_graph.edges:
+                        sub_graph.remove_edge(lowest_cost_traj[ab_i], lowest_cost_traj[ab_i+1])
+                    if (source_node, lowest_cost_traj[ab_i+1]) not in sub_graph.edges:
+                        sub_graph.add_edge(source_node, lowest_cost_traj[ab_i+1])
+                    added_path = [source_node]
+                    for path in lowest_cost_traj[ab_i+1:]:
+                        added_path.append(path)
+                    added_path = tuple(added_path)
+                    trajectories_costs[added_path] = None
+                    added_path = [source_node]
+                    for path in lowest_cost_traj[1:ab_i+1]:
+                        added_path.append(path)
+                    added_path = tuple(added_path)
+                    trajectories_costs[added_path] = None
+
+                next_paths = find_paths_as_list(sub_graph, source=source_node)
+                for path_idx in range(len(next_paths)):
+                    next_paths[path_idx] = tuple(next_paths[path_idx])
+                for next_path in next_paths:
+                    if next_path not in trajectories_costs:
+                        trajectories_costs[next_path] = None
+                continue
+
+
+            # Prune the graph
+            while 1:
+                before_pruning = len(sub_graph)
+                for rm_node in lowest_cost_traj[1:]:
+                    predcessors = list(sub_graph.predecessors(rm_node)).copy()
+                    sucessors = list(sub_graph.successors(rm_node)).copy()
+                    sub_graph_copy = sub_graph.copy()
+                    sub_graph_copy.remove_node(rm_node)
+                    for pred in predcessors:
+                        for suc in sucessors:
+                            if pred not in final_graph_node_set_hashed and suc not in final_graph_node_set_hashed:
+                                if pred != source_node and (pred, suc) not in sub_graph.edges:
+                                    pred_loc = localizations[pred[0]][pred[1]]
+                                    suc_loc = localizations[suc[0]][suc[1]]
+                                    jump_d = euclidean_displacement(pred_loc, suc_loc)[0]
+                                    time_gap = suc[0] - pred[0] - 1
+                                    if time_gap in distribution:
+                                        threshold = distribution[time_gap]
+                                        if jump_d < threshold:
+                                            sub_graph.add_edge(pred, suc, jump_d=jump_d)
+                after_pruning = len(sub_graph)
+                if before_pruning == after_pruning:
+                    break
+            
+
+            if is_terminals[lowest_cost_traj]:
+                for del_node in lowest_cost_traj[1:]:
+                    sub_graph.remove_node(del_node)
+            else:
+                if len(lowest_cost_traj) == 2:
+                    sub_graph.remove_node(lowest_cost_traj[-1])
+                else:
+                    for del_node in lowest_cost_traj[1:-1]:
+                        sub_graph.remove_node(del_node)
+            pop_cost = trajectories_costs[lowest_cost_traj]
+            cost_sums[lowest_idx] += pop_cost
+
+            # selected graph update
+            terminal_lowest_cost = is_terminals[lowest_cost_traj]
+            for edge_index in range(1, len(lowest_cost_traj)):
+                before_node = lowest_cost_traj[edge_index - 1]
+                next_node = lowest_cost_traj[edge_index]
+                selected_graph.add_edge(before_node, next_node, terminal=terminal_lowest_cost)
+
+            if len(list(sub_graph.neighbors(source_node))) ==0 or tuple(lowest_cost_traj) == tuple(prev_lowest):
+                break
+                
+            # newborn cost update
+            for next_path in find_paths_as_iter(sub_graph, source=source_node):
+                next_path = tuple(next_path)
                 if next_path not in trajectories_costs:
                     trajectories_costs[next_path] = None
-            continue
-
-
-        # Prune the graph
-        while 1:
-            before_pruning = len(next_graph)
-            for rm_node in lowest_cost_traj[1:]:
-                predcessors = list(next_graph.predecessors(rm_node)).copy()
-                sucessors = list(next_graph.successors(rm_node)).copy()
-                next_graph_copy = next_graph.copy()
-                next_graph_copy.remove_node(rm_node)
-                for pred in predcessors:
-                    for suc in sucessors:
-                        if pred not in final_graph_node_set_hashed and suc not in final_graph_node_set_hashed:
-                            if pred != source_node and (pred, suc) not in next_graph.edges:
-                                pred_loc = localizations[pred[0]][pred[1]]
-                                suc_loc = localizations[suc[0]][suc[1]]
-                                jump_d = euclidean_displacement(pred_loc, suc_loc)[0]
-                                time_gap = suc[0] - pred[0] - 1
-                                if time_gap in distribution:
-                                    threshold = distribution[time_gap]
-                                    if jump_d < threshold:
-                                        next_graph.add_edge(pred, suc, jump_d=jump_d)
-            after_pruning = len(next_graph)
-            if before_pruning == after_pruning:
-                break
-        
-
-        if is_terminals[lowest_cost_traj]:
-            for del_node in lowest_cost_traj[1:]:
-                next_graph.remove_node(del_node)
-        else:
-            if len(lowest_cost_traj) == 2:
-                next_graph.remove_node(lowest_cost_traj[-1])
-            else:
-                for del_node in lowest_cost_traj[1:-1]:
-                    next_graph.remove_node(del_node)
-        pop_cost = trajectories_costs.pop(lowest_cost_traj)
-
-
-        # selected graph update
-        terminal_lowest_cost = is_terminals[lowest_cost_traj]
-        for edge_index in range(1, len(lowest_cost_traj)):
-            before_node = lowest_cost_traj[edge_index - 1]
-            next_node = lowest_cost_traj[edge_index]
-            selected_graph.add_edge(before_node, next_node, terminal=terminal_lowest_cost)
-
-        #print(f'LEN:{len(next_graph), next_graph.edges, next_graph.nodes, len(last_nodes), last_nodes},  Neighbor of source : ',list(next_graph.neighbors(source_node)))
-        if len(list(next_graph.neighbors(source_node))) ==0 or tuple(lowest_cost_traj) == tuple(prev_lowest):
-            break
-            
-        # newborn cost update
-        for next_path in find_paths_as_iter(next_graph, source=source_node):
-            next_path = tuple(next_path)
-            if next_path not in trajectories_costs:
-                trajectories_costs[next_path] = None
-            
-        prev_lowest = list(lowest_cost_traj).copy()
-        prev_lowest = tuple(prev_lowest)
+                
+            prev_lowest = list(lowest_cost_traj).copy()
+            prev_lowest = tuple(prev_lowest)
 
     for time in next_times:
         for node_idx in range(len(localizations[time])):
@@ -989,11 +1225,12 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_t
     global EMP_PDF
     global EMP_BINS
     global LOC_PRECISION_ERR
+    global NB_TO_OPTIMUM
 
 
     VERBOSE = verbose
     BATCH = batch
-    TIME_FORECAST = max(1, min(5, time_forecast))
+    TIME_FORECAST = int(max(1, min(5, time_forecast)))
     CUTOFF = cutoff
     GPU_AVAIL = gpu_on
     REG_LEGNTHS = [3, 5, 8]
@@ -1006,8 +1243,8 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_t
     CUDA, TF = initialization(GPU_AVAIL, REG_LEGNTHS, ptype=1, verbose=VERBOSE, batch=BATCH)
     POLY_FIT_DATA = np.load(f'{__file__.split("/Tracking_experimental.py")[0]}/models/theta_hat.npz')
     STD_FIT_DATA = np.load(f'{__file__.split("/Tracking_experimental.py")[0]}/models/std_sets.npz')
-    EMP_BINS = np.linspace(0, 20, 80)
-
+    EMP_BINS = np.linspace(0, 20, 40)
+    NB_TO_OPTIMUM = int(2**TIME_FORECAST)
 
     output_xml = f'{output_path}/{input_video_path.split("/")[-1].split(".tif")[0]}_traces.xml'
     output_trj = f'{output_path}/{input_video_path.split("/")[-1].split(".tif")[0]}_traces.csv'
@@ -1037,7 +1274,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_t
     raw_distributions, jump_distribution = segmentation(loc, time_steps=t_steps, lag=time_forecast)
     max_jumps = approximation(raw_distributions, time_forecast=time_forecast, jump_threshold=JUMP_THRESHOLD)
     build_emp_pdf(jump_distribution[0], bins=EMP_BINS)
-
+    
 
     if VERBOSE:
         print(f'Mean nb of particles per frame: {mean_nb_per_time:.2f} particles/frame')
