@@ -45,6 +45,7 @@ vesicle*
 test_samples
 3d_samples
 alpha_samples
+paper_samples
 outputs
 *.html
 alpha_test*.tiff
