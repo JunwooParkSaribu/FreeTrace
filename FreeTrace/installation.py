@@ -20,10 +20,7 @@ non_installed_packages = {}
 include_path = None
 found_head_file = 0
 freetrace_path = ''
-print(re.split(r'FreeTrace', __file__)[:-1])
 freetrace_path += 'FreeTrace'.join(re.split(r'FreeTrace', __file__)[:-1]) + 'FreeTrace'
-print(freetrace_path)
-freetrace_path = re.split(r'FreeTrace/', __file__)[0] + 'FreeTrace'
 
 
 if '3.12' in sys.version or '3.11' in sys.version:
