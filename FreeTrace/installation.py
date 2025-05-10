@@ -19,6 +19,10 @@ https://docs.rapids.ai/install/?_gl=1*1lwgnt1*_ga*OTY3MzQ5Mzk0LjE3NDEyMDc2NDA.*_
 non_installed_packages = {}
 include_path = None
 found_head_file = 0
+freetrace_path = ''
+print(re.split(r'FreeTrace', __file__)[:-1])
+freetrace_path += 'FreeTrace'.join(re.split(r'FreeTrace', __file__)[:-1]) + 'FreeTrace'
+print(freetrace_path)
 freetrace_path = re.split(r'FreeTrace/', __file__)[0] + 'FreeTrace'
 
 
