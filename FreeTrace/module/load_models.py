@@ -1,3 +1,4 @@
+import re
 import numpy as np
 from tensorflow.keras.models import load_model # type: ignore
 
@@ -12,10 +13,8 @@ class RegModel:
         self.load_models(self.reg_model_nums)
 
     def load_models(self, model_nums):
-        freetrace_path = ""
-        for it in __file__.split("FreeTrace")[:-1]:
-            freetrace_path += it
-            freetrace_path += 'FreeTrace/'
+        freetrace_path = ''
+        freetrace_path += 'FreeTrace'.join(re.split(r'FreeTrace', __file__)[:-1]) + 'FreeTrace'
         self.alpha_models = {n: load_model(f'{freetrace_path}/models/reg_model_{n}.keras') for n in model_nums}
         self.k_model = load_model(f'{freetrace_path}/models/reg_k_model.keras')
 
