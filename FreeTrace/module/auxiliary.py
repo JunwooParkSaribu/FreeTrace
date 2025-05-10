@@ -2,6 +2,7 @@ import cv2
 import sys
 import os
 import numpy as np
+import re
 from roifile import ImagejRoi
 from FreeTrace.module.data_save import write_trajectory
 from FreeTrace.module.data_load import read_trajectory
@@ -11,10 +12,7 @@ from FreeTrace.module.image_module import make_whole_img
 def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False, batch=False):
     TF = False
     cuda = False
-    freetrace_path = ""
-    for it in __file__.split("FreeTrace")[:-1]:
-        freetrace_path += it
-        freetrace_path += 'FreeTrace/'
+    freetrace_path = re.split(r'FreeTrace/', __file__)[0] + 'FreeTrace'
 
     if not os.path.exists(f'{freetrace_path}/models/theta_hat.npz'):
         print(f'\n***** Parmeters[theta_hat.npz] are not found for trajectory inference, please contact author for the pretrained models. *****\n')

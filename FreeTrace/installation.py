@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import subprocess
+import re
 
 
 """
@@ -18,10 +19,8 @@ https://docs.rapids.ai/install/?_gl=1*1lwgnt1*_ga*OTY3MzQ5Mzk0LjE3NDEyMDc2NDA.*_
 non_installed_packages = {}
 include_path = None
 found_head_file = 0
-freetrace_path = ""
-for it in __file__.split("FreeTrace")[:-1]:
-    freetrace_path += it
-    freetrace_path += 'FreeTrace/'
+freetrace_path = re.split(r'FreeTrace/', __file__)[0] + 'FreeTrace'
+
 
 if '3.12' in sys.version or '3.11' in sys.version:
     tf_version = 'tensorflow[and-cuda]==2.17'
@@ -34,6 +33,7 @@ elif '3.10' in sys.version:
     python_version = "3.10"
 else:
     sys.exit('***** python version 3.10/11/12 required *****')
+
 
 print("***** FreeTrace needs Cuda. if Cuda is not installed, please visit [https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&Distribution=Ubuntu&target_version=24.04&target_type=deb_network] *****")
 print("***** FreeTrace includes the installation of below items. *****")
