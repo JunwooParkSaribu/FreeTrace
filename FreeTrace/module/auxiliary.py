@@ -12,7 +12,8 @@ from FreeTrace.module.image_module import make_whole_img
 def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False, batch=False):
     TF = False
     cuda = False
-    freetrace_path = re.split(r'FreeTrace/', __file__)[0] + 'FreeTrace'
+    freetrace_path = ''
+    freetrace_path += 'FreeTrace'.join(re.split(r'FreeTrace', __file__)[:-1]) + 'FreeTrace'
 
     if not os.path.exists(f'{freetrace_path}/models/theta_hat.npz'):
         print(f'\n***** Parmeters[theta_hat.npz] are not found for trajectory inference, please contact author for the pretrained models. *****\n')
