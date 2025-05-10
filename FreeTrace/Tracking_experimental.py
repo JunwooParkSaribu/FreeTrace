@@ -1207,7 +1207,8 @@ def trajectory_inference(localization: dict, time_steps: np.ndarray, distributio
     return trajectory_list
 
 
-def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_threshold=None, gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False, return_state=0):
+def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_threshold=None, gpu_on=True, save_video=False,
+        verbose=False, batch=False, realtime_visualization=False, read_loc_file=(None, 1.0), return_state=0):
     global IMAGES
     global VERBOSE
     global BATCH
@@ -1262,7 +1263,14 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_t
     IMAGES = images
     if images.shape[0] <= 1:
         sys.exit('Image squence length error: Cannot track on a single image.')
-    loc, loc_infos = read_localization(f'{output_path}/{input_video_path.split("/")[-1].split(".tif")[0]}_loc.csv', images)
+
+
+    if read_loc_file[0] is not None:
+        assert type(read_loc_file[0]) is str
+        assert os.path.exists(read_loc_file[0])
+        loc, loc_infos = read_localization(read_loc_file, images)
+    else:
+        loc, loc_infos = read_localization(f'{output_path}/{input_video_path.split("/")[-1].split(".tif")[0]}_loc.csv', images)
 
 
     if TF:
@@ -1317,7 +1325,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_t
 
 
 def run_process(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_threshold=None|float,
-                gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False) -> bool:
+                gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False, read_loc_file=(None, 1.0)) -> bool:
     """
     Create a process to run the tracking of particles to reconstruct the trajectories from localized molecules.
     This function reads both the video.tiff and the video_loc.csv which was generated with Localization process.
@@ -1353,6 +1361,10 @@ def run_process(input_video_path:str, output_path:str, time_forecast=2, cutoff=2
         realtime_visualization:
         Real time visualization of progress.
 
+        read_loc_file:
+        Tuple of (localization file name, pixelmicron). This reads a specified localization file. The file must contains the columns frame, x and y at 1st row and values from the 2nd row. 
+        FreeTrace infers at pixel scale. If your localization file is already at micron scale, please specify the pixelmicron of your video. e.g., 0.16.
+
     @return
         return:
         It returns True if the tracking of particles is finished succesfully, False otherwise.
@@ -1370,7 +1382,8 @@ def run_process(input_video_path:str, output_path:str, time_forecast=2, cutoff=2
         'verbose': verbose,
         'batch': batch,
         'return_state': return_state,
-        'realtime_visualization': realtime_visualization
+        'realtime_visualization': realtime_visualization,
+        'read_loc_file': read_loc_file
     }
     
     p = Process(target=run, args=(input_video_path, output_path),  kwargs=options)
