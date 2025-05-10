@@ -94,27 +94,35 @@ def read_multiple_csv(path):
     return grouped_df
 
 
-def read_localization(input_file, video=None):
+def read_localization(input_file:str|tuple, video=None):
     locals = {}
     locals_info = {}
+    if type(input_file) is tuple:
+        df = pd.read_csv(input_file[0])
+        pixel_microns = input_file[1]
+    else:
+        df = pd.read_csv(input_file)
+        pixel_microns = 1.0
+
+    df = df.rename(columns={key:key.lower() for key in df.keys()})
+    key_list = list(df.keys())
+    assert 'frame' in key_list and 'x' in key_list and 'y' in key_list, f'The {input_file} must contains the columns frame, x and y at least.'
+
     try:
-        with open(input_file, 'r') as f:
-            lines = f.readlines()
-            if len(lines) == 1 or len(lines) == 2:
-                raise Exception('Cannot track on zero localization OR single localization.')
-            for line in lines[1:]:
-                line = line.strip().split('\n')[0].split(',')
-                if int(line[0]) not in locals:
-                    locals[int(line[0])] = []
-                    locals_info[int(line[0])] = []
-                pos_line = []
-                info_line = []
-                for dt in line[1:4]:
-                    pos_line.append(np.round(float(dt), 7))
-                for dt in line[4:]:
-                    info_line.append(np.round(float(dt), 7))
-                locals[int(line[0])].append(pos_line)
-                locals_info[int(line[0])].append(info_line)
+        for idx, row in df.iterrows():
+            frame = int(row['frame'])
+            pos = [row['x']/pixel_microns, row['y']/pixel_microns] if 'z' not in df else [row['x']/pixel_microns, row['y']/pixel_microns, row['z']/pixel_microns]
+            if frame not in locals:
+                locals[frame] = []
+                locals_info[frame] = []
+            locals[frame].append(pos)
+
+            supp_info = []
+            for row_key in row.keys():
+                if 'frame' != row_key and 'x' != row_key and 'y' != row_key and 'z' != row_key:
+                    supp_info.append(row[row_key])
+            locals_info[frame].append(supp_info)
+
         if video is None:
             max_t = np.max(list(locals.keys()))
         else:
@@ -123,14 +131,12 @@ def read_localization(input_file, video=None):
             if t not in locals:
                 locals[t] = [[]]
                 locals_info[t] = [[]]
-
-        ret_locals = {}
-        ret_locals_info = {}
-
         for t in locals.keys():
-            ret_locals[t] = np.array(locals[t])
-            ret_locals_info[t] = np.array(locals_info[t])
-        return ret_locals, ret_locals_info
+            locals[t] = np.array(locals[t])
+            locals_info[t] = np.array(locals_info[t])
+
+        return locals, locals_info
+    
     except Exception as e:
         sys.exit(f'Err msg: {e}')
 
