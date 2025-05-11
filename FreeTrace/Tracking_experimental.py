@@ -1194,6 +1194,10 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
                 traj.add_trajectory_tuple(node[0], node[1])
             trajectory_list.append(traj)
             traj_idx += 1
+
+    if POST_PROCESSING:
+        from FreeTrace.PostProcessing import post_processing
+        trajectory_list = post_processing(trajectory_list, CUTOFF)
     return trajectory_list
 
 
@@ -1208,7 +1212,7 @@ def trajectory_inference(localization: dict, time_steps: np.ndarray, distributio
 
 
 def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_threshold=None, gpu_on=True, save_video=False,
-        verbose=False, batch=False, realtime_visualization=False, read_loc_file=(None, 1.0), return_state=0):
+        verbose=False, batch=False, realtime_visualization=False, post_processing=True, read_loc_file=(None, 1.0), return_state=0):
     global IMAGES
     global VERBOSE
     global BATCH
@@ -1231,6 +1235,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_t
     global EMP_BINS
     global LOC_PRECISION_ERR
     global NB_TO_OPTIMUM
+    global POST_PROCESSING
 
 
     VERBOSE = verbose
@@ -1250,6 +1255,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_t
     STD_FIT_DATA = np.load(f'{__file__.split("/Tracking_experimental.py")[0]}/models/std_sets.npz')
     EMP_BINS = np.linspace(0, 20, 40)
     NB_TO_OPTIMUM = int(2**TIME_FORECAST)
+    POST_PROCESSING = post_processing
 
     output_xml = f'{output_path}/{input_video_path.split("/")[-1].split(".tif")[0]}_traces.xml'
     output_trj = f'{output_path}/{input_video_path.split("/")[-1].split(".tif")[0]}_traces.csv'
@@ -1325,7 +1331,8 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_t
 
 
 def run_process(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_threshold=None|float,
-                gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False, read_loc_file=(None, 1.0)) -> bool:
+                gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False, 
+                post_processing=True, read_loc_file=(None, 1.0)) -> bool:
     """
     Create a process to run the tracking of particles to reconstruct the trajectories from localized molecules.
     This function reads both the video.tiff and the video_loc.csv which was generated with Localization process.
@@ -1360,6 +1367,9 @@ def run_process(input_video_path:str, output_path:str, time_forecast=2, cutoff=2
         
         realtime_visualization:
         Real time visualization of progress.
+    
+        post_processing:
+        Post processing of trajectories to exclude suprious jumps.
 
         read_loc_file:
         Tuple of (localization file name, pixelmicron). This reads a specified localization file. The file must contains the columns frame, x and y at 1st row and values from the 2nd row. 
@@ -1383,6 +1393,7 @@ def run_process(input_video_path:str, output_path:str, time_forecast=2, cutoff=2
         'batch': batch,
         'return_state': return_state,
         'realtime_visualization': realtime_visualization,
+        'post_processing': post_processing,
         'read_loc_file': read_loc_file
     }
     
