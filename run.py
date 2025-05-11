@@ -19,7 +19,7 @@ LOC_GPU_AVAIL = True
 
 
 TIME_FORECAST = 2
-CUTOFF = 2
+CUTOFF = 3
 JUMP_THRESHOLD = None
 SAVE_VIDEO_TRACK = False
 REAL_TRACK = False
@@ -38,7 +38,7 @@ if __name__ == "__main__":
                                        gpu_on=LOC_GPU_AVAIL, save_video=SAVE_VIDEO_LOC, realtime_visualization=REAL_LOC, verbose=1, batch=False)
         if loc:
             track = Tracking.run_process(input_video_path=video_name, output_path=OUTPUT_DIR,
-                                         time_forecast=TIME_FORECAST, cutoff=CUTOFF, jump_threshold=JUMP_THRESHOLD,
+                                         time_forecast=TIME_FORECAST, cutoff=CUTOFF, jump_threshold=JUMP_THRESHOLD, post_processing=True,
                                          gpu_on=TRACK_GPU_AVAIL, save_video=SAVE_VIDEO_TRACK, realtime_visualization=REAL_TRACK, verbose=1, batch=False)
             
     except Exception as e:
