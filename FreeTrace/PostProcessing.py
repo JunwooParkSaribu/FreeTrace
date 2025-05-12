@@ -82,7 +82,7 @@ def post_processing(trajectory_list, cutoff):
                     for idx in range(len(chunk_idx) - 1):
                         if (chunk_idx[idx+1] - chunk_idx[idx]) <= length_check and labels[chunk_idx[idx]] != max_label:
                             delete_idx.extend(list(range(chunk_idx[idx], chunk_idx[idx+1])))
-
+                print(delete_idx, disps, std_expect)
         if len(delete_idx) > 0:
             new_xs = []
             new_ys = []
