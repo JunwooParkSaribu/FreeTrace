@@ -60,7 +60,7 @@ def predict_multinormal(relativ_coord, alpha, k, lag):
 def build_emp_pdf(emp_distribution, bins):
     global EMP_PDF
     if len(emp_distribution) < 1000:
-        jump_hist, _ = np.histogram(np.random.exponential(2, size=10000), bins=bins, density=True)
+        jump_hist, _ = np.histogram(np.random.exponential(1.0, size=10000), bins=bins, density=True)
     else:
         jump_hist, _ = np.histogram(emp_distribution, bins=bins, density=True)
     EMP_PDF = jump_hist
@@ -69,6 +69,7 @@ def build_emp_pdf(emp_distribution, bins):
 def empirical_pdf(coords):
     jump_d = np.sqrt(np.sum(coords**2))
     idx = int(min((jump_d / EMP_BINS[-1] * len(EMP_BINS)), len(EMP_BINS) - 1))
+    print(jump_d, idx, EMP_PDF[idx], ' -> idx')
     return np.log(EMP_PDF[idx] + 1e-7)
 
 
@@ -124,7 +125,7 @@ def predict_cauchy(next_vec, prev_vec, alpha, before_lag, lag, precision, dimens
         log_pdf += math.log(density)
     if (abs(coord_ratios - std_ratio*rho) > 6.0*scale).any():
         abnormal = True
-    #print(coord_ratios, std_ratio*rho, log_pdf, abnormal, next_vec, prev_vec, scale)
+    print(coord_ratios, std_ratio*rho, log_pdf, abnormal, next_vec, prev_vec, scale)
     return log_pdf, abnormal
 
 
@@ -511,7 +512,7 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
             final_score = time_score + traj_cost[0]
 
         trajectories_costs[next_path] = final_score
-        #print(trajectories_costs[next_path], traj_cost, abnomral_jump_score, time_score, ab_index, next_path, prev_alpha, prev_k, pdf_mu_measure(prev_alpha), np.std(traj_cost[:-1]), terminal)
+        print(trajectories_costs[next_path], traj_cost, abnomral_jump_score, time_score, ab_index, next_path, prev_alpha, prev_k, pdf_mu_measure(prev_alpha), np.std(traj_cost[:-1]), terminal)
 
     if trajectories_costs[next_path] > cutting_threshold:
         return ab_index, terminal
@@ -550,12 +551,12 @@ def generate_next_paths(next_graph:nx.graph, final_graph_nodes:set, localization
                                     jump_d = jump_d_mat[local_idx]
                                     local_idx += 1
                                     time_gap = cur_time - last_node[0] - 1
-                                    if time_gap in distribution:
-                                        threshold = distribution[time_gap]
-                                        if jump_d < threshold:
-                                            next_node = (cur_time, next_idx)
-                                            if next_node not in final_graph_nodes:
-                                                next_graph.add_edge(last_node, next_node, jump_d=jump_d)
+                                    #if time_gap in distribution:
+                                    threshold = distribution[0]
+                                    if jump_d < threshold:
+                                        next_node = (cur_time, next_idx)
+                                        if next_node not in final_graph_nodes:
+                                            next_graph.add_edge(last_node, next_node, jump_d=jump_d)
 
             for cur_time in next_times[index:index+1]:
                 for idx in range(len(localizations[cur_time])):
@@ -653,7 +654,7 @@ def select_opt_graph2(final_graph_node_set_hashed:set, saved_graph:nx.graph, nex
     k_values = {}
     start_indice = {}
     hashed_prev_next = {}
-    
+
     if not first_step:
         prev_paths = find_paths_as_list(saved_graph, source=source_node)
         if TF:
@@ -751,13 +752,13 @@ def select_opt_graph2(final_graph_node_set_hashed:set, saved_graph:nx.graph, nex
                 lowest_cost_traj = tuple(lowest_cost_traj)
                 
 
-                """
+                
                 print('##################################################################')
                 for cost, traj in zip(np.array(costs)[low_cost_args][::-1][-30:], next_trajectories[::-1][-30:]):
                     traj = tuple([tuple(x) for x in traj])
                     print(f'{traj} -> {cost}', is_terminals[traj], lowest_cost_traj)
                 print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
-                """
+                
 
 
                 # Abnormal trajectory cutting
@@ -786,27 +787,24 @@ def select_opt_graph2(final_graph_node_set_hashed:set, saved_graph:nx.graph, nex
                             trajectories_costs[next_path] = None
                     continue
 
-
                 # Prune the graph
                 while 1:
                     before_pruning = len(sub_graph)
                     for rm_node in lowest_cost_traj[1:]:
                         predcessors = list(sub_graph.predecessors(rm_node)).copy()
                         sucessors = list(sub_graph.successors(rm_node)).copy()
-                        sub_graph_copy = sub_graph.copy()
-                        sub_graph_copy.remove_node(rm_node)
                         for pred in predcessors:
                             for suc in sucessors:
-                                if pred not in final_graph_node_set_hashed and suc not in final_graph_node_set_hashed:
-                                    if pred != source_node and (pred, suc) not in sub_graph.edges:
-                                        pred_loc = localizations[pred[0]][pred[1]]
-                                        suc_loc = localizations[suc[0]][suc[1]]
-                                        jump_d = euclidean_displacement(pred_loc, suc_loc)[0]
-                                        time_gap = suc[0] - pred[0] - 1
-                                        if time_gap in distribution:
-                                            threshold = distribution[time_gap]
-                                            if jump_d < threshold:
-                                                sub_graph.add_edge(pred, suc, jump_d=jump_d)
+                                #if pred not in final_graph_node_set_hashed and suc not in final_graph_node_set_hashed:
+                                if pred != source_node and (pred, suc) not in sub_graph.edges:
+                                    pred_loc = localizations[pred[0]][pred[1]]
+                                    suc_loc = localizations[suc[0]][suc[1]]
+                                    jump_d = euclidean_displacement(pred_loc, suc_loc)[0]
+                                    time_gap = suc[0] - pred[0] - 1
+                                    #if time_gap in distribution:
+                                    threshold = distribution[0]
+                                    if jump_d < threshold:
+                                        sub_graph.add_edge(pred, suc, jump_d=jump_d)
                     after_pruning = len(sub_graph)
                     if before_pruning == after_pruning:
                         break
@@ -821,7 +819,6 @@ def select_opt_graph2(final_graph_node_set_hashed:set, saved_graph:nx.graph, nex
                     else:
                         for del_node in lowest_cost_traj[1:-1]:
                             sub_graph.remove_node(del_node)
-                
                 for sub_node in list(sub_graph.nodes):
                     if sub_node not in last_nodes and not nx.has_path(sub_graph, source_node, sub_node):
                         sub_graph.add_edge(source_node, sub_node)
@@ -853,7 +850,7 @@ def select_opt_graph2(final_graph_node_set_hashed:set, saved_graph:nx.graph, nex
             if cost_sums[cost_idx] < 0:
                 cost_sums[cost_idx] = 99999
         lowest_cost_idx = np.argmin(cost_sums)
-        #print(lowest_cost_idx, cost_sums, ' <----@@@')
+        print(lowest_cost_idx, cost_sums, ' <--------------  @@@@@@@@@@@')
 
         sub_graph = sub_graph_.copy()
         prev_lowest = [source_node]
@@ -959,16 +956,16 @@ def select_opt_graph2(final_graph_node_set_hashed:set, saved_graph:nx.graph, nex
                     sub_graph_copy.remove_node(rm_node)
                     for pred in predcessors:
                         for suc in sucessors:
-                            if pred not in final_graph_node_set_hashed and suc not in final_graph_node_set_hashed:
-                                if pred != source_node and (pred, suc) not in sub_graph.edges:
-                                    pred_loc = localizations[pred[0]][pred[1]]
-                                    suc_loc = localizations[suc[0]][suc[1]]
-                                    jump_d = euclidean_displacement(pred_loc, suc_loc)[0]
-                                    time_gap = suc[0] - pred[0] - 1
-                                    if time_gap in distribution:
-                                        threshold = distribution[time_gap]
-                                        if jump_d < threshold:
-                                            sub_graph.add_edge(pred, suc, jump_d=jump_d)
+                            #if pred not in final_graph_node_set_hashed and suc not in final_graph_node_set_hashed:
+                            if pred != source_node and (pred, suc) not in sub_graph.edges:
+                                pred_loc = localizations[pred[0]][pred[1]]
+                                suc_loc = localizations[suc[0]][suc[1]]
+                                jump_d = euclidean_displacement(pred_loc, suc_loc)[0]
+                                time_gap = suc[0] - pred[0] - 1
+                                #if time_gap in distribution:
+                                threshold = distribution[0]
+                                if jump_d < threshold:
+                                    sub_graph.add_edge(pred, suc, jump_d=jump_d)
                 after_pruning = len(sub_graph)
                 if before_pruning == after_pruning:
                     break
