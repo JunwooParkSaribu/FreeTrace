@@ -576,7 +576,6 @@ def remake_visual_localizations(output_path:str, localization_file:str, raw_imgs
 
     ret_img_stacks = []
     for img_idx, frame in tqdm(enumerate(np.arange(start_frame, end_frame+1, 1)), total=len(np.arange(start_frame, end_frame+1, 1))):
-        coords = loc_list[frame]
         img = img_stacks[img_idx]
         img = (img * 255).astype(np.uint8)
         if img.ndim == 2:
@@ -587,14 +586,16 @@ def remake_visual_localizations(output_path:str, localization_file:str, raw_imgs
             img = cv2.resize(img, (img.shape[1]*upscaling, img.shape[0]*upscaling),
                              interpolation=cv2.INTER_AREA)
         xy_cum = []
-        for center_coord in coords:
-            if len(center_coord) == 3:
-                x, y = int(round(center_coord[1] * upscaling)), int(round(center_coord[0] * upscaling))
-                if (x, y) in xy_cum:
-                    img = draw_cross(img, x, y, (0, 0, 1))
-                else:
-                    img = draw_cross(img, x, y, (1, 0, 0))
-                xy_cum.append((x, y))
+        if frame in loc_list:
+            coords = loc_list[frame]
+            for center_coord in coords:
+                if len(center_coord) == 3:
+                    x, y = int(round(center_coord[1] * upscaling)), int(round(center_coord[0] * upscaling))
+                    if (x, y) in xy_cum:
+                        img = draw_cross(img, x, y, (0, 0, 1))
+                    else:
+                        img = draw_cross(img, x, y, (1, 0, 0))
+                    xy_cum.append((x, y))
 
         ret_img_stacks.append(img)
     ret_img_stacks = np.array(ret_img_stacks, dtype=np.uint8)
