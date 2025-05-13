@@ -149,7 +149,7 @@ class RealTimePlot(tk.Tk):
                     self.queue.put((imgs[data_idx], np.array(coords_in_t[data_idx]), t+data_idx+1))
         else:
             imgs = data_zip[0]
-            paths = data_zip[1]
+            paths = list(data_zip[1])
             time_steps = data_zip[2]
             loc = data_zip[3]
             for t in time_steps:
@@ -157,13 +157,13 @@ class RealTimePlot(tk.Tk):
                     tmp_coords = []
                     for path in paths:
                         tmp = []
-                        ast = np.array([x[0] for x in path])
-                        if t in ast:
-                            for node in path[1:]:
-                                if t-10 < node[0] <= t:
+                        ast = np.array([1 if x[0]==t else 0 for x in path[-15:]])
+                        if np.sum(ast) > 0:
+                            for node in path[-15:]:
+                                if t-10 < node[0] <= t and node[0] != 0:
                                     node_xyz = loc[node[0]][node[1]][:2]
                                     tmp.append(node_xyz)
-                        tmp_coords.append(np.array(tmp))
+                            tmp_coords.append(np.array(tmp))
                     if t % mod_n == 0:
                         self.queue.put((imgs[t-1], tmp_coords, t))
                 self.past_t_steps.append(t)
