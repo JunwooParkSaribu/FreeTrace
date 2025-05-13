@@ -4,7 +4,7 @@ from sklearn.mixture import GaussianMixture
 from FreeTrace.module.trajectory_object import TrajectoryObj
 
 
-def post_processing(trajectory_list, cutoff):
+def post_processing(trajectory_list, cutoff, verbose=0):
     post_processed_count = 0
     traj_index = 0
     filtered_traj_list = []
@@ -102,7 +102,8 @@ def post_processing(trajectory_list, cutoff):
                     filtered_traj_list.append(new_traj)
                     traj_index += 1
 
-    print(f'Post processed nb of trajectories: {post_processed_count}')
+    if verbose != 0:
+        print(f'Post processed nb of trajectories: {post_processed_count}')
     return filtered_traj_list
 
 
