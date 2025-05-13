@@ -5,6 +5,109 @@ from FreeTrace.module.trajectory_object import TrajectoryObj
 
 
 def post_processing(trajectory_list, cutoff):
+    post_processed_count = 0
+    traj_index = 0
+    filtered_traj_list = []
+    for traj in trajectory_list:
+        pos = traj.get_positions()
+        if len(pos) >= cutoff:
+            frames = traj.get_times()
+            xs = pos[:, 0]
+            ys = pos[:, 1]
+
+            frame_sorted_args = np.argsort(frames)
+            xs = xs[frame_sorted_args]
+            ys = ys[frame_sorted_args]
+            frames = frames[frame_sorted_args]
+
+            pos = np.vstack([xs, ys]).T
+            predicted_false_change_pair = []
+
+            if len(xs) >= 5:
+                #disps = np.sqrt((xs[1:] - xs[:-1])**2 + (ys[1:] - ys[:-1])**2)
+                if len(xs) <= 10:
+                    n_comp = 2
+                elif len(xs) < 100:
+                    n_comp = 3
+                else:
+                    n_comp = 4
+
+                gm = GaussianMixture(n_components=n_comp, max_iter=1000, init_params='k-means++', covariance_type='spherical')
+                gm = gm.fit(pos)
+                labels = gm.predict(pos)
+                change_label={}
+                pairs = list(itertools.combinations(range(n_comp), r=2))
+                for pair in pairs:
+                    pair_distance = np.sqrt(np.sum((gm.means_[pair[0]] - gm.means_[pair[1]])**2))
+                    if pair_distance < 1.5:
+                        change_label[pair[1]] = pair[0]
+                for key in sorted(list(change_label.keys()))[::-1]:
+                    for idx in range(len(labels)):
+                        if labels[idx] == key:
+                            labels[idx] = change_label[key]
+                means_for_labels = np.array([gm.means_[label] for label in labels])
+                
+                disps_for_means = np.sqrt(np.sum((pos - means_for_labels)**2, axis=1))
+
+                gap = 0
+                for label in sorted(np.unique(labels)):
+                    check = np.array([idx for idx, lb in enumerate(labels) if lb==label])
+                    gap += np.sum(disps_for_means[check])
+                gap /= len(disps_for_means)
+
+                unique_labels = sorted(np.unique(labels))
+                pairs = list(itertools.combinations(unique_labels, r=2))
+                change_label_distances = {(pair[0], pair[1]):[] for pair in pairs}
+                prev_label = labels[0]
+                for idx in range(1, len(pos)):
+                    cur_label = labels[idx]
+                    if cur_label != prev_label:
+                        a, b = min(prev_label, cur_label), max(prev_label, cur_label)
+                        change_label_distances[(a, b)].append(np.sqrt(np.sum((pos[idx] - pos[idx-1])**2)))
+                    prev_label = cur_label
+
+    
+                for pair in pairs:
+                    changing_distances = change_label_distances[(pair[0], pair[1])]
+                    if len(changing_distances) > 0 and np.std(changing_distances) < 0.5 and gap < 0.5:
+                        predicted_false_change_pair.append(pair)
+
+
+                if len(predicted_false_change_pair) > 0:
+                    post_processed_count += 1
+
+
+            if len(predicted_false_change_pair) > 0:
+                print(labels)
+                prev_label = labels[0]
+                new_traj = TrajectoryObj(index=traj_index)
+                new_traj.add_trajectory_position(frames[0], xs[0], ys[0], 0)
+                for lb_idx in range(1, len(labels)):
+                    cur_label = labels[lb_idx]
+                    if (min(prev_label, cur_label), max(prev_label, cur_label)) in predicted_false_change_pair:
+                        if len(new_traj.get_positions()) >= cutoff:
+                            filtered_traj_list.append(new_traj)
+                            traj_index += 1
+                        new_traj = TrajectoryObj(index=traj_index)
+                    new_traj.add_trajectory_position(frames[lb_idx], xs[lb_idx], ys[lb_idx], 0)
+                    prev_label = cur_label
+                if len(new_traj.get_positions()) >= cutoff:
+                    filtered_traj_list.append(new_traj)
+                    traj_index += 1
+            else:
+                new_traj = TrajectoryObj(index=traj_index)
+                for idx in range(len(xs)):
+                    new_traj.add_trajectory_position(frames[idx], xs[idx], ys[idx], 0)
+                if len(new_traj.get_positions()) >= cutoff:
+                    filtered_traj_list.append(new_traj)
+                    traj_index += 1
+
+    print(f'Post processed nb of trajectories: {post_processed_count}')
+    return filtered_traj_list
+
+
+"""
+def post_processing(trajectory_list, cutoff):
     length_check = 3
     std_expectation_cut = 0.075
 
@@ -126,3 +229,4 @@ def post_processing(trajectory_list, cutoff):
             filtered_trajectory_list.append(traj)
             traj_idx += 1
     return filtered_trajectory_list
+"""
