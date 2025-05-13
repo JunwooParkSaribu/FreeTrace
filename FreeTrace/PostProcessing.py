@@ -78,7 +78,6 @@ def post_processing(trajectory_list, cutoff, verbose=0):
 
 
             if len(predicted_false_change_pair) > 0:
-                print(labels)
                 prev_label = labels[0]
                 new_traj = TrajectoryObj(index=traj_index)
                 new_traj.add_trajectory_position(frames[0], xs[0], ys[0], 0)
