@@ -1276,7 +1276,6 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_t
         PBAR.close()
 
 
-    #write_xml(output_file=output_xml, trajectory_list=final_trajectories, snr='7', density='low', scenario='Vesicle', cutoff=CUTOFF)
     write_trajectory(output_trj, final_trajectories)
     make_whole_img(final_trajectories, output_dir=output_img, img_stacks=images)
     if save_video:
