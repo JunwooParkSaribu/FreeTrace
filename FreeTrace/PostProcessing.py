@@ -5,9 +5,64 @@ from FreeTrace.module.trajectory_object import TrajectoryObj
 
 
 def post_processing(trajectory_list, cutoff, verbose=0):
+    gap_distrib = []
+    filtered_traj_list = []
     post_processed_count = 0
     traj_index = 0
-    filtered_traj_list = []
+    
+    for traj in trajectory_list:
+        pos = traj.get_positions()
+        if len(pos) >= cutoff:
+            frames = traj.get_times()
+            xs = pos[:, 0]
+            ys = pos[:, 1]
+
+            frame_sorted_args = np.argsort(frames)
+            xs = xs[frame_sorted_args]
+            ys = ys[frame_sorted_args]
+            frames = frames[frame_sorted_args]
+
+            pos = np.vstack([xs, ys]).T
+            predicted_false_change_pair = []
+
+            if len(xs) >= 5:
+                #disps = np.sqrt((xs[1:] - xs[:-1])**2 + (ys[1:] - ys[:-1])**2)
+                if len(xs) <= 10:
+                    n_comp = 2
+                elif len(xs) < 100:
+                    n_comp = 3
+                else:
+                    n_comp = 4
+
+                gm = GaussianMixture(n_components=n_comp, max_iter=1000, init_params='k-means++', covariance_type='spherical')
+                gm = gm.fit(pos)
+                labels = gm.predict(pos)
+                change_label={}
+                pairs = list(itertools.combinations(range(n_comp), r=2))
+                for pair in pairs:
+                    pair_distance = np.sqrt(np.sum((gm.means_[pair[0]] - gm.means_[pair[1]])**2))
+                    if pair_distance < 1.5:
+                        change_label[pair[1]] = pair[0]
+                for key in sorted(list(change_label.keys()))[::-1]:
+                    for idx in range(len(labels)):
+                        if labels[idx] == key:
+                            labels[idx] = change_label[key]
+                means_for_labels = np.array([gm.means_[label] for label in labels])
+                
+                disps_for_means = np.sqrt(np.sum((pos - means_for_labels)**2, axis=1))
+
+                gaps = []
+                for label in sorted(np.unique(labels)):
+                    check = np.array([idx for idx, lb in enumerate(labels) if lb==label])
+                    gaps.append(np.mean(disps_for_means[check]))
+                #gap /= len(disps_for_means)
+                gap_distrib.append(np.max(gaps))
+    gap_distrib = np.array(gap_distrib)
+    if len(gap_distrib[gap_distrib < 1.0])/len(gap_distrib) > 0.8:
+        seuil = 1.0
+    else:
+        seuil = 0.0
+
     for traj in trajectory_list:
         pos = traj.get_positions()
         if len(pos) >= cutoff:
@@ -65,19 +120,15 @@ def post_processing(trajectory_list, cutoff, verbose=0):
                         a, b = min(prev_label, cur_label), max(prev_label, cur_label)
                         change_label_distances[(a, b)].append(np.sqrt(np.sum((pos[idx] - pos[idx-1])**2)))
                     prev_label = cur_label
-
     
                 for pair in pairs:
                     changing_distances = change_label_distances[(pair[0], pair[1])]
-                    if len(changing_distances) > 0 and np.std(changing_distances) < 0.5 and gap < 0.5:
+                    if gap < seuil:
                         predicted_false_change_pair.append(pair)
 
 
-                if len(predicted_false_change_pair) > 0:
-                    post_processed_count += 1
-
-
             if len(predicted_false_change_pair) > 0:
+                post_processed_count += 1
                 prev_label = labels[0]
                 new_traj = TrajectoryObj(index=traj_index)
                 new_traj.add_trajectory_position(frames[0], xs[0], ys[0], 0)
@@ -101,9 +152,36 @@ def post_processing(trajectory_list, cutoff, verbose=0):
                     filtered_traj_list.append(new_traj)
                     traj_index += 1
 
+
     if verbose != 0:
-        print(f'Post processed nb of trajectories: {post_processed_count}')
+        print(f'Post processed nb of trajectories: {post_processed_count} with ratio: {len(gap_distrib[gap_distrib < 1.0])/len(gap_distrib)}, seuil: {seuil}')
     return filtered_traj_list
+
+
+"""
+from FreeTrace.module.data_load import read_csv
+my_traj_list = []
+df = read_csv('outputs/20250318-RPE-1-FUS-1C9-Wang4-100uM-JF200nM-Hoetchst03-4H-cell24-IR10min_immobile_dense_traces.csv')
+#df = read_csv('outputs/20231129-cell6-ir_whole_traces.csv')
+#df = read_csv('outputs/20231129-cell6-whole-noIR_traces.csv')
+#df = read_csv('outputs/alpha_test0_traces.csv')
+#df = read_csv('outputs/alpha_test1_traces.csv')
+#df = read_csv('outputs/sample0_traces.csv')
+#df = read_csv('outputs/20250219-RPE-1-WT-1C9-JF200nM-Hoetchst03-cell3-IR10min_traces.csv')
+#df = read_csv('outputs/20250219-RPE-1-WT-1C9-JF200nM-Hoetchst03-cell2_traces.csv')
+traj_indices = df['traj_idx'].unique()
+for ix, traj_idx in enumerate(traj_indices):
+    single_traj = df[df['traj_idx'] == traj_idx]
+    xs = single_traj['x'].to_numpy()
+    ys = single_traj['y'].to_numpy()
+    frames = single_traj['frame'].to_numpy()
+    traj = TrajectoryObj(index=ix)
+    for x, y, frame in zip(xs, ys, frames):
+        traj.add_trajectory_position(frame, x, y, 0)
+    my_traj_list.append(traj)
+post_processing(my_traj_list, 3, 1)
+exit()
+"""
 
 
 """
