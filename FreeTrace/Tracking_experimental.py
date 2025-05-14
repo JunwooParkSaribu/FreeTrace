@@ -1194,7 +1194,7 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
 
     if POST_PROCESSING:
         from FreeTrace.PostProcessing import post_processing
-        trajectory_list = post_processing(trajectory_list, CUTOFF, verbose=1)
+        trajectory_list = post_processing(trajectory_list, CUTOFF, verbose=VERBOSE)
     return trajectory_list
 
 
