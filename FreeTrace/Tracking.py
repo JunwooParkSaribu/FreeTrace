@@ -60,7 +60,7 @@ def predict_multinormal(relativ_coord, alpha, k, lag):
 def build_emp_pdf(emp_distribution, bins):
     global EMP_PDF
     if len(emp_distribution) < 1000:
-        jump_hist, _ = np.histogram(np.random.exponential(2, size=10000), bins=bins, density=True)
+        jump_hist, _ = np.histogram(np.random.exponential(1.0, size=10000), bins=bins, density=True)
     else:
         jump_hist, _ = np.histogram(emp_distribution, bins=bins, density=True)
     EMP_PDF = jump_hist
