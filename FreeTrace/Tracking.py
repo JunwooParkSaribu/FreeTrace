@@ -1213,7 +1213,8 @@ def trajectory_inference(localization: dict, time_steps: np.ndarray, distributio
 
 def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_threshold=None, gpu_on=True,
         save_video=False, verbose=False, batch=False, realtime_visualization=False,
-        post_processing=True, read_loc_file=(None, 1.0), return_state=0):
+        post_processing=False, read_loc_file=(None, 1.0), return_state=0):
+    
     global IMAGES
     global VERBOSE
     global BATCH
@@ -1330,7 +1331,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_t
 
 def run_process(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_threshold=None|float,
                 gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False, 
-                post_processing=True, read_loc_file=(None, 1.0)) -> bool:
+                post_processing=False, read_loc_file=(None, 1.0)) -> bool:
     """
     Create a process to run the tracking of particles to reconstruct the trajectories from localized molecules.
     This function reads both the video.tiff and the video_loc.csv which was generated with Localization process.
