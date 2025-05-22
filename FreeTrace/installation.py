@@ -64,14 +64,14 @@ subprocess.run(['sudo', 'apt-get', 'install', 'libgl1'])
 
 if python_version == "3.10":
     subprocess.run(['rm', '-r', f'{freetrace_path}/models'])
-    subprocess.run(['wget', 'https://psilo.sorbonne-universite.fr/index.php/s/WqoCoFBc99A3Xbc/download/models_2_14.zip', '-P' f'{freetrace_path}'])
+    subprocess.run(['wget', 'https://psilo.sorbonne-universite.fr/index.php/s/o8SZrWt4HePY8js/download/models_2_14.zip', '-P' f'{freetrace_path}'])
     subprocess.run(['unzip', '-o', f'{freetrace_path}/models_2_14.zip', '-d', f'{freetrace_path}'])
     subprocess.run(['cp', '-r', f'{freetrace_path}/models_2_14', f'{freetrace_path}/models'])
     subprocess.run(['rm', '-r', f'{freetrace_path}/models_2_14'])
     subprocess.run(['rm', f'{freetrace_path}/models_2_14.zip'])
 else:
     subprocess.run(['rm', '-r', f'{freetrace_path}/models'])
-    subprocess.run(['wget', 'https://psilo.sorbonne-universite.fr/index.php/s/9W2pby29MGkQLDd/download/models_2_17.zip', '-P' f'{freetrace_path}'])
+    subprocess.run(['wget', 'https://psilo.sorbonne-universite.fr/index.php/s/w9PrAQbxsNJrEFc/download/models_2_17.zip', '-P' f'{freetrace_path}'])
     subprocess.run(['unzip', '-o', f'{freetrace_path}/models_2_17.zip', '-d', f'{freetrace_path}'])
     subprocess.run(['cp', '-r', f'{freetrace_path}/models_2_17', f'{freetrace_path}/models'])
     subprocess.run(['rm', '-r', f'{freetrace_path}/models_2_17'])
