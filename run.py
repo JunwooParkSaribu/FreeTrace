@@ -30,6 +30,7 @@ if __name__ == "__main__":
     try:
         if not os.path.exists(f'{OUTPUT_DIR}'):
             os.makedirs(f'{OUTPUT_DIR}')
+            
         loc = False
         track = False
 
