@@ -15,7 +15,6 @@ from FreeTrace.module.image_module import read_tif, make_image_seqs, make_whole_
 from FreeTrace.module.data_save import write_trajectory
 from FreeTrace.module.data_load import read_localization
 from FreeTrace.module.auxiliary import initialization
-from FreeTrace.module.xml_module import write_xml
 
 
 @lru_cache
@@ -42,6 +41,30 @@ def indice_fetch(alpha, k):
 @lru_cache
 def std_fetch(alpha_i, k_i):
     return STD_FIT_DATA['std_grid'][alpha_i, k_i]
+
+
+@lru_cache
+def indice_fetch(alpha, k):
+    alpha_index = -1
+    k_index = -1
+    for alpha_i, reg_alpha in enumerate(QT_FIT_DATA['alpha_arr']):
+        if alpha < reg_alpha:
+            alpha_index = alpha_i
+            break
+    for k_i, reg_k in enumerate(QT_FIT_DATA['k_arr']):
+        if k < reg_k:
+            k_index = k_i
+            break
+    return alpha_index, k_index
+
+
+@lru_cache
+def qt_fetch(alpha_i, k_i):
+    vals = QT_FIT_DATA['qt_arr']
+    mat = vals.reshape([QT_FIT_DATA['alpha_arr'].shape[0], QT_FIT_DATA['k_arr'].shape[0], -1, 3])
+    qt = mat[:,:,:,2]
+    qt_mean = np.mean(qt, axis=2)
+    return qt_mean[alpha_i, k_i]
 
 
 def predict_multinormal(relativ_coord, alpha, k, lag):
@@ -73,10 +96,14 @@ def empirical_pdf(coords):
 
 
 def regularization(numer, denom, expect):
-    if abs(numer) <= 1e-6:
-        numer += 1e-3
-    if abs(denom) <= 1e-6:
-        denom += 1e-3 
+    if numer < 0:
+        numer -= 2*1e-1
+    else:
+        numer += 2*1e-1
+    if denom < 0:
+        denom -= 2*1e-1
+    else:
+        denom += 2*1e-1
     scaler = min(math.sqrt(scaling_func(numer) + 2.0*scaling_func(denom))/2, 1.0)
     scaled_ratio = (numer / denom) + (expect - numer/denom) * (scaler)**(1./3)
     return scaled_ratio
@@ -86,7 +113,7 @@ def scaling_func(numer:float):
     return max(0, min(2, -math.log10(abs(numer))))
 
 
-def predict_cauchy(next_vec, prev_vec, alpha, before_lag, lag, precision, dimension):
+def predict_cauchy(next_vec, prev_vec, k, alpha, before_lag, lag, precision, dimension):
     log_pdf = 0
     abnormal = False
     delta_s = before_lag + 1
@@ -107,8 +134,14 @@ def predict_cauchy(next_vec, prev_vec, alpha, before_lag, lag, precision, dimens
     for coord_ratio in coord_ratios:
         density = 1.0/(math.pi * scale) * 1.0 / (( math.pow((coord_ratio - rho*std_ratio), 2) / (math.pow(scale, 2) * std_ratio) ) + (std_ratio))
         log_pdf += math.log(density)
+        
     if (abs(coord_ratios - std_ratio*rho) > 6.0*scale).any():
         abnormal = True
+
+    ai, ki = indice_fetch(alpha, k)
+    if np.sqrt(np.sum(next_vec**2)) - qt_fetch(ai, ki)*2.5 > 0:
+        abnormal = True
+
     return log_pdf, abnormal
 
 
@@ -405,6 +438,8 @@ def predict_ks(x, y):
 def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, prev_k, next_times, prev_path=None, start_indice=None, last_time=-1, jump_threshold=20, selected_graph=None, final_graph_nodes=None):
     traj_cost = []
     ab_index = []
+    tmpx = []
+    tmpy = []
     abnormal = False
     abnormal_penalty = 1000
     time_penalty = abnormal_penalty / (TIME_FORECAST + 1)
@@ -456,11 +491,15 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
         
         for edge_i in range(1, len(next_path) + last_idx - 1):
             for edge_j in range(edge_i + 1, edge_i + 2):
-                if abnormal:
+                if len(ab_index) > 0:
                     prev_alpha = 1.0
-                    prev_k = 0.3
-                    if prev_path is not None:
-                        prev_path = [prev_path[0]]
+                    if len(tmpx) == 0:
+                        tmpx = [localizations[j_prev_node[0]][j_prev_node[1]][0], localizations[j_next_node[0]][j_next_node[1]][0]]
+                        tmpy = [localizations[j_prev_node[0]][j_prev_node[1]][1], localizations[j_next_node[0]][j_next_node[1]][1]]
+                    else:
+                        tmpx.append(localizations[j_next_node[0]][j_next_node[1]][0])
+                        tmpy.append(localizations[j_next_node[0]][j_next_node[1]][1])
+                    prev_k = predict_ks(tmpx[:5], tmpy[:5])
                 
                 i_prev_node = next_path[edge_i]
                 i_next_node = next_path[edge_i + 1]
@@ -473,9 +512,9 @@ def predict_long_seq(next_path, trajectories_costs, localizations, prev_alpha, p
                 vec_j = localizations[j_next_node[0]][j_next_node[1]] - localizations[j_prev_node[0]][j_prev_node[1]]
 
                 #log_p0, abnormal2 = cost_function.predict_cauchy((next_coord - cur_coord), (cur_coord- before_coord), prev_alpha, time_gap, 1.0, DIMENSION)
-                log_p0, abnormal2 = predict_cauchy(vec_j, vec_i, prev_alpha, i_time_gap, j_time_gap, LOC_PRECISION_ERR, DIMENSION)
+                log_p0, abnormal = predict_cauchy(vec_j, vec_i, prev_k, prev_alpha, i_time_gap, j_time_gap, LOC_PRECISION_ERR, DIMENSION)
 
-                if abnormal2:
+                if abnormal:
                     ab_index.append(edge_j)
                 traj_cost.append(abs(log_p0 - 5))
 
@@ -1198,6 +1237,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_t
     global LOC_PRECISION_ERR
     global NB_TO_OPTIMUM
     global POST_PROCESSING
+    global QT_FIT_DATA
 
 
     VERBOSE = verbose
@@ -1215,6 +1255,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_t
     CUDA, TF = initialization(GPU_AVAIL, REG_LEGNTHS, ptype=1, verbose=VERBOSE, batch=BATCH)
     POLY_FIT_DATA = np.load(f'{__file__.split("/Tracking.py")[0]}/models/theta_hat.npz')
     STD_FIT_DATA = np.load(f'{__file__.split("/Tracking.py")[0]}/models/std_sets.npz')
+    QT_FIT_DATA = np.load(f'{__file__.split("/Tracking.py")[0]}/models/qt_99.npz')
     EMP_BINS = np.linspace(0, 20, 40)
     NB_TO_OPTIMUM = int(2**TIME_FORECAST)
     POST_PROCESSING = post_processing
@@ -1274,7 +1315,6 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_t
 
     if VERBOSE:
         PBAR.close()
-
 
     write_trajectory(output_trj, final_trajectories)
     make_whole_img(final_trajectories, output_dir=output_img, img_stacks=images)
