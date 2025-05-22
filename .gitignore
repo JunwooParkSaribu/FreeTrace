@@ -35,8 +35,7 @@ error_log.txt
 # ML Models #
 ######################
 *.keras
-theta_hat.npz
-std_sets.npz
+*.npz
 
 # Result Files #
 ######################
