@@ -1205,7 +1205,7 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
 
 
 def trajectory_inference(localization: dict, time_steps: np.ndarray, distribution: dict, image_length=None, realtime_visualization=False):
-    sys.setrecursionlimit(10000)
+    sys.setrecursionlimit(15000)
     t_avail_steps = []
     for time in np.sort(time_steps):
         if len(localization[time][0]) == 3:
