@@ -431,7 +431,10 @@ def predict_alphas(x, y):
 
 
 def predict_ks(x, y):
-    pred_logk = REG_MODEL.k_predict([np.array([x, y])])
+    if TF:
+        pred_logk = REG_MODEL.k_predict([np.array([x, y])])
+    else:
+        pred_logk = [0.5]
     return pred_logk[0]
     
 
