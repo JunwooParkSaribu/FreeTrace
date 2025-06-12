@@ -951,9 +951,9 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
                 video_arr[image_idx] = blended
                 image_idx += 1
 
-        output_video_name = f'{sequence_save_folder}/{filename}_density_video_frame_{start_frame}_{end_frame}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}.tiff'
+        output_video_name = f'{sequence_save_folder}/{filename}_density_video_frame_{start_frame}_{end_frame}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}_maxdensity_{max_density}.tiff'
         if os.path.exists(output_video_name):
-            output_video_name = f'{sequence_save_folder}/{filename}_density_video_frame_{start_frame}_{end_frame}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}_{vid_idx}.tiff'
+            output_video_name = f'{sequence_save_folder}/{filename}_density_video_frame_{start_frame}_{end_frame}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}_maxdensity_{max_density}_{vid_idx}.tiff'
 
         tifffile.imwrite(output_video_name, data=video_arr, imagej=True)
         print(f'\n--------->   {output_video_name} is successfully generated.   <---------')
