@@ -34,8 +34,8 @@ if __name__ == '__main__':
     start_end_frames_for_each_file = [(1, 100)]
     make_loc_radius_video_batch(output_path, image_list, localization_file_list, frame_cumul=1000, radius=[3, 13],
                                 frame_list=start_end_frames_for_each_file, nb_min_particles=100, max_density=None, color='jet', alpha1=0.65, alpha2=0.35)
-    """
     
+    """
     output_path = 'outputs'
     images = 'inputs/sample0.tiff'
     localization_file = 'outputs/sample0_loc.csv'
