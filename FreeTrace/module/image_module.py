@@ -863,9 +863,9 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
     PBAR = tqdm(total=tqdm_process_max, desc="Density estimation with weighted Gaussian kernel", unit="frame", ncols=120)
     for vid_idx, (raw_imgs, all_coords, stacked_coords, stacked_radii, time_steps, filename, (start_frame, end_frame)) \
         in enumerate(zip(raw_imgs_list, batch_all_coords_list, batch_stacked_coord_list, batch_stacked_radii_list, batch_time_steps_list, batch_filename_list, batch_frame_list)):
-        if os.path.exists(f'tmp_kernel/{filename}.npz'):
+        if os.path.exists(f'tmp_kernel/{filename}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}.npz'):
             Z_MAX = max(Z_MAX, np.max(np.load(f'tmp_kernel/{filename}.npz')['Z_stack']))
-            md = np.max(np.load(f'tmp_kernel/{filename}.npz')['Z_stack'])
+            md = np.max(np.load(f'tmp_kernel/{filename}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}.npz')['Z_stack'])
             print(f'\n\nCalculated density result of {filename} is already exists in the tmp_kernel folder. To re-calculate the density, please delete the corresponding files, it will reuse it to avoid re-calculation otherwise.')
         else:
             Z_all = []
@@ -902,8 +902,8 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
                         else:
                             Z_all.append(saved_z_for_flat)
             md = np.max(Z_all)
-            np.savez(f'tmp_kernel/{filename}', Z_stack = np.array(Z_all, dtype=np.float16))
-        max_densities['filename'].append(filename)
+            np.savez(f'tmp_kernel/{filename}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}', Z_stack = np.array(Z_all, dtype=np.float16))
+        max_densities['filename'].append(f'{filename}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}')
         max_densities['max_density'].append(md)
     PBAR.close()
 
@@ -919,14 +919,14 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
         print(f'*****  Selected maximum density in this batch: {max_density}  *****')
         print(f'*********************************************************\n')
     max_densities = pd.DataFrame(max_densities)
-    max_densities.to_csv(f'tmp_kernel/max_densities.csv')
+    max_densities.to_csv(f'tmp_kernel/max_densities_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}.csv')
 
 
 
     PBAR = tqdm(total=tqdm_process_max, desc="Rendering", unit="frame", ncols=120)
     for vid_idx, (raw_imgs, all_coords, stacked_coords, stacked_radii, time_steps, filename, (start_frame, end_frame)) \
         in enumerate(zip(raw_imgs_list, batch_all_coords_list, batch_stacked_coord_list, batch_stacked_radii_list, batch_time_steps_list, batch_filename_list, batch_frame_list)):
-        Z_stack = np.load(f'tmp_kernel/{filename}.npz')['Z_stack']
+        Z_stack = np.load(f'tmp_kernel/{filename}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}.npz')['Z_stack']
         images = read_tif(raw_imgs)[start_frame-1:end_frame,:,:]
 
         image_idx = 0
