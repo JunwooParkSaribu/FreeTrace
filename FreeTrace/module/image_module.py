@@ -753,6 +753,7 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
     batch_stacked_radii_list = []
     batch_nb_molecules = []
     batch_max_count = []
+    max_densities = {'filename': [], 'max_density': []}
     count_max = 0
     tqdm_process_max = 0
     mycmap = plt.get_cmap(color, lut=None)
@@ -862,8 +863,10 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
     PBAR = tqdm(total=tqdm_process_max, desc="Density estimation with weighted Gaussian kernel", unit="frame", ncols=120)
     for vid_idx, (raw_imgs, all_coords, stacked_coords, stacked_radii, time_steps, filename, (start_frame, end_frame)) \
         in enumerate(zip(raw_imgs_list, batch_all_coords_list, batch_stacked_coord_list, batch_stacked_radii_list, batch_time_steps_list, batch_filename_list, batch_frame_list)):
-        if os.path.exists(f'tmp_kernel/{filename}'):
+        if os.path.exists(f'tmp_kernel/{filename}.npz'):
             Z_MAX = max(Z_MAX, np.max(np.load(f'tmp_kernel/{filename}.npz')['Z_stack']))
+            md = np.max(np.load(f'tmp_kernel/{filename}.npz')['Z_stack'])
+            print(f'\n\nCalculated density result of {filename} is already exists in the tmp_kernel folder. To re-calculate the density, please delete the corresponding files, it will reuse it to avoid re-calculation otherwise.')
         else:
             Z_all = []
             saved_z_for_flat = None
@@ -898,13 +901,26 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
                             saved_z_for_flat = Z
                         else:
                             Z_all.append(saved_z_for_flat)
+            md = np.max(Z_all)
             np.savez(f'tmp_kernel/{filename}', Z_stack = np.array(Z_all, dtype=np.float16))
+        max_densities['filename'].append(filename)
+        max_densities['max_density'].append(md)
     PBAR.close()
 
 
     if max_density is None:
         max_density = Z_MAX
-    print(f'\n*** Maximum density in this batch: {max_density} ***\n')
+        print(f'You didn\'t select the maximum density. So, it will normalize to the maximum density of current batch.')
+        print(f'\n****************************************************')
+        print(f'*****  maximum density in this batch: {max_density}')
+        print(f'****************************************************\n')
+    else:
+        print(f'\n*********************************************************')
+        print(f'*****  Selected maximum density in this batch: {max_density}  *****')
+        print(f'*********************************************************\n')
+    max_densities = pd.DataFrame(max_densities)
+    max_densities.to_csv(f'tmp_kernel/max_densities.csv')
+
 
 
     PBAR = tqdm(total=tqdm_process_max, desc="Rendering", unit="frame", ncols=120)
@@ -945,6 +961,7 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
 
     PBAR.close()
     
+    """
     try:
         for filename in batch_filename_list:
             if os.path.exists(f'tmp_kernel/{filename}.npz'):
@@ -954,6 +971,7 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
     except Exception as e:
         print(e)
         print("Temporary files were not removed.")
+    """
 
 
 def make_red_circles(imgs, localized_xys, hstack=False):

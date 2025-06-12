@@ -27,11 +27,11 @@ if __name__ == '__main__':
     make_loc_radius_video(output_path, images, localization_file, frame_cumul=10, radius=[3, 25], start_frame=0, end_frame=100, alpha1=0.65, alpha2=0.35)
     """
 
-    """
+    
     output_path = 'outputs'
-    image_list = ['inputs/nls.tif', 'inputs/fus.tif']
-    localization_file_list = ['outputs/nls_traces.csv', 'outputs/fus_traces.csv']
-    start_end_frames_for_each_file = [(1, 5000), (1, 5000)]
+    image_list = ['inputs/sample0.tiff']
+    localization_file_list = ['outputs/sample0_traces.csv']
+    start_end_frames_for_each_file = [(1, 100)]
     make_loc_radius_video_batch(output_path, image_list, localization_file_list, frame_cumul=1000, radius=[3, 13],
                                 frame_list=start_end_frames_for_each_file, nb_min_particles=100, max_density=None, color='jet', alpha1=0.65, alpha2=0.35)
     """
@@ -42,4 +42,4 @@ if __name__ == '__main__':
     trajectory_file = 'outputs/sample0_traces.csv'
     remake_visual_localizations(output_path, localization_file, images, start_frame=1, end_frame=100, upscaling=1)
     remake_visual_trajectories(output_path, trajectory_file, images, start_frame=1, end_frame=100, upscaling=1)
-    
+    """
