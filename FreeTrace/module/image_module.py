@@ -864,7 +864,7 @@ def make_loc_radius_video_batch(output_path:str, raw_imgs_list:list, localizatio
     for vid_idx, (raw_imgs, all_coords, stacked_coords, stacked_radii, time_steps, filename, (start_frame, end_frame)) \
         in enumerate(zip(raw_imgs_list, batch_all_coords_list, batch_stacked_coord_list, batch_stacked_radii_list, batch_time_steps_list, batch_filename_list, batch_frame_list)):
         if os.path.exists(f'tmp_kernel/{filename}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}.npz'):
-            Z_MAX = max(Z_MAX, np.max(np.load(f'tmp_kernel/{filename}.npz')['Z_stack']))
+            Z_MAX = max(Z_MAX, np.max(np.load(f'tmp_kernel/{filename}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}.npz')['Z_stack']))
             md = np.max(np.load(f'tmp_kernel/{filename}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}.npz')['Z_stack'])
             print(f'\n\nCalculated density result of {filename} is already exists in the tmp_kernel folder. To re-calculate the density, please delete the corresponding files, it will reuse it to avoid re-calculation otherwise.')
         else:
