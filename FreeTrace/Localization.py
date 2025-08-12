@@ -661,7 +661,7 @@ def run(input_video_path:str, output_path:str, window_size=7, threshold=1.0, def
         MEM_SIZE = gpu_module.get_gpu_mem_size()
         DIV_Q = int(64 * 512 * 512 / images.shape[1] / images.shape[2] * (7**2 / WINSIZE**2) * MEM_SIZE / 24 * shift**2) 
     else:
-        DIV_Q = min(25, int(2.7 * 4194304 / images.shape[1] / images.shape[2] * (7**2 / WINSIZE**2)))
+        DIV_Q = min(50, int(2.7 * 4194304 / images.shape[1] / images.shape[2] * (7**2 / WINSIZE**2)))
     DIV_Q = max(DIV_Q, 1)
     if WINSIZE % 2 == 0:
         WINSIZE += 1

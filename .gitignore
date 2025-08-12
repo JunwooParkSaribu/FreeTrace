@@ -56,6 +56,7 @@ err_test*.tiff
 *_hconcat.tiff
 scratch*.py
 
+
 # OS generated files #
 ######################
 .DS_Store
@@ -67,3 +68,4 @@ scratch*.py
 ehthumbs.db
 Thumbs.db
 *Zone.Identifier
+*.vscode
