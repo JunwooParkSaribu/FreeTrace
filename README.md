@@ -16,7 +16,7 @@
 > - PRE-REQUISITE: pre-installation and compilation, check [tutorial](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/tutorial.ipynb) </br>
 > - Check [compatibilities](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/FreeTrace/models/README.md) of Python and Tensorflow to run FreeTrace with source code.</br>
 > - Without GPU, FreeTrace only considers standard Brownian motion for inferences.</br>
-> - Stable for python 3.10 / 3.11 / 3.12</br>
+> - Stable with python 3.10 / 3.11 / 3.12</br>
 
 
 &nbsp;&nbsp;<b>FreeTrace</b> infers individual trajectories from time-series images. To detect the particles and their positions at sub-pixel level, FreeTrace first extends the image sequences by sampling noises at the edges of images. These extensions of images allow detecting the particles at the edges of images since FreeTrace utilises sliding windows to calculate the particle's position at sub-pixel level. Next, FreeTrace estimates the existence of particles at a pixel with a given PSF function for each sliding window and makes a hypothesis map to determine whether a particle exists at a given sliding window or not. FreeTrace then finds local maxima from the constructed hypothesis maps. To find the precise centre-position of particles at sub-pixel level, FreeTrace performs 2D Gaussian regression by transforming it into a linear system. Finally, FreeTrace reconnects the detected particles by constructing a network and infer the most probable trajectories by calculating the reconnection-likelihoods on paths.</br>
