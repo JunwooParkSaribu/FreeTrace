@@ -1257,9 +1257,9 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_t
     JUMP_THRESHOLD = jump_threshold
     VIDEO_PATH = input_video_path
     CUDA, TF = initialization(GPU_AVAIL, REG_LEGNTHS, ptype=1, verbose=VERBOSE, batch=BATCH)
-    POLY_FIT_DATA = np.load(f'{__file__.split("/Tracking.py")[0]}/models/theta_hat.npz')
-    STD_FIT_DATA = np.load(f'{__file__.split("/Tracking.py")[0]}/models/std_sets.npz')
-    QT_FIT_DATA = np.load(f'{__file__.split("/Tracking.py")[0]}/models/qt_99.npz')
+    POLY_FIT_DATA = np.load(f'{__file__.split("Tracking.py")[0]}/models/theta_hat.npz')
+    STD_FIT_DATA = np.load(f'{__file__.split("Tracking.py")[0]}/models/std_sets.npz')
+    QT_FIT_DATA = np.load(f'{__file__.split("Tracking.py")[0]}/models/qt_99.npz')
     EMP_BINS = np.linspace(0, 20, 40)
     NB_TO_OPTIMUM = int(2**TIME_FORECAST)
     POST_PROCESSING = post_processing
