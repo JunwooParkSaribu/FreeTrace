@@ -28,7 +28,10 @@ freetrace_path += 'FreeTrace'.join(re.split(r'FreeTrace', __file__)[:-1]) + 'Fre
 
 
 if 'win' in platform:
-    if '3.12' in sys.version or '3.11' in sys.version:
+    if '3.13' in sys.version:
+        tf_version = 'tensorflow==2.17'
+        python_version = "3.13"
+    elif '3.12' in sys.version:
         tf_version = 'tensorflow==2.17'
         python_version = "3.12"
     elif '3.11' in sys.version:
@@ -38,7 +41,7 @@ if 'win' in platform:
         tf_version = 'tensorflow==2.14'
         python_version = "3.10"
     else:
-        sys.exit('***** python version 3.10/11/12 required for the compatibility with Tensorflow [No GPU use in windows] *****')
+        sys.exit('***** python version 3.10/11/12/13 required for the compatibility with Tensorflow [No GPU use in windows] *****')
 
     print("***** FreeTrace includes the installation of below items. *****")
     with open(f"{freetrace_path}/requirements.txt", 'r') as f:
@@ -108,7 +111,10 @@ if 'win' in platform:
 
 
 elif 'linux' in platform:
-    if '3.12' in sys.version or '3.11' in sys.version:
+    if '3.13' in sys.version:
+        tf_version = 'tensorflow[and-cuda]==2.17'
+        python_version = "3.13" 
+    elif '3.12' in sys.version:
         tf_version = 'tensorflow[and-cuda]==2.17'
         python_version = "3.12"
     elif '3.11' in sys.version:
@@ -118,7 +124,7 @@ elif 'linux' in platform:
         tf_version = 'tensorflow[and-cuda]==2.14.1'
         python_version = "3.10"
     else:
-        sys.exit('***** python version 3.10/11/12 required for the compatibility with Tensorflow *****')
+        sys.exit('***** python version 3.10/11/12/13 required for the compatibility with Tensorflow *****')
 
     print("***** FreeTrace needs Cuda. if Cuda is not installed, please visit [https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&Distribution=Ubuntu&target_version=24.04&target_type=deb_network] *****")
     print("***** FreeTrace includes the installation of below items. *****")
@@ -138,10 +144,13 @@ elif 'linux' in platform:
     subprocess.run(['sudo', 'apt-get', 'update'])
     subprocess.run(['sudo', 'apt-get', 'install', 'unzip'])
     subprocess.run(['sudo', 'apt', 'install', 'clang'])
+    subprocess.run(['sudo', 'apt', 'install', 'wget'])
     subprocess.run(['sudo', 'apt-get', 'install', 'python3-tk'])
     subprocess.run(['sudo', 'apt', 'install', 'python3-dev'])
     subprocess.run(['sudo', 'apt', 'install', 'python3-pip'])
+    subprocess.run(['sudo', 'apt', 'install', 'python3-venv'])
     subprocess.run(['sudo', 'apt-get', 'install', 'libgl1'])
+    subprocess.run(['sudo', 'apt-get', 'install', 'libgtk2.0-dev'])
 
     if python_version == "3.10":
         subprocess.run(['rm', '-r', f'{freetrace_path}/models'])
