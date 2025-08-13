@@ -1,6 +1,6 @@
 *** 
 ## Compatibility </br>
-<img width="825" src="https://github.com/JunwooParkSaribu/FreeTrace/blob/main/tmps/compatibility_talbe.png">
+<img width="625" src="https://github.com/JunwooParkSaribu/FreeTrace/blob/main/tmps/compatibility_table.png">
 Tensorflow2.17 &#8594; Models [downloads](https://psilo.sorbonne-universite.fr/index.php/s/w9PrAQbxsNJrEFc/download/models_2_17.zip) for Python 3.12 or 3.11 </br>
 Tensorflow2.14 &#8594; Models [downloads](https://psilo.sorbonne-universite.fr/index.php/s/o8SZrWt4HePY8js/download/models_2_14.zip) for Python 3.10 </br>
 </br>
