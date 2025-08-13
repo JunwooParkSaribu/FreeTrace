@@ -9,23 +9,33 @@ from datetime import datetime
 from FreeTrace import Tracking, Localization
 
 
+
 input_folder = 'inputs'
 OUTPUT_DIR = 'outputs'
 
 
-WINSIZE = 7
+
+"""
+Parameters for the localization of particles.
+"""
+WINDOW_SIZE = 7
 THRESHOLD = 1.0
-SAVE_VIDEO_LOC = False
-REAL_LOC = False
-LOC_GPU_AVAIL = True
+REALTIME_LOCALIZATION = False  # If you set this option as True, the processing time will be slower.
+GPU_FOR_LOCALIZATION = True  # GPU acceleration with CUDA. (only available with NVIDIA GPU)
+SAVE_LOCALIZATION_VIDEO = False
 
 
+
+"""
+Parameters for the tracking of localized particles.
+"""
 TIME_FORECAST = 2
 CUTOFF = 3
 JUMP_THRESHOLD = None
-SAVE_VIDEO_TRACK = False
-REAL_TRACK = False
-TRACK_GPU_AVAIL = True
+REALTIME_TRACKING = False  # If you set this option as True, the processing time will be slower.
+GPU_FOR_TRACKING = True  # fBm if True, classical Brownian motion if False.
+SAVE_TRACKING_VIDEO = False
+
 
 
 if __name__ == "__main__":
@@ -36,8 +46,10 @@ if __name__ == "__main__":
         if not os.path.exists(f'{OUTPUT_DIR}'):
             os.makedirs(f'{OUTPUT_DIR}')
         file_list = os.listdir(f'{input_folder}')
-        print(f'\n*****  Batch processing on {len(file_list)} files. ({len(file_list)*2} tasks: Localizations + Trackings)  *****')
-        PBAR = tqdm(total=len(file_list)*2, desc="Batch", unit="task", ncols=120, miniters=1)
+        nb_videos_in_batch = len([file for file in file_list if '.tif' in file])
+
+        print(f'\n*****  Batch processing on {len(file_list)} videos. ({len(file_list)*2} tasks: Localizations + Trackings)  *****')
+        PBAR = tqdm(total=nb_videos_in_batch*2, desc="Batch", unit="task", ncols=120, miniters=1)
         for idx in range(len(file_list)):
             loc = False
             track = False
@@ -46,15 +58,24 @@ if __name__ == "__main__":
                 PBAR.set_postfix(File=file, refresh=True)
                 try:
                     loc = Localization.run_process(input_video_path=f'{input_folder}/{file}', output_path=OUTPUT_DIR,
-                                                   window_size=WINSIZE, threshold=THRESHOLD,
-                                                   gpu_on=LOC_GPU_AVAIL, save_video=SAVE_VIDEO_LOC,
-                                                   realtime_visualization=REAL_LOC, verbose=0, batch=True)
+                                                   window_size=WINDOW_SIZE,
+                                                   threshold=THRESHOLD,
+                                                   gpu_on=GPU_FOR_LOCALIZATION,
+                                                   save_video=SAVE_LOCALIZATION_VIDEO,
+                                                   realtime_visualization=REALTIME_LOCALIZATION,
+                                                   verbose=0,
+                                                   batch=True)
                     PBAR.update(1)
                     if loc:
                         track = Tracking.run_process(input_video_path=f'{input_folder}/{file}', output_path=OUTPUT_DIR,
-                                                     time_forecast=TIME_FORECAST, cutoff=CUTOFF, jump_threshold=JUMP_THRESHOLD,
-                                                     gpu_on=TRACK_GPU_AVAIL, save_video=SAVE_VIDEO_TRACK,
-                                                     realtime_visualization=REAL_TRACK, verbose=0, batch=True)
+                                                     time_forecast=TIME_FORECAST,
+                                                     cutoff=CUTOFF,
+                                                     jump_threshold=JUMP_THRESHOLD,
+                                                     gpu_on=GPU_FOR_TRACKING,
+                                                     save_video=SAVE_TRACKING_VIDEO,
+                                                     realtime_visualization=REALTIME_TRACKING,
+                                                     verbose=0,
+                                                     batch=True)
                     PBAR.update(1)
 
                 except Exception as e:
