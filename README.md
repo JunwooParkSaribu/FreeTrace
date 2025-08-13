@@ -13,7 +13,7 @@
 
 
 > [!NOTE]  
-> - PRE-REQUISITE: pre-installation and compilation, check [tutorial](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/tutorial.ipynb) </br>
+> - PRE-REQUISITE: pre-installation and compilation, check [tutorial](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/tutorial.ipynb). </br>
 > - Check [compatibilities](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/FreeTrace/models/README.md) of Python and Tensorflow to run FreeTrace with source code.</br>
 > - Without GPU, FreeTrace only considers classical Brownian motion for inferences.</br>
 > - Current version is stable with python 3.10 / 3.11 / 3.12</br>
