@@ -7,23 +7,32 @@ import sys
 from FreeTrace import Tracking, Localization
 
 
+
 video_name = 'inputs/sample0.tiff'
 OUTPUT_DIR = 'outputs'
 
 
-WINSIZE = 7
+
+"""
+Parameters for the localization of particles.
+"""
+WINDOW_SIZE = 7
 THRESHOLD = 1.0
-SAVE_VIDEO_LOC = False
-REAL_LOC = False
-LOC_GPU_AVAIL = True
+REALTIME_LOCALIZATION = False  # If you set this option as True, the processing time will be slower.
+GPU_FOR_LOCALIZATION = True  # GPU acceleration with CUDA. (only available with NVIDIA GPU)
+SAVE_LOCALIZATION_VIDEO = False
 
 
+
+"""
+Parameters for the tracking of localized particles.
+"""
 TIME_FORECAST = 2
 CUTOFF = 3
 JUMP_THRESHOLD = None
-SAVE_VIDEO_TRACK = False
-REAL_TRACK = False
-TRACK_GPU_AVAIL = True
+REALTIME_TRACKING = False  # If you set this option as True, the processing time will be slower.
+GPU_FOR_TRACKING = True  # fBm if True, classical Brownian motion if False.
+SAVE_TRACKING_VIDEO = False
 
 
 if __name__ == "__main__":
@@ -35,12 +44,23 @@ if __name__ == "__main__":
         track = False
 
         loc = Localization.run_process(input_video_path=video_name, output_path=OUTPUT_DIR,
-                                       window_size=WINSIZE, threshold=THRESHOLD,
-                                       gpu_on=LOC_GPU_AVAIL, save_video=SAVE_VIDEO_LOC, realtime_visualization=REAL_LOC, verbose=1, batch=False)
+                                       window_size=WINDOW_SIZE,
+                                       threshold=THRESHOLD,
+                                       gpu_on=GPU_FOR_LOCALIZATION,
+                                       save_video=SAVE_LOCALIZATION_VIDEO,
+                                       realtime_visualization=REALTIME_LOCALIZATION,
+                                       verbose=1,
+                                       batch=False)
         if loc:
             track = Tracking.run_process(input_video_path=video_name, output_path=OUTPUT_DIR,
-                                         time_forecast=TIME_FORECAST, cutoff=CUTOFF, jump_threshold=JUMP_THRESHOLD,
-                                         gpu_on=TRACK_GPU_AVAIL, save_video=SAVE_VIDEO_TRACK, realtime_visualization=REAL_TRACK, verbose=1, batch=False)
+                                         time_forecast=TIME_FORECAST,
+                                         cutoff=CUTOFF,
+                                         jump_threshold=JUMP_THRESHOLD,
+                                         gpu_on=GPU_FOR_TRACKING,
+                                         save_video=SAVE_TRACKING_VIDEO,
+                                         realtime_visualization=REALTIME_TRACKING,
+                                         verbose=1,
+                                         batch=False)
             
     except Exception as e:
         sys.exit(f'Err code:{e} on file:{video_name}')
