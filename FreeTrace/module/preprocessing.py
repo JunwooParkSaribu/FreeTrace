@@ -409,5 +409,7 @@ def dot_product_angle(v1,v2):
     v2 = np.array(v2)
     angle = -np.degrees(np.arctan2(v2[1], v2[0]) - np.arctan2(v1[1], v1[0]))
     if angle < 0:
-        angle = 360 + angle
+        angle = 180 + abs(angle)
+    else:
+        angle = 180 - angle
     return angle
