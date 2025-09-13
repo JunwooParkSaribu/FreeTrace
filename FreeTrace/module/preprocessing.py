@@ -4,6 +4,7 @@ import networkx as nx
 from itertools import product, permutations
 from FreeTrace.module import data_load, data_save
 from tqdm import tqdm
+import math
 import cv2
 
 
@@ -404,12 +405,18 @@ def diffusion_coefficient(msd:pd.DataFrame, timepoints:dict, states:list):
     return diff_coef_state
 
 
-def dot_product_angle(v1,v2):
-    v1 = np.array(v1)
-    v2 = np.array(v2)
-    angle = -np.degrees(np.arctan2(v2[1], v2[0]) - np.arctan2(v1[1], v1[0]))
-    if angle < 0:
-        angle = 180 + abs(angle)
-    else:
-        angle = 180 - angle
-    return angle
+def unit_vector(vector):
+    return vector / np.linalg.norm(vector)
+
+
+def angle_between(v1, v2):
+    v1_u = unit_vector(v1)
+    v2_u = unit_vector(v2)
+    return np.degrees(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))
+
+
+def dot_product_angle(v1, v2):
+    ang = angle_between(v1, v2)
+    if ang == np.inf or ang == np.nan or math.isnan(ang):
+        return 0
+    return 180 - ang
