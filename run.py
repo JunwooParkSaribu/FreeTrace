@@ -29,7 +29,7 @@ GPU_FOR_LOCALIZATION = True  # GPU acceleration with CUDA. (only available with 
 REALTIME_LOCALIZATION = False  # If you set this option as True, the processing time will be slower.
 SAVE_LOCALIZATION_VIDEO = False
 
-GPU_FOR_TRACKING = True  # fBm if True, classical Brownian motion if False.
+FBM_MODE = True  # Inference under fBm, if True (slow). Otherwise, classical Brownian motion if False (fast).
 JUMP_THRESHOLD = None  # Maximum jump-distance for 1 frame.
 GRAPH_DEPTH = 2  # Delta T.
 REALTIME_TRACKING = False  # If you set this option as True, the processing time will be slower.
@@ -58,7 +58,7 @@ if __name__ == "__main__":
                                          graph_depth=GRAPH_DEPTH,
                                          cutoff=CUTOFF,
                                          jump_threshold=JUMP_THRESHOLD,
-                                         gpu_on=GPU_FOR_TRACKING,
+                                         gpu_on=FBM_MODE,
                                          save_video=SAVE_TRACKING_VIDEO,
                                          realtime_visualization=REALTIME_TRACKING,
                                          verbose=1,
