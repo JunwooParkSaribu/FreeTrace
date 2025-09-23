@@ -10,5 +10,5 @@ Python 3.10 &#8594; Models [downloads](https://psilo.sorbonne-universite.fr/inde
 </br> 
 Tensorflow performs the trajectory reconstruction with the fractional Brownian motion in tracking step.</br>
 This makes FreeTrace slower because of an additional inference, however this increases the quality of trajectories in general.</br>
-If you don't want to tracking with the fBm, please set TRACK_GPU_AVAIL to False. Then, FreeTrace doesn't use Tensorflow and GPU for tracking.</br>
+If you don't want to tracking with the fBm, please set fBm_mode to False. Then, FreeTrace doesn't use Tensorflow and GPU for tracking.</br>
 ***
