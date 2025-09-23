@@ -52,42 +52,42 @@ def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False, batch=False)
         print(f'\n******************************** OPTIONS *****************************************')
         if cuda and TF:
             if track_:
-                print(f'***** Cuda: Ok, Tensorflow: Ok, Tracking performs slow/complete inferences. ******')
+                print(f'*********       Tensorflow: O, Tracking with GPU if fBm_mode is ON.      *********')
             else:
-                print(f'**** Cuda: Ok, Tensorflow: Ok, Localization performs fast/complete inferences. ***')
+                print(f'*********                Cuda: O, Localization with GPU.                 *********')
 
         elif cuda and not TF:
             if track_:
-                print(f'***** Cuda: Ok, Tensorflow: X, Tracking performs fast/incomplete inferences. ******')
+                print(f'*********  Tensorflow: X, Tracking without GPU if fBm_mode is ON (SLOW). *********')
             else:
-                print(f'**** Cuda: Ok, Tensorflow: X, Localization performs fast/complete inferences. ****')
+                print(f'*********                Cuda: O, Localization with GPU.                 *********')
 
         elif not cuda and TF:
             if track_:
-                print(f'***** Cuda: X, Tensorflow: Ok, Tracking performs slow/complete inferences. ******')
+                print(f'*********       Tensorflow: O, Tracking with GPU if fBm_mode is ON.      *********')
             else:
-                print(f'**** Cuda: X, Tensorflow: Ok, Localization performs slow/complete inferences. ****')
+                print(f'*********           Cuda: X, Localization without GPU (SLOW).            *********')
                 
         else:
             if track_:
-                print(f'***** Cuda: X, Tensorflow: X, Tracking performs fast/incomplete inferences. ******') 
+                print(f'*********  Tensorflow: X, Tracking without GPU if fBm_mode is ON (SLOW). *********')
             else:
-                print(f'***** Cuda: X, Tensorflow: X, Localization performs slow/complete inferences. ****') 
+                print(f'*********           Cuda: X, Localization without GPU (SLOW).            *********')
         print(f'**********************************************************************************\n')
         
     if batch and verbose:
         print(f'\n******************************** OPTIONS *****************************************')
         if cuda and TF:
-            print(f'***** Cuda: Ok, Tensorflow: Ok, FreeTrace performs fast/complete inferences. *****')
+            print(f'**********           Cuda: Ok, Tensorflow: Ok, Fast inferences.          *********')
 
         elif cuda and not TF:
-            print(f'****** Cuda: Ok, Tensorflow: X, FreeTrace performs fast/complete inferences. *****')
+            print(f'**********      Cuda: Ok, Tensorflow: X, Slow inference on Tracking.     *********')
 
         elif not cuda and TF:
-            print(f'****** Cuda: X, Tensorflow: Ok, FreeTrace performs slow/complete inferences. *****')
+            print(f'**********    Cuda: X, Tensorflow: Ok, Slow inference on Localisation.   *********')
                 
         else:
-            print(f'**** Cuda: X, Tensorflow: X, FreeTrace performs slow/complete inferences. ****') 
+            print(f'**********            Cuda: X, Tensorflow: X, Slow inferences.           *********') 
         print(f'**********************************************************************************\n')
     return cuda, TF
 
