@@ -1214,7 +1214,7 @@ def trajectory_inference(localization: dict, time_steps: np.ndarray, distributio
     return trajectory_list
 
 
-def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_threshold=None, gpu_on=True,
+def run(input_video_path:str, output_path:str, graph_depth=2, cutoff=2, jump_threshold=None, gpu_on=True,
         save_video=False, verbose=False, batch=False, realtime_visualization=False,
         post_processing=False, read_loc_file=(None, 1.0), return_state=0):
     
@@ -1246,7 +1246,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_t
 
     VERBOSE = verbose
     BATCH = batch
-    TIME_FORECAST = int(max(1, min(5, time_forecast)))
+    TIME_FORECAST = int(max(1, min(5, graph_depth)))
     CUTOFF = cutoff
     GPU_AVAIL = gpu_on
     REG_LEGNTHS = [3, 5, 8]
@@ -1296,8 +1296,8 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_t
 
 
     t_steps, mean_nb_per_time, xyz_min, xyz_max = count_localizations(loc)
-    raw_distributions, jump_distribution = segmentation(loc, time_steps=t_steps, lag=time_forecast)
-    max_jumps = approximation(raw_distributions, time_forecast=time_forecast, jump_threshold=JUMP_THRESHOLD)
+    raw_distributions, jump_distribution = segmentation(loc, time_steps=t_steps, lag=TIME_FORECAST)
+    max_jumps = approximation(raw_distributions, time_forecast=TIME_FORECAST, jump_threshold=JUMP_THRESHOLD)
     build_emp_pdf(jump_distribution[0], bins=EMP_BINS)
     
 
@@ -1332,7 +1332,7 @@ def run(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_t
     return True
 
 
-def run_process(input_video_path:str, output_path:str, time_forecast=2, cutoff=2, jump_threshold=None|float,
+def run_process(input_video_path:str, output_path:str, graph_depth=2, cutoff=2, jump_threshold=None|float,
                 gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False, 
                 post_processing=False, read_loc_file=(None, 1.0)) -> bool:
     """
@@ -1347,8 +1347,8 @@ def run_process(input_video_path:str, output_path:str, time_forecast=2, cutoff=2
         output_path:
         Path to save the output files. (video_traces.csv and supplementary outputs depending on the visualization options will be saved in this path)
         
-        time_forecast (frame):
-        Number of frames to consider in each time step for the reconstruction of most probable trajectories. 
+        graph_depth (frame):
+        Number of frames to consider in each time step for the reconstruction of trajectories. 
         
         cutoff (frame):
         Minimum length of trajectory to consider.
@@ -1386,7 +1386,7 @@ def run_process(input_video_path:str, output_path:str, time_forecast=2, cutoff=2
     from multiprocessing import Process, Value
     return_state = Value('b', 0)
     options = {
-        'time_forecast': time_forecast,
+        'graph_depth': graph_depth,
         'cutoff': cutoff,
         'jump_threshold': jump_threshold,
         'gpu_on': gpu_on,
