@@ -16,24 +16,25 @@ OUTPUT_DIR = 'outputs'
 
 
 """
-Parameters for the localization of particles.
+Basic parameters.
 """
-WINDOW_SIZE = 7
-THRESHOLD = 1.0
-REALTIME_LOCALIZATION = False  # If you set this option as True, the processing time will be slower.
+WINDOW_SIZE = 7  # Size of sliding window for particle localisation. 
+THRESHOLD = 1.0  # Detection threshold of particle localisation.
+CUTOFF = 3  # Minimum length for reconstruction of trajectories.
+
+
+
+"""
+Advanced parameters.
+"""
 GPU_FOR_LOCALIZATION = True  # GPU acceleration with CUDA. (only available with NVIDIA GPU)
+REALTIME_LOCALIZATION = False  # If you set this option as True, the processing time will be slower.
 SAVE_LOCALIZATION_VIDEO = False
 
-
-
-"""
-Parameters for the tracking of localized particles.
-"""
-TIME_FORECAST = 2
-CUTOFF = 3
-JUMP_THRESHOLD = None
-REALTIME_TRACKING = False  # If you set this option as True, the processing time will be slower.
 GPU_FOR_TRACKING = True  # fBm if True, classical Brownian motion if False.
+JUMP_THRESHOLD = None  # Maximum jump-distance for 1 frame.
+GRAPH_DEPTH = 2  # Delta T.
+REALTIME_TRACKING = False  # If you set this option as True, the processing time will be slower.
 SAVE_TRACKING_VIDEO = False
 
 
@@ -68,7 +69,7 @@ if __name__ == "__main__":
                     PBAR.update(1)
                     if loc:
                         track = Tracking.run_process(input_video_path=f'{input_folder}/{file}', output_path=OUTPUT_DIR,
-                                                     time_forecast=TIME_FORECAST,
+                                                     graph_depth=GRAPH_DEPTH,
                                                      cutoff=CUTOFF,
                                                      jump_threshold=JUMP_THRESHOLD,
                                                      gpu_on=GPU_FOR_TRACKING,
