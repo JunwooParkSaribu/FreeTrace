@@ -1,6 +1,7 @@
 import os
 import csv
 import numpy as np
+import pandas as pd
 
 
 def save_report(data: list, path='', all=False) -> list:
@@ -177,3 +178,9 @@ def write_trajectory(file: str, trajectory_list: list):
     except Exception as e:
         print(f"Unexpected error, check the file: {file}")
         print(e)
+
+
+def write_H_and_K(filepath: str, H_K_dict: dict):
+    H_K_dict = pd.DataFrame(H_K_dict)
+    H_K_dict.to_csv(filepath, index=False) 
+    
