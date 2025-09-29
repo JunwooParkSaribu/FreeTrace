@@ -1252,6 +1252,26 @@ def animation(image_stack_path, save_path, fps=10, resolution='high'):
         v_out.write(video_frame)
     v_out.release()
 
+
+def H_K_distribution(fig_save_path, H, K):
+    assert len(H) == len(K)
+    fig, axs = plt.subplots(1, 1, layout='constrained', figsize=(8, 8))
+
+    axs.scatter(H, K)
+    axs.set_yscale('log')
+    axs.grid()
+    #axs.grid(which="minor", color="0.9")
+    axs.set_xlim([-0.1, 1.1])
+    axs.set_ylabel(f'K (generalised diffusion coefficient)')
+    axs.set_xlabel(f'H (Hurst exponent)')
+    fig.suptitle(f'Estimated H and K for each individual trajectory')
+    #plt.tight_layout()
+    plt.savefig(fig_save_path, transparent=True, dpi='figure', format=None,
+        metadata=None, bbox_inches=None, pad_inches=0.1,
+        facecolor='auto', edgecolor='auto', backend=None
+        )
+    
+
 #vis_cps_file_name = ''
 #cps_visualization(f'./{vis_cps_file_name}_cps.tiff', f'./inputs/{vis_cps_file_name}.tiff', f'./{vis_cps_file_name}_traces.txt', f'./outputs/{vis_cps_file_name}_traces.csv')
 #concatenate_image_stack(f'{vis_cps_file_name}', f'./{vis_cps_file_name}.tiff', f'./{vis_cps_file_name}_cps.tiff')

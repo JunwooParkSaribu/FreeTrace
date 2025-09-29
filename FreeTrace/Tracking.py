@@ -11,8 +11,8 @@ from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
 from sklearn.model_selection import GridSearchCV
 from FreeTrace.module import cost_function
 from FreeTrace.module.trajectory_object import TrajectoryObj
-from FreeTrace.module.image_module import read_tif, make_image_seqs, make_whole_img
-from FreeTrace.module.data_save import write_trajectory
+from FreeTrace.module.image_module import read_tif, make_image_seqs, make_whole_img, H_K_distribution
+from FreeTrace.module.data_save import write_trajectory, write_H_and_K
 from FreeTrace.module.data_load import read_localization
 from FreeTrace.module.auxiliary import initialization
 
@@ -1204,19 +1204,37 @@ def forecast(localization: dict, t_avail_steps, distribution, image_length, real
     return trajectory_list
 
 
-def trajectory_inference(localization: dict, time_steps: np.ndarray, distribution: dict, image_length=None, realtime_visualization=False):
-    sys.setrecursionlimit(25000)
+def trajectory_inference(localization: dict, time_steps: np.ndarray, distribution: dict, image_length=None, realtime_visualization=False, HK_output=True):
+    sys.setrecursionlimit(30000)
     t_avail_steps = []
     for time in np.sort(time_steps):
         if len(localization[time][0]) == 3:
             t_avail_steps.append(time)
     trajectory_list = forecast(localization, t_avail_steps, distribution, image_length, realtime_visualization=realtime_visualization)
-    return trajectory_list
+
+    trajectory_alpha_k = {}
+    if HK_output:
+        #print(f"\nEstimating Hurst exponent and K for trajectories...")
+        alphas = []
+        ks = []
+        for trajectory in trajectory_list:
+            trajectory_xyz = trajectory.get_positions()
+            xs = trajectory_xyz[:, 0]
+            ys = trajectory_xyz[:, 1]
+            alpha = predict_alphas(xs, ys)
+            k = predict_ks(xs, ys)
+            alphas.append(alpha)
+            ks.append(k)
+        trajectory_alpha_k['traj_idx'] = np.array([idx for idx in range(len(trajectory_list))])
+        trajectory_alpha_k['H'] = np.array(alphas) / 2.
+        trajectory_alpha_k['K'] = 10**np.array(ks)
+
+    return trajectory_list, trajectory_alpha_k
 
 
 def run(input_video_path:str, output_path:str, graph_depth=2, cutoff=2, jump_threshold=None, gpu_on=True,
         save_video=False, verbose=False, batch=False, realtime_visualization=False,
-        post_processing=False, read_loc_file=(None, 1.0), return_state=0):
+        post_processing=False, HK_output=True, read_loc_file=(None, 1.0), return_state=0):
     
     global IMAGES
     global VERBOSE
@@ -1266,6 +1284,8 @@ def run(input_video_path:str, output_path:str, graph_depth=2, cutoff=2, jump_thr
 
     output_xml = f'{output_path}/{input_video_path.split("/")[-1].split(".tif")[0]}_traces.xml'
     output_trj = f'{output_path}/{input_video_path.split("/")[-1].split(".tif")[0]}_traces.csv'
+    output_hk = f'{output_path}/{input_video_path.split("/")[-1].split(".tif")[0]}_diffusion.csv'
+    output_hk_distribution = f'{output_path}/{input_video_path.split("/")[-1].split(".tif")[0]}_diffusion_distribution.png'
     output_trxyt = f'{output_path}/{input_video_path.split("/")[-1].split(".tif")[0]}_traces.trxyt'
     output_imgstack = f'{output_path}/{input_video_path.split("/")[-1].split(".tif")[0]}_traces.tiff'
     output_img = f'{output_path}/{input_video_path.split("/")[-1].split(".tif")[0]}_traces.png'
@@ -1307,8 +1327,8 @@ def run(input_video_path:str, output_path:str, graph_depth=2, cutoff=2, jump_thr
 
 
     try:
-        final_trajectories = trajectory_inference(localization=loc, time_steps=t_steps,
-                                                  distribution=max_jumps, image_length=images.shape[0], realtime_visualization=realtime_visualization)
+        final_trajectories, trajs_H_K = trajectory_inference(localization=loc, time_steps=t_steps,
+                                                             distribution=max_jumps, image_length=images.shape[0], realtime_visualization=realtime_visualization, HK_output=HK_output)
     except Exception as e:
         print("\nInference ERR: ", e)
         return_state.value = 0
@@ -1322,6 +1342,9 @@ def run(input_video_path:str, output_path:str, graph_depth=2, cutoff=2, jump_thr
 
     write_trajectory(output_trj, final_trajectories)
     make_whole_img(final_trajectories, output_dir=output_img, img_stacks=images)
+    if HK_output:
+        write_H_and_K(output_hk, trajs_H_K)
+        H_K_distribution(output_hk_distribution, trajs_H_K['H'], trajs_H_K['K'])
     if save_video:
         print(f'Visualizing trajectories...')
         make_image_seqs(final_trajectories, output_dir=output_imgstack, img_stacks=images, time_steps=t_steps)
@@ -1334,7 +1357,7 @@ def run(input_video_path:str, output_path:str, graph_depth=2, cutoff=2, jump_thr
 
 def run_process(input_video_path:str, output_path:str, graph_depth=2, cutoff=2, jump_threshold=None|float,
                 gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False, 
-                post_processing=False, read_loc_file=(None, 1.0)) -> bool:
+                post_processing=False, HK_output=True, read_loc_file=(None, 1.0)) -> bool:
     """
     Create a process to run the tracking of particles to reconstruct the trajectories from localized molecules.
     This function reads both the video.tiff and the video_loc.csv which was generated with Localization process.
@@ -1356,6 +1379,10 @@ def run_process(input_video_path:str, output_path:str, graph_depth=2, cutoff=2, 
         jump_threshold (pixel): 
         Maximum jump length of particles. If it is set to None, FreeTrace infers its maximum length with GMM, otherwise this value is fixed to the given value.
         The inferred maximum jump length is limited under diffraction light limit of particles in SPT, if you use FreeTrace for non-SPT particles, please set this value manually.
+
+        HK_output:
+        Generate the estimated Hurst exponent and generalised diffusion coefficient for each individual trajectory. This takes time depending on the number of trajectories.
+        video_diffsuion.csv and video_diffusion_distribution.png will be included in your output files.
         
         gpu_on:
         Perform neural network enhanced trajectory inferences assuming fractional Brownian motion (non-independent stochastic process).
@@ -1396,7 +1423,8 @@ def run_process(input_video_path:str, output_path:str, graph_depth=2, cutoff=2, 
         'return_state': return_state,
         'realtime_visualization': realtime_visualization,
         'post_processing': post_processing,
-        'read_loc_file': read_loc_file
+        'read_loc_file': read_loc_file,
+        'HK_output': HK_output
     }
     
     p = Process(target=run, args=(input_video_path, output_path),  kwargs=options)
