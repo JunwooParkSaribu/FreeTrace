@@ -1255,17 +1255,19 @@ def animation(image_stack_path, save_path, fps=10, resolution='high'):
 
 def H_K_distribution(fig_save_path, H, K):
     assert len(H) == len(K)
-    fig, axs = plt.subplots(1, 1, layout='constrained', figsize=(8, 8))
-
-    axs.scatter(H, K)
+    import seaborn as sns
+    from matplotlib.patches import Rectangle
+    cmap = sns.color_palette("mako", as_cmap=True)
+    fig, axs = plt.subplots(1, 1, layout='constrained', figsize=(10, 10))
+    axs.set_xlim([0.0, 1.0])
+    sns.kdeplot(
+        x=H, y=K, fill=True, ax=axs, thresh=0, levels=100, cmap=cmap, log_scale=(False, True), bw_adjust=1.0
+    )
+    axs.add_patch(Rectangle((0, -100), 1.0, 1000, ec='none', fc=cmap(0), zorder=0))
     axs.set_yscale('log')
-    axs.grid()
-    #axs.grid(which="minor", color="0.9")
-    axs.set_xlim([-0.1, 1.1])
     axs.set_ylabel(f'K (generalised diffusion coefficient)')
     axs.set_xlabel(f'H (Hurst exponent)')
-    fig.suptitle(f'Estimated H and K for each individual trajectory')
-    #plt.tight_layout()
+    fig.suptitle(f'Estimated cluster of trajectories')
     plt.savefig(fig_save_path, transparent=True, dpi='figure', format=None,
         metadata=None, bbox_inches=None, pad_inches=0.1,
         facecolor='auto', edgecolor='auto', backend=None
