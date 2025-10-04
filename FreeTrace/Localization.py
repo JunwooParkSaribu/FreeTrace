@@ -366,12 +366,14 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                     rs = np.array([win_s_dict[ws][i][3] for i in range(nb_calc)])
                     cs = np.array([win_s_dict[ws][i][4] for i in range(nb_calc)])
 
+                    # Warning
                     #min_local_val = np.array([np.min(regress_imgs, axis=1) for _ in range(ws)]).T
                     regress_imgs = regress_imgs.reshape(-1, ws, ws)
                     #regress_imgs[:, :, 0] = min_local_val
                     #regress_imgs[:, :, -1] = min_local_val
                     #regress_imgs[:, 0, :] = min_local_val
                     #regress_imgs[:, -1, :] = min_local_val
+                    
 
                     pdfs, xs, ys, x_vars, y_vars, amps, rhos = image_regression(regress_imgs, bg_regress,
                                                                                 (ws, ws), p0=p0, decomp_n=decomp_n)
