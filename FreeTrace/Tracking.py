@@ -1323,7 +1323,7 @@ def run(input_video_path:str, output_path:str, graph_depth=2, cutoff=2, jump_thr
 
     if VERBOSE:
         print(f'Mean nb of particles per frame: {mean_nb_per_time:.2f} particles/frame')
-        PBAR = tqdm(total=t_steps[-1], desc="Tracking", unit="frame", ncols=120)
+        PBAR = tqdm(total=t_steps[-1] + 1, desc="Tracking", unit="frame", ncols=120)
 
 
     try:
@@ -1336,10 +1336,6 @@ def run(input_video_path:str, output_path:str, graph_depth=2, cutoff=2, jump_thr
             PBAR.close()
         sys.exit(0)
 
-
-    if VERBOSE:
-        PBAR.close()
-
     write_trajectory(output_trj, final_trajectories)
     make_whole_img(final_trajectories, output_dir=output_img, img_stacks=images)
     if HK_output:
@@ -1348,7 +1344,10 @@ def run(input_video_path:str, output_path:str, graph_depth=2, cutoff=2, jump_thr
     if save_video:
         print(f'Visualizing trajectories...')
         make_image_seqs(final_trajectories, output_dir=output_imgstack, img_stacks=images, time_steps=t_steps)
-    
+
+    if VERBOSE:
+        PBAR.update(1)
+        PBAR.close()
 
     if return_state != 0:
         return_state.value = 1
