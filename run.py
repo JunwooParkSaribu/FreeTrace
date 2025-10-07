@@ -31,7 +31,7 @@ SAVE_LOCALIZATION_VIDEO = False
 
 FBM_MODE = True  # Inference under fBm, if True (slow). Otherwise, classical Brownian motion if False (fast).
 JUMP_THRESHOLD = None  # Maximum jump-distance for 1 frame.
-GRAPH_DEPTH = 2  # Delta T.
+GRAPH_DEPTH = 3  # Delta T.
 REALTIME_TRACKING = False  # If you set this option as True, the processing time will be slower.
 SAVE_TRACKING_VIDEO = False
 
