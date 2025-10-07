@@ -67,8 +67,8 @@ class RegModel:
         k_preds = self.k_model.predict_on_batch(np.array(log_disps))
         for k_idx in range(len(k_preds)):
             if np.isnan(k_preds[k_idx]):
-                k_preds[k_idx] = 1.0
-        return k_preds.flatten()
+                k_preds[k_idx] = -1.0
+        return 10**k_preds.flatten()
 
     def model_selection(self, length):
         index = 0
