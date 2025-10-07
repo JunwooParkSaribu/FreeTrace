@@ -1227,7 +1227,7 @@ def trajectory_inference(localization: dict, time_steps: np.ndarray, distributio
             ks.append(k)
         trajectory_alpha_k['traj_idx'] = np.array([idx for idx in range(len(trajectory_list))])
         trajectory_alpha_k['H'] = np.array(alphas) / 2.
-        trajectory_alpha_k['K'] = np.array(ks)
+        trajectory_alpha_k['K'] = 10 ** np.array(ks)
 
     return trajectory_list, trajectory_alpha_k
 
