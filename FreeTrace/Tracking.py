@@ -1338,7 +1338,7 @@ def run(input_video_path:str, output_path:str, graph_depth=2, cutoff=2, jump_thr
 
     write_trajectory(output_trj, final_trajectories)
     make_whole_img(final_trajectories, output_dir=output_img, img_stacks=images)
-    if HK_output:
+    if gpu_on and HK_output:
         write_H_and_K(output_hk, trajs_H_K)
         H_K_distribution(output_hk_distribution, trajs_H_K['H'], trajs_H_K['K'])
     if save_video:
