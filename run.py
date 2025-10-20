@@ -18,7 +18,7 @@ Basic parameters.
 """
 WINDOW_SIZE = 7  # Size of sliding window for particle localisation. 
 THRESHOLD = 1.0  # Detection threshold of particle localisation.
-CUTOFF = 3  # Minimum length for reconstruction of trajectories.
+CUTOFF = 3  # Minimum length (frame) of trajectory output.
 
 
 
@@ -26,13 +26,13 @@ CUTOFF = 3  # Minimum length for reconstruction of trajectories.
 Advanced parameters.
 """
 GPU_FOR_LOCALIZATION = True  # GPU acceleration with CUDA. (only available with NVIDIA GPU)
-REALTIME_LOCALIZATION = False  # If you set this option as True, the processing time will be slower.
+REALTIME_LOCALIZATION = False  # If you set this option as True, the computation will be slower.
 SAVE_LOCALIZATION_VIDEO = False
 
 FBM_MODE = True  # Inference under fBm, if True (slow). Otherwise, classical Brownian motion if False (fast).
-JUMP_THRESHOLD = None  # Maximum jump-distance for 1 frame.
+JUMP_THRESHOLD = None  # Maximum jump-distance of particles.
 GRAPH_DEPTH = 3  # Delta T.
-REALTIME_TRACKING = False  # If you set this option as True, the processing time will be slower.
+REALTIME_TRACKING = False  # If you set this option as True, the computation will be slower.
 SAVE_TRACKING_VIDEO = False
 
 
