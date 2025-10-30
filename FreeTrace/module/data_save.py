@@ -167,6 +167,20 @@ def write_localization(output_dir, coords, all_pdfs, infos):
         f.write(lines)
 
 
+def rewrite_localization(output_dir, coords, infos):
+    lines = f"frame,x,y,z,xvar,yvar,rho,norm_cst,intensity,window_size\n"
+    for frame in sorted(coords.keys()):
+        coord = coords[frame]
+        info = infos[frame]
+        for (x, y, z), (x_var, y_var, rho, norm_cst, intensity, winsize) in zip(coord, info):
+            lines += f"{frame}"
+            lines += f",{x},{y},{z}"
+            lines += f",{x_var},{y_var},{rho},{norm_cst},{intensity},{winsize}"
+            lines += f"\n"
+    with open(f"{output_dir}", 'w') as f:
+        f.write(lines)
+
+
 def write_trajectory(file: str, trajectory_list: list):
     try:
         with open(file, 'w', encoding="utf-8") as f:
