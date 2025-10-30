@@ -9,7 +9,7 @@ class RegModel:
         self.alpha_models = None
         self.k_model = None
         self.crits = reg_model_nums.copy()
-        self.crits.append(1024)
+        self.crits.append(8192)
         self.load_models(self.reg_model_nums)
 
     def load_models(self, model_nums):
