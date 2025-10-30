@@ -4,9 +4,9 @@ import os
 import numpy as np
 import re
 from roifile import ImagejRoi
-from FreeTrace.module.data_save import write_trajectory
-from FreeTrace.module.data_load import read_trajectory
-from FreeTrace.module.image_module import make_whole_img
+from FreeTrace.module.data_save import write_trajectory, rewrite_localization
+from FreeTrace.module.data_load import read_trajectory, read_localization
+from FreeTrace.module.image_module import make_whole_img, make_loc_depth_image
 
 
 def initialization(gpu, reg_model_nums=[], ptype=-1, verbose=False, batch=False):
@@ -103,9 +103,14 @@ def crop_trace_roi_and_frame(trace_file:str, roi_file:str|None, start_frame:0, e
     crop_comparison: boolean to visualize cropped result.
     """
 
-    assert "traces.csv" in trace_file, "Wrong trajectory file format, result_traces.csv is needed to crop with ROI or frames"
+    assert "traces.csv" in trace_file or "loc.csv" in trace_file, "Wrong trajectory file format, result_traces.csv is needed to crop with ROI or frames"
     assert end_frame > start_frame, "The number of end frame must be greater than start frame."
     assert option == 0 or option == 1, "The option must be 0 or 1. 0: consider the trajectories stay only inside the ROI. 1: incldues all the trajectories passed the ROI."
+
+    if "traces.csv" in trace_file:
+        trace_ = True
+    else:
+        trace_ = False
 
     if roi_file is None:
         contours = None
@@ -114,60 +119,98 @@ def crop_trace_roi_and_frame(trace_file:str, roi_file:str|None, start_frame:0, e
     else:
         contours = ImagejRoi.fromfile(roi_file).coordinates().astype(np.int32)
 
-    filtered_trajectory_list = []
-    trajectory_list = read_trajectory(trace_file)
-    xmin = 999999
-    xmax = -1
-    ymin = 999999
-    ymax = -1
-    start_frame = max(start_frame, 0)
-    end_frame = min(end_frame, 9999999)
+    if trace_:
+        filtered_trajectory_list = []
+        trajectory_list = read_trajectory(trace_file)
+        xmin = 999999
+        xmax = -1
+        ymin = 999999
+        ymax = -1
+        start_frame = max(start_frame, 0)
+        end_frame = min(end_frame, 9999999)
 
-    for trajectory in trajectory_list:
-        skip = 0
-        xyz = trajectory.get_positions()
-        times = trajectory.get_times()
-        xs = xyz[:, 0]
-        ys = xyz[:, 1]
-        zs = xyz[:, 2]
-        xmin = min(np.min(xs), xmin)
-        ymin = min(np.min(ys), ymin)
-        xmax = max(np.max(xs), xmax)
-        ymax = max(np.max(ys), ymax)
+        for trajectory in trajectory_list:
+            skip = 0
+            xyz = trajectory.get_positions()
+            times = trajectory.get_times()
+            xs = xyz[:, 0]
+            ys = xyz[:, 1]
+            zs = xyz[:, 2]
+            xmin = min(np.min(xs), xmin)
+            ymin = min(np.min(ys), ymin)
+            xmax = max(np.max(xs), xmax)
+            ymax = max(np.max(ys), ymax)
 
-        if option == 0:
+            if option == 0:
+                if contours is not None:
+                    for x, y in zip(xs, ys):
+                        masked = cv2.pointPolygonTest(contours, (x, y), False)
+                        if masked == -1:
+                            skip = 1
+                            break
+                    
+                    if skip == 1:
+                        continue
+
+                if times[0] >= start_frame and times[-1] <= end_frame:
+                    filtered_trajectory_list.append(trajectory)
+            else:
+                if contours is not None:
+                    for x, y in zip(xs, ys):
+                        masked = cv2.pointPolygonTest(contours, (x, y), False)
+                        if masked == 1:
+                            if times[0] >= start_frame and times[-1] <= end_frame:
+                                filtered_trajectory_list.append(trajectory)
+                            break
+
+        print(f'cropping info: ROI[{roi_file}],  Frame:[{start_frame}, {end_frame}]')
+        print(f'Number of trajectories before filtering:{len(trajectory_list)}, after filtering:{len(filtered_trajectory_list)}')
+        write_trajectory(f'{".".join(trace_file.split("traces.csv")[:-1])}cropped_{start_frame}_{end_frame}_traces.csv', filtered_trajectory_list)
+        print(f'{".".join(trace_file.split("traces.csv")[:-1])}cropped_{start_frame}_{end_frame}_traces.csv is successfully generated.')
+
+        if crop_comparison:
+            dummy_stack = np.empty((1, int(ymax+1), int(xmax+1), 1))
+            make_whole_img(trajectory_list, output_dir=f'{".".join(trace_file.split("traces.csv")[:-1])}before_crop.png', img_stacks=dummy_stack)
+            make_whole_img(filtered_trajectory_list, output_dir=f'{".".join(trace_file.split("traces.csv")[:-1])}after_crop.png', img_stacks=dummy_stack)
+            print(f'{".".join(trace_file.split("traces.csv")[:-1])}before_crop.png is successfully generated.')
+            print(f'{".".join(trace_file.split("traces.csv")[:-1])}after_crop.png is successfully generated.')
+
+    else:
+        filtered_loc_list = {}
+        filtered_loc_infos = {}
+        localisations, loc_infos = read_localization(trace_file)
+        nb_locs_before_filtering = 0
+        nb_locs_after_filtering = 0
+
+        start_frame = max(start_frame, np.min(list(localisations.keys())))
+        end_frame = min(end_frame, np.max(list(localisations.keys())))
+        
+        for frame in localisations.keys():
+            filtered_loc_list[frame] = []
+            filtered_loc_infos[frame] = []
+            xyz = localisations[frame]
             if contours is not None:
-                for x, y in zip(xs, ys):
-                    masked = cv2.pointPolygonTest(contours, (x, y), False)
-                    if masked == -1:
-                        skip = 1
-                        break
-                
-                if skip == 1:
-                    continue
+                if len(xyz[0]) > 0:
+                    for idx, (x, y, z) in enumerate(xyz):
+                        masked = cv2.pointPolygonTest(contours, (x, y), False)
+                        if masked != -1:
+                            if frame >= start_frame and frame <= end_frame:
+                                filtered_loc_list[frame].append([x, y, z])
+                                filtered_loc_infos[frame].append(loc_infos[frame][idx])
+                                nb_locs_after_filtering += 1
+                        nb_locs_before_filtering += 1
+            filtered_loc_list[frame] = np.array(filtered_loc_list[frame])
+            filtered_loc_infos[frame] = np.array(filtered_loc_infos[frame])
 
-            if times[0] >= start_frame and times[-1] <= end_frame:
-                filtered_trajectory_list.append(trajectory)
-        else:
-            if contours is not None:
-                for x, y in zip(xs, ys):
-                    masked = cv2.pointPolygonTest(contours, (x, y), False)
-                    if masked == 1:
-                        if times[0] >= start_frame and times[-1] <= end_frame:
-                            filtered_trajectory_list.append(trajectory)
-                        break
+        print(f'cropping info: ROI[{roi_file}],  Frame:[{start_frame}, {end_frame}]')
+        print(f'Number of localisations before filtering:{nb_locs_before_filtering}, after filtering:{nb_locs_after_filtering}')
+        cropped_file_name = f"{'.'.join(trace_file.split('loc.csv')[:-1])}cropped_{start_frame}_{end_frame}_loc.csv"
+        rewrite_localization(cropped_file_name, filtered_loc_list, filtered_loc_infos)
+        print(f'{cropped_file_name} is successfully generated.')
 
-    print(f'cropping info: ROI[{roi_file}],  Frame:[{start_frame}, {end_frame}]')
-    print(f'Number of trajectories before filtering:{len(trajectory_list)}, after filtering:{len(filtered_trajectory_list)}')
-    write_trajectory(f'{".".join(trace_file.split("traces.csv")[:-1])}cropped_{start_frame}_{end_frame}_traces.csv', filtered_trajectory_list)
-    print(f'{".".join(trace_file.split("traces.csv")[:-1])}cropped_{start_frame}_{end_frame}_traces.csv is successfully generated.')
-
-    if crop_comparison:
-        dummy_stack = np.empty((1, int(ymax+1), int(xmax+1), 1))
-        make_whole_img(trajectory_list, output_dir=f'{".".join(trace_file.split("traces.csv")[:-1])}before_crop.png', img_stacks=dummy_stack)
-        make_whole_img(filtered_trajectory_list, output_dir=f'{".".join(trace_file.split("traces.csv")[:-1])}after_crop.png', img_stacks=dummy_stack)
-        print(f'{".".join(trace_file.split("traces.csv")[:-1])}before_crop.png is successfully generated.')
-        print(f'{".".join(trace_file.split("traces.csv")[:-1])}after_crop.png is successfully generated.')
+        if crop_comparison:
+            make_loc_depth_image(output_dir=f'{".".join(trace_file.split("loc.csv")[:-1])}after_crop', coords=[cropped_file_name,])
+            print(f'{".".join(trace_file.split("loc.csv")[:-1])}after_crop.png is successfully generated.')        
 
 
 def calibration_3d(xyz_coords, reg_infos, calib_data):

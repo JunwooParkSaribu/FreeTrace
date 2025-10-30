@@ -1133,7 +1133,9 @@ def make_loc_depth_image(output_dir:str, coords:list, multiplier=4, winsize=7, r
         time_steps = sorted(list(locs.keys()))
         all_coords = []
         for t in time_steps:
-            all_coords.extend(locs[t])
+            for cur_coord in locs[t]:
+                if len(cur_coord) == 3:
+                    all_coords.append(cur_coord)
         all_coords = np.array(all_coords)
         # xy exchange
         xy_flip = all_coords[:,1].copy()
