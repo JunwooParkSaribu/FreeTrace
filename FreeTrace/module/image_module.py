@@ -1293,6 +1293,8 @@ def make_loc_radius_video_batch2(output_path:str, raw_imgs_list:list, localizati
     assert radius[0] < radius[1] and radius[0] > 0, "radius[0] should be smaller than radius[1] and radius[0] should be greater than 0."
     assert 0.999 < alpha1 + alpha2 < 1.001, "Sum of alpha1 and alpha2 should be equal to 1."
     assert len(raw_imgs_list) == len(localization_file_list) and len(localization_file_list) == len(frame_list) and len(localization_file_list) == len(trajectory_file_list), "The length of each list should be the same."
+    for localisation_file, trajectory_file in zip(localization_file_list, trajectory_file_list):
+        assert localisation_file.split('/')[-1].split('_loc')[0] == trajectory_file.split('/')[-1].split('_traces')[0], "The localisation file and trajectory file name should be the same with the same order."
 
     sequence_save_folder = f'{output_path}'
     tmp_kernel_name = f"tmp_kernel2"
