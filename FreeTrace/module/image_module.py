@@ -1322,6 +1322,7 @@ def make_loc_radius_video_batch2(output_path:str, raw_imgs_list:list, localizati
     mycmap = plt.get_cmap(color, lut=None)
 
 
+    print(f"Data filtering... --> Only consider (the first coordinate of trajectories) + (localised coordinates, but not accounted for the trajectories)")
     for localization_file, trajectory_file, frame_tuple in zip(localization_file_list, trajectory_file_list, frame_list):
         start_frame, end_frame = frame_tuple
 
