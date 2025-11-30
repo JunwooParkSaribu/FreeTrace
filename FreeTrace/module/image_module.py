@@ -1328,27 +1328,22 @@ def make_loc_radius_video_batch2(output_path:str, raw_imgs_list:list, localizati
         tmp_coords1, coord_info = read_localization(localization_file)
         time_steps = np.arange(start_frame, end_frame+1, 1)
 
-        tmp_coords2 = {}
-        for traj in read_trajectory(trajectory_file):
-            if int(traj.get_times()[0]) in tmp_coords2:
-                tmp_coords2[int(traj.get_times()[0])].append(traj.get_positions()[1])
-            else:
-                tmp_coords2[int(traj.get_times()[0])] = [traj.get_positions()[1]]
-            for pos in traj.get_positions()[2:]:
-                tmp_coords2[int(traj.get_times()[0])].append(pos)
-        
+        dummpy_coords = []
         coords= {}
+
         for time_p in time_steps:
             coords[time_p] = []
 
+        for traj in read_trajectory(trajectory_file):
+            for pos in traj.get_positions()[1:]:
+                dummpy_coords.append(pos)
+
         for time_p in time_steps:
             loc_coords = tmp_coords1[time_p]
-            traj_coords = tmp_coords2[time_p]
-
             for loc_coord in loc_coords:
                 flag = 1
-                for traj_coord in traj_coords:
-                    if loc_coord[0] - traj_coord[0] < 1e-3 and loc_coord[1] - traj_coord[1] < 1e-3 and loc_coord[2] - traj_coord[2] < 1e-3:
+                for dummy_traj_coord in dummpy_coords:
+                    if abs(loc_coord[0] - dummy_traj_coord[0]) < 1e-6 and abs(loc_coord[1] - dummy_traj_coord[1]) < 1e-6 and abs(loc_coord[2] - dummy_traj_coord[2]) < 1e-6:
                         flag = 0
                         break
                 if flag == 1:
@@ -1359,6 +1354,8 @@ def make_loc_radius_video_batch2(output_path:str, raw_imgs_list:list, localizati
             nb_molecules += len(coords[time_p])
         batch_nb_molecules.append(nb_molecules)
 
+        for time_p in time_steps:
+            coords[time_p] = np.array(coords[time_p])
 
         filename = localization_file.split('/')[-1].split('_loc')[0]
         batch_coord_list.append(coords)
@@ -1367,7 +1364,6 @@ def make_loc_radius_video_batch2(output_path:str, raw_imgs_list:list, localizati
         batch_frame_list.append((start_frame, end_frame))
         tqdm_process_max += end_frame - start_frame + 1
         
-
 
     PBAR = tqdm(total=tqdm_process_max, desc="Radius calculation", unit="frame", ncols=120)
     for coords, time_steps, (start_frame, end_frame) in zip(batch_coord_list, batch_time_steps_list, batch_frame_list):
