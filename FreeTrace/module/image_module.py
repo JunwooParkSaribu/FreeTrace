@@ -1276,6 +1276,286 @@ def H_K_distribution(fig_save_path, H, K):
         )
     
 
+def make_loc_radius_video_batch2(output_path:str, raw_imgs_list:list, localization_file_list:list, trajectory_file_list:list, frame_list:list,
+                                 frame_cumul=100, radius=[3, 13], nb_min_particles=100, max_density=None, color='jet', alpha1=0.65, alpha2=0.35, gpu=False):
+    import gc
+    for localization_file in localization_file_list:
+        assert 'loc' in localization_file.split('/')[-1], "input trace/loc file format is wrong, the function needs video_traces.csv or video_loc.csv"
+
+    for trajectory_file in trajectory_file_list:
+        assert 'trace' in trajectory_file.split('/')[-1], "input trace/loc file format is wrong, the function needs video_traces.csv or video_loc.csv"
+
+    for file_path, file_path2, image_path in zip(localization_file_list, trajectory_file_list, raw_imgs_list):
+        assert os.path.exists(file_path), f'Couldn\'t find the file: {file_path}, please check again this file name'
+        assert os.path.exists(file_path2), f'Couldn\'t find the file: {file_path2}, please check again this file name'
+        assert os.path.exists(image_path), f'Couldn\'t find the video: {image_path}, please check again this video name'
+    assert len(radius) == 2, "radius should be 2 length of list such as [1, 10]."
+    assert radius[0] < radius[1] and radius[0] > 0, "radius[0] should be smaller than radius[1] and radius[0] should be greater than 0."
+    assert 0.999 < alpha1 + alpha2 < 1.001, "Sum of alpha1 and alpha2 should be equal to 1."
+    assert len(raw_imgs_list) == len(localization_file_list) and len(localization_file_list) == len(frame_list) and len(localization_file_list) == len(trajectory_file_list), "The length of each list should be the same."
+
+    sequence_save_folder = f'{output_path}'
+    tmp_kernel_name = f"tmp_kernel2"
+    if not os.path.exists(sequence_save_folder):
+        os.mkdir(sequence_save_folder)
+    if not os.path.exists(tmp_kernel_name):
+        os.mkdir(tmp_kernel_name)
+
+    if gpu:
+        import cupy as cp
+        from cuvs.distance import pairwise_distance
+        mempool = cp.get_default_memory_pool()
+        mempool.set_limit(fraction=0.8)
+
+    batch_coord_list = []
+    batch_filename_list = []
+    batch_time_steps_list = []
+    batch_frame_list = []
+    batch_all_coords_list = []
+    batch_stacked_coord_list = []
+    batch_stacked_radii_list = []
+    batch_nb_molecules = []
+    batch_max_count = []
+    max_densities = {'filename': [], 'max_density': []}
+    count_max = 0
+    tqdm_process_max = 0
+    mycmap = plt.get_cmap(color, lut=None)
+
+
+    for localization_file, trajectory_file, frame_tuple in zip(localization_file_list, trajectory_file_list, frame_list):
+        start_frame, end_frame = frame_tuple
+
+        tmp_coords1, coord_info = read_localization(localization_file)
+        time_steps = np.arange(start_frame, end_frame+1, 1)
+
+        tmp_coords2 = {}
+        for traj in read_trajectory(trajectory_file):
+            if int(traj.get_times()[0]) in tmp_coords2:
+                tmp_coords2[int(traj.get_times()[0])].append(traj.get_positions()[1])
+            else:
+                tmp_coords2[int(traj.get_times()[0])] = [traj.get_positions()[1]]
+            for pos in traj.get_positions()[2:]:
+                tmp_coords2[int(traj.get_times()[0])].append(pos)
+        
+        coords= {}
+        for time_p in time_steps:
+            coords[time_p] = []
+
+        for time_p in time_steps:
+            loc_coords = tmp_coords1[time_p]
+            traj_coords = tmp_coords2[time_p]
+
+            for loc_coord in loc_coords:
+                flag = 1
+                for traj_coord in traj_coords:
+                    if loc_coord[0] - traj_coord[0] < 1e-3 and loc_coord[1] - traj_coord[1] < 1e-3 and loc_coord[2] - traj_coord[2] < 1e-3:
+                        flag = 0
+                        break
+                if flag == 1:
+                    coords[time_p].append(loc_coord)
+
+        nb_molecules = 0
+        for time_p in time_steps:
+            nb_molecules += len(coords[time_p])
+        batch_nb_molecules.append(nb_molecules)
+
+
+        filename = localization_file.split('/')[-1].split('_loc')[0]
+        batch_coord_list.append(coords)
+        batch_filename_list.append(filename)
+        batch_time_steps_list.append(time_steps)
+        batch_frame_list.append((start_frame, end_frame))
+        tqdm_process_max += end_frame - start_frame + 1
+        
+
+
+    PBAR = tqdm(total=tqdm_process_max, desc="Radius calculation", unit="frame", ncols=120)
+    for coords, time_steps, (start_frame, end_frame) in zip(batch_coord_list, batch_time_steps_list, batch_frame_list):
+        all_coords = []
+        stacked_coords = {t:[] for t in time_steps if start_frame <= t <= end_frame}
+        stacked_radii = {t:[] for t in time_steps if start_frame <= t <= end_frame}
+        max_for_each_file = 0
+        for t in time_steps:
+            if start_frame <= t <= end_frame:
+                PBAR.update(1)
+                for coord in coords[t]:
+                    if len(coord) == 3:
+                        all_coords.append(coord)
+                if t == start_frame:
+                    st_tmp = []
+                    for stack_t in range(t, t+frame_cumul):
+                        time_st = []
+                        if stack_t in time_steps:
+                            for stack_coord in coords[stack_t]:
+                                if len(stack_coord) == 3:
+                                    time_st.append(stack_coord)
+                        st_tmp.append(time_st)
+                    prev_tmps=st_tmp
+                else:
+                    stack_t = t+frame_cumul-1
+                    time_st = []
+                    if stack_t in time_steps:
+                        for stack_coord in coords[stack_t]:
+                            if len(stack_coord) == 3:
+                                time_st.append(stack_coord)
+                    st_tmp = prev_tmps[1:]
+                    st_tmp.append(time_st)
+                    prev_tmps = st_tmp
+                st_tmp = list(itertools.chain.from_iterable(st_tmp))
+                if len(st_tmp) > 0:
+                    stacked_coords[t]=np.array(st_tmp, dtype=np.float32)
+                    if gpu:
+                        cp_dist = cp.asarray(stacked_coords[t], dtype=cp.float16)
+                        paired_cp_dist = pairwise_distance(cp_dist, cp_dist, metric='euclidean')
+                        paired_cdist = cp.asnumpy(paired_cp_dist).astype(np.float16)
+                    else:
+                        paired_cdist = distance.cdist(stacked_coords[t], stacked_coords[t], 'euclidean')
+
+                    stacked_radii[t] = ((paired_cdist > radius[0]) * (paired_cdist <= radius[1])).sum(axis=1) + 1  #pseudo count
+                    cur_max_count = np.max(stacked_radii[t])
+                    max_for_each_file = max(max_for_each_file, cur_max_count)
+                    count_max = max(cur_max_count, count_max)
+        batch_max_count.append(max_for_each_file)
+        all_coords = np.array(all_coords)
+        batch_all_coords_list.append(all_coords)
+        batch_stacked_coord_list.append(stacked_coords)
+        batch_stacked_radii_list.append(stacked_radii)
+    PBAR.close()
+
+
+    """
+    remax_count = 0
+    for idx, (dummy, nb_molecules, time_steps) in enumerate(zip(batch_stacked_radii_list, batch_nb_molecules, batch_time_steps_list)):
+        for t in time_steps:
+            if len(batch_stacked_radii_list[idx][t]) > 0:
+                batch_stacked_radii_list[idx][t] = batch_stacked_radii_list[idx][t] / count_max
+                batch_stacked_radii_list[idx][t] = np.minimum(batch_stacked_radii_list[idx][t], np.ones_like(batch_stacked_radii_list[idx][t]))
+                batch_stacked_radii_list[idx][t] = batch_stacked_radii_list[idx][t] / nb_molecules
+                remax_count = max(remax_count, np.max(batch_stacked_radii_list[idx][t]))
+    """
+    """
+    for idx, time_steps in zip(range(len(batch_stacked_radii_list)), batch_time_steps_list):
+        for t in time_steps:
+            if len(batch_stacked_radii_list[idx][t]) > 0:
+                batch_stacked_radii_list[idx][t] = batch_stacked_radii_list[idx][t] / remax_count
+    """
+    
+
+    Z_MAX = 0
+    PBAR = tqdm(total=tqdm_process_max, desc="Density estimation with weighted Gaussian kernel", unit="frame", ncols=120)
+    for vid_idx, (raw_imgs, all_coords, stacked_coords, stacked_radii, time_steps, filename, (start_frame, end_frame)) \
+        in enumerate(zip(raw_imgs_list, batch_all_coords_list, batch_stacked_coord_list, batch_stacked_radii_list, batch_time_steps_list, batch_filename_list, batch_frame_list)):
+        if os.path.exists(f"{tmp_kernel_name}/{filename}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}.npz"):
+            Z_MAX = max(Z_MAX, np.max(np.load(f"{tmp_kernel_name}/{filename}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}.npz")['Z_stack']))
+            md = np.max(np.load(f"{tmp_kernel_name}/{filename}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}.npz")['Z_stack'])
+            print(f"\n\nCalculated density result of {filename} is already exists in the {tmp_kernel_name} folder. To re-calculate the density, please delete the corresponding files, it will reuse it to avoid re-calculation otherwise.")
+        else:
+            Z_all = []
+            saved_z_for_flat = None
+            images = read_tif(raw_imgs)[start_frame-1:end_frame,:,:]
+
+            x_min = np.min(all_coords[:, 0])
+            x_max = np.max(all_coords[:, 0])
+            y_min = np.min(all_coords[:, 1])
+            y_max = np.max(all_coords[:, 1])
+            
+            X, Y = np.mgrid[x_min:x_max:complex(f'{images.shape[2]}j'), y_min:y_max:complex(f'{images.shape[1]}j')]
+            positions = np.vstack([X.ravel(), Y.ravel()])
+            for time in time_steps:
+                if start_frame <= time <= end_frame:
+                    PBAR.update(1)
+                    selec_coords = stacked_coords[time]
+                    selec_radii = stacked_radii[time]
+                    if len(selec_coords) > nb_min_particles:
+                        values = np.vstack([selec_coords[:, 0], selec_coords[:, 1]])
+                        kernel = stats.gaussian_kde(values, weights=selec_radii)
+                        kernel.set_bandwidth(bw_method=kernel.factor / 2.)
+                        Z = (np.reshape(kernel(positions).T, X.shape)).astype(np.float16)
+                        Z_MAX = max(Z_MAX, np.max(Z))
+                        Z_all.append(Z)
+                    else:
+                        if saved_z_for_flat is None:
+                            kernel = stats.gaussian_kde(positions)
+                            kernel.set_bandwidth(bw_method=kernel.factor / 2.)
+                            Z = (np.reshape(kernel(positions).T, X.shape)).astype(np.float16)
+                            Z_MAX = max(Z_MAX, np.max(Z))
+                            Z_all.append(Z)
+                            saved_z_for_flat = Z
+                        else:
+                            Z_all.append(saved_z_for_flat)
+            md = np.max(Z_all)
+            np.savez(f"{tmp_kernel_name}/{filename}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}", Z_stack = np.array(Z_all, dtype=np.float16))
+        max_densities['filename'].append(f'{filename}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}')
+        max_densities['max_density'].append(md)
+    PBAR.close()
+
+
+    if max_density is None:
+        max_density = Z_MAX
+        print(f'You didn\'t select the maximum density. So, it will normalize to the maximum density of current batch.')
+        print(f'\n****************************************************')
+        print(f'*****  maximum density in this batch: {max_density}')
+        print(f'****************************************************\n')
+    else:
+        print(f'\n*********************************************************')
+        print(f'*****  Selected maximum density in this batch: {max_density}  *****')
+        print(f'*********************************************************\n')
+    max_densities = pd.DataFrame(max_densities)
+    max_densities.to_csv(f"{tmp_kernel_name}/max_densities_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}.csv")
+
+
+
+    PBAR = tqdm(total=tqdm_process_max, desc="Rendering", unit="frame", ncols=120)
+    for vid_idx, (raw_imgs, all_coords, stacked_coords, stacked_radii, time_steps, filename, (start_frame, end_frame)) \
+        in enumerate(zip(raw_imgs_list, batch_all_coords_list, batch_stacked_coord_list, batch_stacked_radii_list, batch_time_steps_list, batch_filename_list, batch_frame_list)):
+        Z_stack = np.load(f"{tmp_kernel_name}/{filename}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}.npz")['Z_stack']
+        images = read_tif(raw_imgs)[start_frame-1:end_frame,:,:]
+
+        image_idx = 0
+        x_min = np.min(all_coords[:, 0])
+        x_max = np.max(all_coords[:, 0])
+        y_min = np.min(all_coords[:, 1])
+        y_max = np.max(all_coords[:, 1])
+        video_arr = np.empty([images.shape[0], images.shape[1], images.shape[2], 4], dtype=np.uint8)
+        for time in time_steps:
+            if start_frame <= time <= end_frame:
+                PBAR.update(1)
+                Z = Z_stack[image_idx]
+                if images[image_idx: image_idx + frame_cumul,:,:].shape[0] == 0:
+                    break
+
+                aximg = plt.imshow((Z.T / max_density), cmap=mycmap,
+                                extent=[x_min, x_max, y_min, y_max], vmin=0.0, vmax=1.0, alpha=1.0, origin='upper')
+                rawimg = plt.imshow(images[image_idx: image_idx + frame_cumul,:,:].max(axis=(0)), alpha=1.0, cmap='grey', extent=[x_min, x_max, y_min, y_max], origin='upper')
+                arr = aximg.make_image(renderer=None, unsampled=True)[0][:,:,:4]
+                arr2 = rawimg.make_image(renderer=None, unsampled=True)[0][:,:,:4]
+                blended = cv2.addWeighted(arr, alpha1, arr2, alpha2, 0.0)
+                video_arr[image_idx] = blended
+                image_idx += 1
+
+        output_video_name = f'{sequence_save_folder}/{filename}_density_video_frame_{start_frame}_{end_frame}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}_maxdensity_{max_density}.tiff'
+        if os.path.exists(output_video_name):
+            output_video_name = f'{sequence_save_folder}/{filename}_density_video_frame_{start_frame}_{end_frame}_radius_{radius[0]}_{radius[1]}_cumul_{frame_cumul}_maxdensity_{max_density}_{vid_idx}.tiff'
+
+        tifffile.imwrite(output_video_name, data=video_arr, imagej=True)
+        print(f'\n--------->   {output_video_name} is successfully generated.   <---------')
+        gc.collect()
+
+    PBAR.close()
+    
+    """
+    try:
+        for filename in batch_filename_list:
+            if os.path.exists(f"{tmp_kernel_name}/{filename}.npz"):
+                os.remove(f"{tmp_kernel_name}/{filename}.npz")
+        if os.path.exists(f"{tmp_kernel_name}"):
+            os.removedirs(f"{tmp_kernel_name}")
+    except Exception as e:
+        print(e)
+        print("Temporary files were not removed.")
+    """
+
+
 #vis_cps_file_name = ''
 #cps_visualization(f'./{vis_cps_file_name}_cps.tiff', f'./inputs/{vis_cps_file_name}.tiff', f'./{vis_cps_file_name}_traces.txt', f'./outputs/{vis_cps_file_name}_traces.csv')
 #concatenate_image_stack(f'{vis_cps_file_name}', f'./{vis_cps_file_name}.tiff', f'./{vis_cps_file_name}_cps.tiff')
