@@ -1343,8 +1343,8 @@ def make_loc_radius_video_batch2(output_path:str, raw_imgs_list:list, localizati
 
         for time_p in time_steps:
             loc_coords = tmp_coords1[time_p]
-            if len(loc_coords) > 0:
-                for loc_coord in loc_coords:
+            for loc_coord in loc_coords:
+                if len(loc_coord) > 0:
                     flag = 1
                     for dummy_traj_coord in dummpy_coords:
                         if abs(loc_coord[0] - dummy_traj_coord[0]) < 1e-6 and abs(loc_coord[1] - dummy_traj_coord[1]) < 1e-6 and abs(loc_coord[2] - dummy_traj_coord[2]) < 1e-6:
