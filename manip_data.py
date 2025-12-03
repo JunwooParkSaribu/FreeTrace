@@ -64,5 +64,5 @@ if __name__ == '__main__':
     """
     output_path = 'outputs'
     trajectory_file = 'outputs/sample0_traces.csv'
-    make_diffusion_map(output_path, trajectory_file, cutoff=0, diffusion_coef_bound=[0.01, 10], pixel_shape=(2048, 2048), zoom_amplifier=20, cmap_color='jet', thickness=1)
+    make_diffusion_map(output_path, trajectory_file, cutoff=0, diffusion_coef_bound=[0.05, 20], pixel_shape=(2048, 2048), zoom_amplifier=15, cmap_color='jet', thickness=1)
     """
