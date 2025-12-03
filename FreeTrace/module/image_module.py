@@ -1556,6 +1556,39 @@ def make_loc_radius_video_batch2(output_path:str, raw_imgs_list:list, localizati
     """
 
 
+def make_diffusion_map(output, trace_path, cutoff=0, diffusion_coef_bound=[1e-2, 1e1], pixel_shape=(2048, 2048), zoom_amplifier=20, cmap_color='jet', thickness=1):
+    output_image_name = f"{output}/{trace_path.split('/')[-1].split('_traces')[0]}_diffusionmap.png"
+    import matplotlib
+    cmap = matplotlib.colormaps[cmap_color]
+    seq_colormap = cmap(np.linspace(0, 1, 255))
+
+    trajectory_list = read_trajectory(trace_path)
+    img = np.zeros((pixel_shape[0], pixel_shape[1], 3), dtype=np.uint8)
+    for traj in trajectory_list:
+        if traj.get_trajectory_length() >= cutoff:
+            pos_ = traj.get_positions()
+            xs = pos_[:, 0]
+            ys = pos_[:, 1]
+            xs_disps = xs[1:] - xs[:-1]
+            ys_disps = ys[1:] - ys[:-1]
+            empirical_msd = np.mean(xs_disps**2 + ys_disps**2)
+
+            color_position = (np.log(empirical_msd) - np.log(diffusion_coef_bound[0])) / (np.log(diffusion_coef_bound[1]) - np.log(diffusion_coef_bound[0]))
+            color_position = int(color_position * len(seq_colormap))
+            color_position = min(color_position, len(seq_colormap)-1)
+            color_position = max(0, color_position)
+            traj_diff_coef_color = seq_colormap[color_position]
+            xx = np.array([[int(x * (zoom_amplifier)), int(y * (zoom_amplifier))]
+                           for x, y, _ in traj.get_positions()], np.int32)
+            img_poly = cv2.polylines(img, [xx],
+                                     isClosed=False,
+                                     color=(int(traj_diff_coef_color[0] * 255), int(traj_diff_coef_color[1] * 255),
+                                            int(traj_diff_coef_color[2] * 255)),
+                                     thickness=thickness)
+
+    cv2.imwrite(output_image_name, img)
+
+
 #vis_cps_file_name = ''
 #cps_visualization(f'./{vis_cps_file_name}_cps.tiff', f'./inputs/{vis_cps_file_name}.tiff', f'./{vis_cps_file_name}_traces.txt', f'./outputs/{vis_cps_file_name}_traces.csv')
 #concatenate_image_stack(f'{vis_cps_file_name}', f'./{vis_cps_file_name}.tiff', f'./{vis_cps_file_name}_cps.tiff')
