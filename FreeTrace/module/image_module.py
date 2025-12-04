@@ -1563,7 +1563,8 @@ def make_diffusion_map(output, trace_path, cutoff=0, diffusion_coef_bound=[0.05,
     seq_colormap = cmap(np.linspace(0, 1, 255))
 
     trajectory_list = read_trajectory(trace_path)
-    img = np.zeros((pixel_shape[0], pixel_shape[1], 3), dtype=np.uint8)
+    img = np.zeros((pixel_shape[0], pixel_shape[1], 4), dtype=np.uint8)
+
     for traj in trajectory_list:
         if traj.get_trajectory_length() >= cutoff:
             pos_ = traj.get_positions()
@@ -1583,7 +1584,7 @@ def make_diffusion_map(output, trace_path, cutoff=0, diffusion_coef_bound=[0.05,
             img_poly = cv2.polylines(img, [xx],
                                      isClosed=False,
                                      color=(int(traj_diff_coef_color[0] * 255), int(traj_diff_coef_color[1] * 255),
-                                            int(traj_diff_coef_color[2] * 255)),
+                                            int(traj_diff_coef_color[2] * 255), 255),
                                      thickness=thickness)
 
     cv2.imwrite(output_image_name, img)
