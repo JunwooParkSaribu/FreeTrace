@@ -43,12 +43,16 @@
 
 > If you use this software, please cite it as below. </br>
 ```
-@software{FreeTrace,
-    author = {Park, Junwoo and Sokolovska, Nataliya and Cabriel, Clément and Izeddin, Ignacio and Miné-Hattab, Judith},
-    title = {FreeTrace},
-    year = {2024},
-    doi = {10.5281/zenodo.13336251},
-    publisher = {Zenodo},
+@article {Park2026.01.08.698486,
+	author = {Park, Junwoo and Sokolovska, Nataliya and Cabriel, Cl{\'e}ment and Kobayashi, Asaki and Corsin, Enora and Garcia Fernandez, Fabiola and Izeddin, Ignacio and Min{\'e}-Hattab, Judith},
+	title = {Novel estimation of memory in molecular dynamics with extended and comprehensive single-molecule tracking software: FreeTrace},
+	elocation-id = {2026.01.08.698486},
+	year = {2026},
+	doi = {10.64898/2026.01.08.698486},
+	publisher = {Cold Spring Harbor Laboratory},
+	URL = {https://www.biorxiv.org/content/early/2026/01/10/2026.01.08.698486},
+	eprint = {https://www.biorxiv.org/content/early/2026/01/10/2026.01.08.698486.full.pdf},
+	journal = {bioRxiv}
 }
 ```
 <br>
