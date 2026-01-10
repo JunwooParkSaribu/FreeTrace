@@ -20,10 +20,7 @@
 > - Without GPU, FreeTrace is slow if it infers under fractional Brownian motion.</br>
 > - Current version is stable with python 3.10 / 3.11 / 3.12</br>
 
-
-&nbsp;&nbsp;<b>FreeTrace</b> infers individual trajectories from time-series images with reconnection of the detected particles under fBm.</br>
-
-<h2>Visualized result of FreeTrace</h2>
+<h2>Visualised FreeTrace results</h2>
 <img width="825" src="https://github.com/JunwooParkSaribu/FreeTrace/blob/main/tmps/stars.gif">
 <table border="0"> 
         <tr> 
@@ -33,7 +30,8 @@
         </tr>  
 </table>
 
-[Brief description of the method] will be available soon.
+
+&nbsp;&nbsp;<b>[FreeTrace](https://doi.org/10.64898/2026.01.08.698486)</b> infers individual trajectories from time-series images with reconnection of the detected particles under fBm.</br>
 
 <h3> Contact person </h3>
 
