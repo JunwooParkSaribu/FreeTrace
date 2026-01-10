@@ -1,7 +1,7 @@
 
-![Static Badge](https://img.shields.io/badge/FreeTrace-bioRxiv-red)(https://iopscience.iop.org/article/10.1088/2515-7647/adfc19)
+[![Static Badge](https://img.shields.io/badge/FreeTrace-bioRxiv-red)](https://doi.org/10.64898/2026.01.08.698486)
 ![Static Badge](https://img.shields.io/badge/%3E%3D3.10-1?style=flat&label=Python&color=blue)
-![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13336251.svg)(https://doi.org/10.5281/zenodo.13336251)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13336251.svg)](https://doi.org/10.5281/zenodo.13336251)
 ![GitHub License](https://img.shields.io/github/license/JunwooParkSaribu/FreeTrace)
 
 ## FreeTrace
