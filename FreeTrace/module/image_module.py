@@ -1557,7 +1557,7 @@ def make_loc_radius_video_batch2(output_path:str, raw_imgs_list:list, localizati
     """
 
 
-def make_diffusion_map(output, trace_path, cutoff=0, diffusion_coef_bound=[0.05, 20], pixel_shape=(2048, 2048), zoom_amplifier=15, cmap_color='jet', thickness=1):
+def make_diffusion_map(output, trace_path, cutoff=0, diffusion_coef_bound=[0.05, 20], pixel_shape=(2048, 2048), zoom_amplifier=15, cmap_color='jet', thickness=1, trj_alpha=255):
     output_image_name = f"{output}/{trace_path.split('/')[-1].split('_traces')[0]}_diffusionmap.png"
     import matplotlib
     cmap = matplotlib.colormaps[cmap_color]
@@ -1585,7 +1585,7 @@ def make_diffusion_map(output, trace_path, cutoff=0, diffusion_coef_bound=[0.05,
             img_poly = cv2.polylines(img, [xx],
                                      isClosed=False,
                                      color=(int(traj_diff_coef_color[0] * 255), int(traj_diff_coef_color[1] * 255),
-                                            int(traj_diff_coef_color[2] * 255), 255),
+                                            int(traj_diff_coef_color[2] * 255), trj_alpha),
                                      thickness=thickness)
 
     cv2.imwrite(output_image_name, img)
