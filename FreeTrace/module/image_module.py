@@ -169,26 +169,20 @@ class RealTimePlot(tk.Tk):
                 self.past_t_steps.append(t)
 
 
-def read_tif(filepath, andi2=False):
+def read_tif(filepath):
     normalized_imgs = []
-    if andi2:
-        imgs = []
-        with Image.open(filepath) as img:
-            try:
-                for i in range(9999999):
-                    if i == 0:
-                        indice_image = np.array(img.copy())
-                    else:
-                        imgs.append(np.array(img))
-                        img.seek(img.tell() + 1)
-            except Exception as e:
-                pass
+    if ".nd2" in filepath.split('/')[-1]:
+        import nd2
+        imgs = nd2.imread(filepath)
         imgs = np.array(imgs)
-    else:
+    elif ".tif" in filepath.split('/')[-1]:
         with tifffile.TiffFile(filepath) as tif:
             imgs = tif.asarray()
             axes = tif.series[0].axes
             imagej_metadata = tif.imagej_metadata
+    else:
+        print("Unsupported video type. (only .tif and .nd2 can be accepted)")
+        raise Exception
 
     if len(imgs.shape) == 3:
         nb_tif = imgs.shape[0]
@@ -220,22 +214,37 @@ def read_tif(filepath, andi2=False):
     
 
 def read_tif_unnormalized(filepath):
-    imgs = []
-    with tifffile.TiffFile(filepath) as tif:
-        imgs = (tif.asarray()).astype(np.float32)
-        axes = tif.series[0].axes
-        imagej_metadata = tif.imagej_metadata
+    if ".nd2" in filepath.split('/')[-1]:
+        import nd2
+        imgs = nd2.imread(filepath)
+        imgs = np.array(imgs)
+    elif ".tif" in filepath.split('/')[-1]:
+        with tifffile.TiffFile(filepath) as tif:
+            imgs = (tif.asarray()).astype(np.float32)
+            axes = tif.series[0].axes
+            imagej_metadata = tif.imagej_metadata
+    else:
+        print("Unsupported video type. (only .tif and .nd2 can be accepted)")
+        raise Exception
     return imgs
 
 
 def read_single_tif(filepath, ch3=True):
-    with tifffile.TiffFile(filepath) as tif:
-        imgs = tif.asarray()
-        if len(imgs.shape) >= 3:
-            imgs = imgs[0]
-        axes = tif.series[0].axes
-        imagej_metadata = tif.imagej_metadata
-        tag = tif.pages[0].tags
+    if ".nd2" in filepath.split('/')[-1]:
+        import nd2
+        imgs = nd2.imread(filepath)
+        imgs = np.array(imgs)
+    elif ".tif" in filepath.split('/')[-1]:
+        with tifffile.TiffFile(filepath) as tif:
+            imgs = tif.asarray()
+            axes = tif.series[0].axes
+            imagej_metadata = tif.imagej_metadata
+            tag = tif.pages[0].tags
+    else:
+        print("Unsupported video type. (only .tif and .nd2 can be accepted)")
+        raise Exception
+    if len(imgs.shape) >= 3:
+        imgs = imgs[0]
 
     y_size = imgs.shape[0]
     x_size = imgs.shape[1]

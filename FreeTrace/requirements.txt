@@ -10,6 +10,7 @@ scipy
 opencv-python
 matplotlib
 imageio
+nd2
 tifffile
 roifile
 pillow
