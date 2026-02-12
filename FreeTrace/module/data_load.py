@@ -231,3 +231,16 @@ def read_trajectory(file: str, andi_gt=False, pixel_microns=1.0, frame_rate=1.0)
         except Exception as e:
             print(f"Unexpected error, check the file: {file}")
             print(e)
+
+
+def read_h5(file):
+    with pd.HDFStore(file) as hdf_store:
+        metadata = hdf_store.get_storer('data').attrs.metadata
+        df_read = hdf_store.get('data')
+    df_read = df_read.dropna()
+    convert_dict = {'state': int, 'frame': int, 'traj_idx': int}
+    df_read = df_read.astype(convert_dict)
+    if 'alpha' in df_read:
+        df_read = df_read.rename(columns={"alpha": "H"})
+        df_read['H'] /= 2.
+    return df_read, metadata
