@@ -16,7 +16,7 @@ from scipy.spatial import distance
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from multiprocessing import Queue, Process, Value
 from FreeTrace.module.trajectory_object import TrajectoryObj
-from FreeTrace.module.data_load import read_trajectory, read_localization, read_multiple_locs
+from FreeTrace.module.data_load import read_trajectory, read_localization, read_multiple_locs, read_h5
 
 
 class NormalTkExit(Exception):
@@ -1283,13 +1283,13 @@ def H_K_distribution(fig_save_path, H, K):
     
 
 def make_loc_radius_video_batch2(output_path:str, raw_imgs_list:list, localization_file_list:list, trajectory_file_list:list, frame_list:list,
-                                 frame_cumul=100, radius=[3, 13], nb_min_particles=100, max_density=None, color='jet', alpha1=0.65, alpha2=0.35, gpu=False):
+                                 frame_cumul=100, radius=[3, 13], nb_min_particles=100, max_density=None, color='jet', alpha1=0.65, alpha2=0.35, gpu=False, selected_state=0):
     import gc
     for localization_file in localization_file_list:
         assert 'loc' in localization_file.split('/')[-1], "input trace/loc file format is wrong, the function needs video_traces.csv or video_loc.csv"
 
     for trajectory_file in trajectory_file_list:
-        assert 'trace' in trajectory_file.split('/')[-1], "input trace/loc file format is wrong, the function needs video_traces.csv or video_loc.csv"
+        assert 'trace' in trajectory_file.split('/')[-1] or 'h5' in trajectory_file.split('/')[-1], "input trace/loc file format is wrong, csv or h5 format is required."
 
     for file_path, file_path2, image_path in zip(localization_file_list, trajectory_file_list, raw_imgs_list):
         assert os.path.exists(file_path), f'Couldn\'t find the file: {file_path}, please check again this file name'
@@ -1342,10 +1342,24 @@ def make_loc_radius_video_batch2(output_path:str, raw_imgs_list:list, localizati
 
         for time_p in time_steps:
             coords[time_p] = []
-
-        for traj in read_trajectory(trajectory_file):
-            for pos in traj.get_positions()[1:]:
-                dummpy_coords.append(pos)
+        
+        if "biadd.h5" in trajectory_file:
+            h5_format_trajs, _ = read_h5(trajectory_file)
+            if selected_state not in h5_format_trajs["state"].unique():
+                sys.exit(f"selected state {selected_state} does not exist in the trajectory result.")
+            h5_format_trajs = h5_format_trajs[h5_format_trajs["state"] == selected_state]
+            for traj_idx in h5_format_trajs['traj_idx'].unique():
+                traj = h5_format_trajs[h5_format_trajs["traj_idx"] == traj_idx]
+                for x, y, z in zip(h5_format_trajs["x"][1:], h5_format_trajs["y"][1:], h5_format_trajs["z"][1:]):
+                    dummpy_coords.append([x, y, z])
+            fileformat = "h5"
+        elif "traces.csv" in trajectory_file:
+            for traj in read_trajectory(trajectory_file):
+                for pos in traj.get_positions()[1:]:
+                    dummpy_coords.append(pos)
+            fileformat = "csv"
+        else:
+            sys.exit(f"Wrong file format of trajectory results. Shoud be biadd.h5 or traces.csv")
 
         for time_p in time_steps:
             if time_p in tmp_coords1:
@@ -1368,7 +1382,10 @@ def make_loc_radius_video_batch2(output_path:str, raw_imgs_list:list, localizati
         for time_p in time_steps:
             coords[time_p] = np.array(coords[time_p])
 
-        filename = localization_file.split('/')[-1].split('_loc')[0]
+        if fileformat == "h5":
+            filename = f"{localization_file.split('/')[-1].split('_loc')[0]}_selectedstate_{selected_state}_"
+        else:
+            filename = f"{localization_file.split('/')[-1].split('_loc')[0]}"
         batch_coord_list.append(coords)
         batch_filename_list.append(filename)
         batch_time_steps_list.append(time_steps)
