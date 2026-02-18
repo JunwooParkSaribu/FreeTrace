@@ -47,7 +47,7 @@ if __name__ == "__main__":
         if not os.path.exists(f'{OUTPUT_DIR}'):
             os.makedirs(f'{OUTPUT_DIR}')
         file_list = os.listdir(f'{input_folder}')
-        nb_videos_in_batch = len([file for file in file_list if '.tif' in file])
+        nb_videos_in_batch = len([file for file in file_list if '.tif' in file or '.nd2' in file])
 
         print(f'\n*****  Batch processing on {len(file_list)} videos. ({len(file_list)*2} tasks: Localizations + Trackings)  *****')
         PBAR = tqdm(total=nb_videos_in_batch*2, desc="Batch", unit="task", ncols=120, miniters=1)
@@ -55,7 +55,7 @@ if __name__ == "__main__":
             loc = False
             track = False
             file = file_list[idx]
-            if file.strip().split('.')[-1] == 'tif' or file.strip().split('.')[-1] == 'tiff':
+            if file.strip().split('.')[-1] == 'tif' or file.strip().split('.')[-1] == 'tiff' or file.strip().split('.')[-1] == 'nd2':
                 PBAR.set_postfix(File=file, refresh=True)
                 try:
                     loc = Localization.run_process(input_video_path=f'{input_folder}/{file}', output_path=OUTPUT_DIR,
