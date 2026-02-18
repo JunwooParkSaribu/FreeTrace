@@ -5,7 +5,8 @@ import glob
 import shutil
 
 
-build_path = f"{os.getcwd()}/FreeTrace/module/cython_build"
+build_path = f"{os.getcwd()}/module/cython_build"
+print(f"Current build path: {build_path}")
 setup(
     name='FreeTrace app',
     ext_modules=cythonize([f"{build_path}/image_pad.pyx", f"{build_path}/regression.pyx", f"{build_path}/cost_function.pyx"], language_level = "3", annotate=True),

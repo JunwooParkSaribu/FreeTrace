@@ -29,7 +29,7 @@ freetrace_path += 'FreeTrace'.join(re.split(r'FreeTrace', __file__)[:-1]) + 'Fre
 
 if 'win' in platform and 'dar' not in platform:
     if '3.13' in sys.version:
-        tf_version = 'tensorflow==2.17'
+        tf_version = 'tensorflow==2.20'
         python_version = "3.13"
     elif '3.12' in sys.version:
         tf_version = 'tensorflow==2.17'
@@ -64,14 +64,14 @@ if 'win' in platform and 'dar' not in platform:
         if os.path.exists(f'\"{freetrace_path}/models\"'):
             subprocess.call(f"powershell.exe -Command rm -Recurse -Force {freetrace_path}/models", shell=True)
         subprocess.call(f"powershell.exe -Command $ProgressPreference=\'SilentlyContinue\' ; iwr -Uri https://psilo.sorbonne-universite.fr/index.php/s/o8SZrWt4HePY8js/download/models_2_14.zip -OutFile {freetrace_path}/models_2_14.zip", shell=True)
-        subprocess.call(f"powershell.exe -Command Expand-Archive -Path {freetrace_path}/models_2_14.zip -DestinationPath {freetrace_path}/models", shell=True)
+        subprocess.call(f"powershell.exe -Command Expand-Archive -Force -Path {freetrace_path}/models_2_14.zip -DestinationPath {freetrace_path}/models", shell=True)
         subprocess.call(f"powershell.exe -Command rm {freetrace_path}/models_2_14.zip", shell=True)
     else:
         subprocess.run(['winget', 'install', 'Microsoft.Powershell'])
         if os.path.exists(f'\"{freetrace_path}/models\"'):
             subprocess.call(f"powershell.exe -Command rm -Recurse -Force {freetrace_path}/models", shell=True)
         subprocess.call(f"powershell.exe -Command $ProgressPreference=\'SilentlyContinue\' ; iwr -Uri https://psilo.sorbonne-universite.fr/index.php/s/w9PrAQbxsNJrEFc/download/models_2_17.zip -OutFile {freetrace_path}/models_2_17.zip", shell=True)
-        subprocess.call(f"powershell.exe -Command Expand-Archive -Path {freetrace_path}/models_2_17.zip -DestinationPath {freetrace_path}/models", shell=True)
+        subprocess.call(f"powershell.exe -Command Expand-Archive -Force -Path {freetrace_path}/models_2_17.zip -DestinationPath {freetrace_path}/models", shell=True)
         subprocess.call(f"powershell.exe -Command rm {freetrace_path}/models_2_17.zip", shell=True)
 
 
@@ -94,7 +94,7 @@ if 'win' in platform and 'dar' not in platform:
                     pass
 
     try:
-        subprocess.run(['pwsh.exe', '-Command', f"{sys.executable}", f"{freetrace_path}/module/cython_build/cython_setup.py", 'build_ext', '--inplace'])
+        subprocess.call(f"powershell.exe -Command {sys.executable} {freetrace_path}/module/cython_build/cython_setup.py build_ext --inplace", shell=True)
     except Exception as e:
         print(f'\n***** Compiling Error: {e} *****')
         pass
