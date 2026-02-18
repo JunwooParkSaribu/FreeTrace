@@ -1275,6 +1275,7 @@ def run(input_video_path:str, output_path:str, graph_depth=2, cutoff=2, jump_thr
     JUMP_THRESHOLD = jump_threshold
     VIDEO_PATH = input_video_path
     CUDA, TF = initialization(GPU_AVAIL, REG_LEGNTHS, ptype=1, verbose=VERBOSE, batch=BATCH)
+    TF = GPU_AVAIL  # line to force the prediction with models also on CPU.
     POLY_FIT_DATA = np.load(f'{__file__.split("Tracking.py")[0]}/models/theta_hat.npz')
     STD_FIT_DATA = np.load(f'{__file__.split("Tracking.py")[0]}/models/std_sets.npz')
     QT_FIT_DATA = np.load(f'{__file__.split("Tracking.py")[0]}/models/qt_99.npz')
