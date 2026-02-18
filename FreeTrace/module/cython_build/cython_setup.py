@@ -3,10 +3,16 @@ from Cython.Build import cythonize
 import os
 import glob
 import shutil
+import re
 
 
-build_path = f"{os.getcwd()}/module/cython_build"
+freetrace_path = ''
+freetrace_path += 'FreeTrace'.join(re.split(r'FreeTrace', __file__)[:-1]) + 'FreeTrace'
+freetrace_path = freetrace_path.replace('\\', '/')
+build_path = f"{freetrace_path}/module/cython_build"
 print(f"Current build path: {build_path}")
+
+
 setup(
     name='FreeTrace app',
     ext_modules=cythonize([f"{build_path}/image_pad.pyx", f"{build_path}/regression.pyx", f"{build_path}/cost_function.pyx"], language_level = "3", annotate=True),
