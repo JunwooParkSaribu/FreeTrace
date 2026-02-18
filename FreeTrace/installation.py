@@ -61,20 +61,19 @@ if 'win' in platform and 'dar' not in platform:
 
     if python_version == "3.10":
         subprocess.run(['winget', 'install', 'Microsoft.Powershell'])
-        subprocess.run(['pwsh.exe', '-Command', 'rm', '-Recurse', '-Force', f'\"{freetrace_path}/models\"'])
-        subprocess.run(['pwsh.exe', '-Command', "$ProgressPreference=\'SilentlyContinue\'", ';', 
-                        'iwr', '-Uri', "\"https://psilo.sorbonne-universite.fr/index.php/s/o8SZrWt4HePY8js/download/models_2_14.zip\"",
-                        '-OutFile', f'{freetrace_path}/models_2_14.zip'])
-        subprocess.run(['pwsh.exe', '-Command', 'Expand-Archive', '-Path', f'\"{freetrace_path}/models_2_14.zip\"', '-DestinationPath', f'\"{freetrace_path}/models\"'])
-        subprocess.run(['pwsh.exe', '-Command', 'rm', f'\"{freetrace_path}/models_2_14.zip\"'])
+        if os.path.exists(f'\"{freetrace_path}/models\"'):
+            subprocess.call(f"powershell.exe -Command rm -Recurse -Force {freetrace_path}/models", shell=True)
+        subprocess.call(f"powershell.exe -Command $ProgressPreference=\'SilentlyContinue\' ; iwr -Uri https://psilo.sorbonne-universite.fr/index.php/s/o8SZrWt4HePY8js/download/models_2_14.zip -OutFile {freetrace_path}/models_2_14.zip", shell=True)
+        subprocess.call(f"powershell.exe -Command Expand-Archive -Path {freetrace_path}/models_2_14.zip -DestinationPath {freetrace_path}/models", shell=True)
+        subprocess.call(f"powershell.exe -Command rm {freetrace_path}/models_2_14.zip", shell=True)
     else:
         subprocess.run(['winget', 'install', 'Microsoft.Powershell'])
-        subprocess.run(['pwsh.exe', '-Command', 'rm', '-Recurse', '-Force', f'\"{freetrace_path}/models\"'])
-        subprocess.run(['pwsh.exe', '-Command', "$ProgressPreference=\'SilentlyContinue\'", ';', 
-                        'iwr', '-Uri', "\"https://psilo.sorbonne-universite.fr/index.php/s/w9PrAQbxsNJrEFc/download/models_2_17.zip\"",
-                        '-OutFile', f'{freetrace_path}/models_2_17.zip'])   
-        subprocess.run(['pwsh.exe', '-Command', 'Expand-Archive', '-Path', f'\"{freetrace_path}/models_2_17.zip\"', '-DestinationPath', f'\"{freetrace_path}/models\"'])
-        subprocess.run(['pwsh.exe', '-Command', 'rm', f'\"{freetrace_path}/models_2_17.zip\"'])
+        if os.path.exists(f'\"{freetrace_path}/models\"'):
+            subprocess.call(f"powershell.exe -Command rm -Recurse -Force {freetrace_path}/models", shell=True)
+        subprocess.call(f"powershell.exe -Command $ProgressPreference=\'SilentlyContinue\' ; iwr -Uri https://psilo.sorbonne-universite.fr/index.php/s/w9PrAQbxsNJrEFc/download/models_2_17.zip -OutFile {freetrace_path}/models_2_17.zip", shell=True)
+        subprocess.call(f"powershell.exe -Command Expand-Archive -Path {freetrace_path}/models_2_17.zip -DestinationPath {freetrace_path}/models", shell=True)
+        subprocess.call(f"powershell.exe -Command rm {freetrace_path}/models_2_17.zip", shell=True)
+
 
     if not os.path.exists(f'{freetrace_path}/models/theta_hat.npz') or not os.path.exists(f'{freetrace_path}/models/std_sets.npz'):
         print(f'***** Parmeters[theta_hat.npz, std_sets.npz] are not found for trajectory inference, please contact author for the pretrained models. *****\n')
