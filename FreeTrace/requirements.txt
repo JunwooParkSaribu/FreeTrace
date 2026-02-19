@@ -4,6 +4,7 @@ networkx
 pandas
 seaborn
 tables
+jupyter
 scikit-learn
 scikit-image
 scipy
