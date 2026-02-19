@@ -19,21 +19,21 @@ setup(
 )
 
 
-source_file = glob.glob(f"{build_path}/cost_function*")[0]
+source_file = glob.glob(f"{os.getcwd()}/cost_function*")[0]
 extens = source_file.split(".")[-1]
 destination_path = f"{freetrace_path}/module/cost_function.{extens}"
 shutil.copy(source_file, destination_path)
 os.remove(source_file)
 
 
-source_file = glob.glob(f"{build_path}/image_pad*")[0]
+source_file = glob.glob(f"{os.getcwd()}/image_pad*")[0]
 extens = source_file.split(".")[-1]
 destination_path = f"{freetrace_path}/module/image_pad.{extens}"
 shutil.copy(source_file, destination_path)
 os.remove(source_file)
 
 
-source_file = glob.glob(f"{build_path}/regression*")[0]
+source_file = glob.glob(f"{os.getcwd()}/regression*")[0]
 extens = source_file.split(".")[-1]
 destination_path = f"{freetrace_path}/module/regression.{extens}"
 shutil.copy(source_file, destination_path)
