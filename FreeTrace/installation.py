@@ -32,7 +32,7 @@ if 'win' in platform and 'dar' not in platform:
         tf_version = 'tensorflow==2.20'
         python_version = "3.13"
     elif '3.12' in sys.version:
-        tf_version = 'tensorflow==2.17'
+        tf_version = 'tensorflow==2.18'
         python_version = "3.12"
     elif '3.11' in sys.version:
         tf_version = 'tensorflow==2.17'
@@ -112,10 +112,10 @@ if 'win' in platform and 'dar' not in platform:
 
 elif 'linux' in platform:
     if '3.13' in sys.version:
-        tf_version = 'tensorflow[and-cuda]==2.17'
+        tf_version = 'tensorflow[and-cuda]==2.20'
         python_version = "3.13" 
     elif '3.12' in sys.version:
-        tf_version = 'tensorflow[and-cuda]==2.17'
+        tf_version = 'tensorflow[and-cuda]==2.18'
         python_version = "3.12"
     elif '3.11' in sys.version:
         tf_version = 'tensorflow[and-cuda]==2.17'
@@ -256,10 +256,10 @@ elif 'linux' in platform:
 
 elif 'darwin' in platform:
     if '3.13' in sys.version:
-        tf_version = 'tensorflow==2.17'
+        tf_version = 'tensorflow==2.20'
         python_version = "3.13"
     elif '3.12' in sys.version:
-        tf_version = 'tensorflow==2.17'
+        tf_version = 'tensorflow==2.18'
         python_version = "3.12"
     elif '3.11' in sys.version:
         tf_version = 'tensorflow==2.17'
