@@ -145,7 +145,7 @@ def simple_preprocessing(data, pixelmicrons, framerate, cutoff=[3, 99999], selec
                     sub_trajectory.x *= pixelmicrons
                     sub_trajectory.y *= pixelmicrons
                     sub_trajectory.z *= pixelmicrons 
-                    fr_K *= ((pixelmicrons**2)) #/ (framerate**fr_H))
+                    #fr_K *= ((pixelmicrons**2)) #/ (framerate**fr_H))
 
                     frame_diffs = sub_trajectory.frame.iloc[1:].to_numpy() - sub_trajectory.frame.iloc[:-1].to_numpy()
                     duration = np.sum(frame_diffs) * framerate
