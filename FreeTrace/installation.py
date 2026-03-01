@@ -78,6 +78,7 @@ if 'win' in platform and 'dar' not in platform:
     if not os.path.exists(f'{freetrace_path}/models/theta_hat.npz') or not os.path.exists(f'{freetrace_path}/models/std_sets.npz'):
         print(f'***** Parmeters[theta_hat.npz, std_sets.npz] are not found for trajectory inference, please contact author for the pretrained models. *****\n')
         sys.exit()
+    print("\n***** Downloading models is finished *****")
 
     if os.path.exists(f'{freetrace_path}/requirements.txt'):
         with open(f'{freetrace_path}/requirements.txt', 'r') as f:
@@ -168,7 +169,9 @@ elif 'linux' in platform:
         subprocess.run(['cp', '-r', f'{freetrace_path}/models_2_17', f'{freetrace_path}/models'])
         subprocess.run(['rm', '-r', f'{freetrace_path}/models_2_17'])
         subprocess.run(['rm', f'{freetrace_path}/models_2_17.zip'])
-        
+    print("\n***** Downloading models is finished *****")
+
+
     for root, dirs, files in os.walk("/usr", topdown=False):
         for name in files:
             if 'Python.h' in name:
@@ -298,6 +301,7 @@ elif 'darwin' in platform:
         subprocess.run(['curl', '-O', '-s', 'https://psilo.sorbonne-universite.fr/index.php/s/w9PrAQbxsNJrEFc/download/models_2_17.zip'])
         subprocess.run(['unzip', f"{os.getcwd()}/models_2_17.zip", "-d", f"{freetrace_path}/models"])
         subprocess.run(['rm', f"{os.getcwd()}/models_2_17.zip"])
+    print("\n***** Downloading models is finished *****")
     
 
     if not os.path.exists(f'{freetrace_path}/models/theta_hat.npz') or not os.path.exists(f'{freetrace_path}/models/std_sets.npz'):
