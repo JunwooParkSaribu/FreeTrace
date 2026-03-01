@@ -19,6 +19,7 @@
 > - Check [compatibilities](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/FreeTrace/models/README.md) of Python and Tensorflow to run FreeTrace with source code.</br>
 > - Without GPU, FreeTrace is slow if it infers under fractional Brownian motion.</br>
 > - Current version is stable with python 3.10 / 3.11 / 3.12</br>
+> - Tutorial on [Colab](https://colab.research.google.com/github/JunwooParkSaribu/FreeTrace/blob/main/tutorial.ipynb)</br>
 
 <h2>Visualised FreeTrace results</h2>
 <img width="825" src="https://github.com/JunwooParkSaribu/FreeTrace/blob/main/tmps/stars.gif">
