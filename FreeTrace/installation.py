@@ -55,10 +55,10 @@ if 'win' in platform and 'dar' not in platform:
     print("unzip clang python3-tk python3-dev python3-pip\n")
     print("If you don't want to continue, please stop the process.")
     time.sleep(5)
-    print("Installing models... this takes minutes.")
     freetrace_path = freetrace_path.replace('\\', '/')
     subprocess.run([sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip'])
 
+    print("\n***** Downloading models on local device *****")
     if python_version == "3.10":
         subprocess.run(['winget', 'install', 'Microsoft.Powershell'])
         if os.path.exists(f'\"{freetrace_path}/models\"'):
@@ -153,6 +153,7 @@ elif 'linux' in platform:
     subprocess.run(['sudo', 'apt-get', 'install', '-y', 'libgtk2.0-dev'])
     subprocess.run([sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip'])
 
+    print("\n***** Downloading models on local device *****")
     if python_version == "3.10":
         subprocess.run(['rm', '-r', f'{freetrace_path}/models'])
         subprocess.run(['wget', 'https://psilo.sorbonne-universite.fr/index.php/s/o8SZrWt4HePY8js/download/models_2_14.zip', '-P' f'{freetrace_path}'])
@@ -282,11 +283,11 @@ elif 'darwin' in platform:
     print("unzip clang python3-tk python3-dev python3-pip\n")
     print("If you don't want to continue, please stop the process.")
     time.sleep(5)
-    print("Installing models... this takes minutes.")
+
     freetrace_path = freetrace_path.replace('\\', '/')
     subprocess.run([sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip'])
 
-    
+    print("\n***** Downloading models on local device *****")
     if python_version == "3.10":
         subprocess.run(['rm', '-r', '-f', f"{freetrace_path}/models"])
         subprocess.run(['curl', '-O', '-s', 'https://psilo.sorbonne-universite.fr/index.php/s/o8SZrWt4HePY8js/download/models_2_14.zip'])
