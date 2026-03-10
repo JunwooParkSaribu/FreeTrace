@@ -1,6 +1,9 @@
+# Modified by Claude (claude-opus-4-6, Anthropic AI) — lazy model download on first use
+import os
 import re
 import numpy as np
 from tensorflow.keras.models import load_model # type: ignore
+from FreeTrace.model_downloader import ensure_models
 
 
 class RegModel:
@@ -13,6 +16,7 @@ class RegModel:
         self.load_models(self.reg_model_nums)
 
     def load_models(self, model_nums):
+        ensure_models()
         freetrace_path = ''
         freetrace_path += 'FreeTrace'.join(re.split(r'FreeTrace', __file__)[:-1]) + 'FreeTrace'
         self.alpha_models = {n: load_model(f'{freetrace_path}/models/reg_model_{n}.keras') for n in model_nums}

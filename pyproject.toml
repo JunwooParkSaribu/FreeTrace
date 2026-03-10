@@ -1,0 +1,67 @@
+# Modified by Claude (claude-opus-4-6, Anthropic AI) — added pyproject.toml for pip-installable package
+[build-system]
+requires = ["setuptools>=68.0", "Cython>=3.0", "numpy"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "FreeTrace"
+version = "1.6.0.1"
+requires-python = ">=3.10"
+authors = [
+  {name = "Junwoo PARK", email = "junwoo.park@sorbonne-universite.fr"},
+]
+description = "FreeTrace — single-molecule tracking with fBm inference"
+readme = "README.md"
+license = {file = "LICENSE"}
+keywords = ["SPT", "single-molecule", "tracking"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
+]
+
+dependencies = [
+    "numpy",
+    "numba",
+    "networkx",
+    "pandas",
+    "seaborn",
+    "tables",
+    "scikit-learn",
+    "scikit-image",
+    "scipy",
+    "opencv-python",
+    "matplotlib",
+    "imageio",
+    "tifffile",
+    "nd2",
+    "roifile",
+    "pillow",
+    "tqdm",
+    "setuptools",
+    "Cython",
+    "cupy-cuda12x",
+    # TensorFlow — platform-specific
+    "tensorflow==2.14; python_version=='3.10' and sys_platform!='linux'",
+    "tensorflow[and-cuda]==2.14.1; python_version=='3.10' and sys_platform=='linux'",
+    "tensorflow==2.17; python_version=='3.11' and sys_platform!='linux'",
+    "tensorflow[and-cuda]==2.17; python_version=='3.11' and sys_platform=='linux'",
+    "tensorflow==2.18; python_version=='3.12' and sys_platform!='linux'",
+    "tensorflow[and-cuda]==2.18; python_version=='3.12' and sys_platform=='linux'",
+    "tensorflow==2.20; python_version=='3.13' and sys_platform!='linux'",
+    "tensorflow[and-cuda]==2.20; python_version=='3.13' and sys_platform=='linux'",
+]
+
+[project.optional-dependencies]
+gui = ["PyQt6"]
+macos-gpu = ["tensorflow-metal; python_version<'3.13'"]
+
+[project.urls]
+Homepage = "https://github.com/JunwooParkSaribu/FreeTrace"
+Repository = "https://doi.org/10.5281/zenodo.13336251"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["FreeTrace*"]
