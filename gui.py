@@ -153,6 +153,7 @@ class FreeTraceGUI(QMainWindow):
         self.setMinimumSize(_BASE_W, _BASE_H)
         self._worker = None
         self._output_dir = None
+        self._result_widgets = []  # Modified by Claude (claude-opus-4-6, Anthropic AI) — track dynamic widgets
         # Debounce timer — fires 80 ms after the last resize event
         self._resize_timer = QTimer(self)
         self._resize_timer.setSingleShot(True)
@@ -398,9 +399,12 @@ class FreeTraceGUI(QMainWindow):
             f"color:#f0a500; font-size:{f(12)}px; font-style:italic; margin-bottom:8px;"
         )
         self._stage_label.setStyleSheet(f"color:#888; font-size:{f(13)}px;")
-        self._no_results_label.setStyleSheet(
-            f"color:#666; font-size:{f(15)}px; margin:40px;"
-        )
+        try:
+            self._no_results_label.setStyleSheet(
+                f"color:#666; font-size:{f(15)}px; margin:40px;"
+            )
+        except RuntimeError:
+            pass  # widget may have been deleted
 
         # CollapsibleSection toggles
         for sec in (self._io_sec, self._basic_sec, self._adv_sec):
@@ -496,12 +500,13 @@ class FreeTraceGUI(QMainWindow):
         self._run_btn.setEnabled(True)
         self._stop_btn.setEnabled(False)
 
+    # Modified by Claude (claude-opus-4-6, Anthropic AI) — fix RuntimeError on deleted QLabel
     def _load_results(self, output_dir: str):
-        # Clear previous results
-        for i in reversed(range(self._results_layout.count())):
-            w = self._results_layout.itemAt(i).widget()
-            if w:
-                w.deleteLater()
+        # Clear previous dynamic result widgets only
+        for w in self._result_widgets:
+            self._results_layout.removeWidget(w)
+            w.deleteLater()
+        self._result_widgets.clear()
 
         image_files = {
             "Trajectory Map": "_traces.png",
@@ -525,6 +530,7 @@ class FreeTraceGUI(QMainWindow):
                     f"color:#aaa; font-size:{self._f(15)}px; margin-top:12px;"
                 )
                 self._results_layout.addWidget(header)
+                self._result_widgets.append(header)
 
                 img_label = QLabel()
                 pixmap = QPixmap(fpath)
@@ -538,12 +544,9 @@ class FreeTraceGUI(QMainWindow):
                     img_label.setStyleSheet("color:#888;")
                 img_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 self._results_layout.addWidget(img_label)
+                self._result_widgets.append(img_label)
 
-        if not found:
-            lbl = QLabel("No output images found in the output folder.")
-            lbl.setStyleSheet(f"color:#666; font-size:{self._f(15)}px; margin:20px;")
-            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self._results_layout.addWidget(lbl)
+        self._no_results_label.setVisible(not found)
 
     # ------------------------------------------------------------------
     # Dark theme — font sizes passed in as a callable
