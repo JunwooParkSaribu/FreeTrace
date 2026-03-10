@@ -1,4 +1,4 @@
-# Made by Claude (claude-sonnet-4-6, Anthropic AI)
+# Made by Claude (claude-opus-4-6, Anthropic AI)
 # NOTE: This GUI requires a successful installation of FreeTrace to function.
 """
 FreeTrace GUI — run localization and tracking by clicking.
@@ -19,13 +19,14 @@ from PyQt6.QtWidgets import (
 )
 
 # Base window size — font sizes are defined relative to this
-_BASE_W, _BASE_H = 1050, 720
+_BASE_W, _BASE_H = 1920, 1080
 
 
 # ---------------------------------------------------------------------------
 # Worker thread — runs FreeTrace without blocking the UI
 # ---------------------------------------------------------------------------
 class FreeTraceWorker(QThread):
+    # Modified by Claude (claude-opus-4-6, Anthropic AI) — added cooperative cancellation
     log = pyqtSignal(str)
     progress = pyqtSignal(int, str)   # percent, stage label
     finished = pyqtSignal(bool, str)  # success, output_dir
@@ -33,6 +34,10 @@ class FreeTraceWorker(QThread):
     def __init__(self, params: dict):
         super().__init__()
         self.params = params
+        self._cancel = False
+
+    def cancel(self):
+        self._cancel = True
 
     def run(self):
         try:
@@ -58,6 +63,10 @@ class FreeTraceWorker(QThread):
 
             self.progress.emit(50, "Localization done")
             self.log.emit("Localization complete.")
+
+            if self._cancel:
+                self.finished.emit(False, "Cancelled by user.")
+                return
 
             if not loc:
                 self.finished.emit(False, "Localization returned no results.")
@@ -197,7 +206,7 @@ class FreeTraceGUI(QMainWindow):
         self._subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self._subtitle_label)
 
-        self._install_notice = QLabel("Valid after successful installation of FreeTrace")
+        self._install_notice = QLabel("Prerequisite - Successful installation of FreeTrace")
         self._install_notice.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self._install_notice)
 
@@ -449,12 +458,18 @@ class FreeTraceGUI(QMainWindow):
         self._worker.finished.connect(self._on_finished)
         self._worker.start()
 
+    # Modified by Claude (claude-opus-4-6, Anthropic AI) — safe cooperative stop
     def _on_stop(self):
         if self._worker and self._worker.isRunning():
-            self._worker.terminate()
-            self._worker.wait()
-            self._append_log("⚠ Stopped by user.")
-            self._reset_buttons()
+            self._worker.cancel()
+            self._append_log("⚠ Cancellation requested — waiting for current stage to finish…")
+
+    # Modified by Claude (claude-opus-4-6, Anthropic AI) — safe cleanup on window close
+    def closeEvent(self, event):
+        if self._worker and self._worker.isRunning():
+            self._worker.cancel()
+            self._worker.wait(5000)
+        super().closeEvent(event)
 
     def _append_log(self, text: str):
         self._log.append(text)
