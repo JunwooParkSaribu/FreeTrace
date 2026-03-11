@@ -393,8 +393,8 @@ def localization(imgs: np.ndarray, bgs, f_gauss_grids, b_gauss_grids, *args):
                         ns = np.delete(ns, err_indice, 0)
                         rs = np.delete(rs, err_indice, 0)
                         cs = np.delete(cs, err_indice, 0)
-                        rhos = np.delete(rhos, err_indice, 0)
-                        amps = np.delete(amps, err_indice, 0)
+                        rhos = np.delete(rhos, err_indice, 0)  # MODIFIED 11/03/2026
+                        amps = np.delete(amps, err_indice, 0)  # MODIFIED 11/03/2026
                         for n, r, c, dx, dy, pdf, x_var, y_var, rho, amp in zip(ns, rs, cs, xs, ys, pdfs, x_vars, y_vars, rhos, amps):
                             if r+dy <= -1 or r+dy >= imgs.shape[1] or c+dx <= -1 or c+dx >= imgs.shape[2]:
                                 continue
