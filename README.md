@@ -3,7 +3,7 @@
 ![Static Badge](https://img.shields.io/badge/%3E%3D3.10-1?style=flat&label=Python&color=blue)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13336251.svg)](https://doi.org/10.5281/zenodo.13336251)
 ![GitHub License](https://img.shields.io/github/license/JunwooParkSaribu/FreeTrace)
-[![PyPI](https://img.shields.io/pypi/v/freetrace)](https://pypi.org/project/freetrace/)  <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-11 13:00 -->
+[![PyPI](https://img.shields.io/pypi/v/freetrace)](https://pypi.org/project/freetrace/)
 
 ## FreeTrace
 
@@ -15,11 +15,11 @@
 > - GPU & Cuda12 on GNU/Linux with pre-trained [models](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/FreeTrace/models/README.md) (recommended)</br>
 
 
-> [!TIP]  <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-11 13:00 -->
-> FreeTrace is available on PyPI and can be installed with: <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-11 13:00 -->
-> ```bash  <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-11 13:00 -->
-> pip install freetrace  <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-11 13:00 -->
-> ```  <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-11 13:00 -->
+> [!TIP]
+> FreeTrace is available on PyPI and can be installed with:
+> ```
+> pip install freetrace
+> ```
 
 > [!NOTE]
 > - PRE-REQUISITE: pre-installation and compilation, check [Tutorial](https://colab.research.google.com/github/JunwooParkSaribu/FreeTrace/blob/main/tutorial.ipynb) in Colab. </br>
