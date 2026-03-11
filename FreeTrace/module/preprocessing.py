@@ -529,7 +529,7 @@ def inv_cdf_cauchy(proba, h, t=1, s=1):
     assert 0 < h < 1
     denom = ((t**h) * np.sqrt(2**(2*h+2) - 2**(4*h)))
     a = (2*(s**h)) / denom
-    return (np.tan(np.pi * proba - np.pi * 0.5) / a) - ((t**h)*(2 - 2**(2*h)) / 2*(s**h))
+    return (np.tan(np.pi * proba - np.pi * 0.5) / a) - ((t**h)*(2 - 2**(2*h)) / (2*(s**h)))  # Fixed precedence bug: `/ 2*(s**h)` -> `/ (2*(s**h))` (Modified by Claude, claude-opus-4-6, Anthropic AI)
 
 
 def pdf_cauchy_2mixture(x, h1, h2, alpha, beta):
