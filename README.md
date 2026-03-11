@@ -10,7 +10,6 @@
 > [!IMPORTANT]  
 > Requirements </br>
 > - Windows(10/11) / GNU/Linux(Debian/Ubuntu) / MacOS(Sequoia/Tahoe)</br>
-> - C compiler (clang)</br>
 > - Python3.10 &#8593;</br>
 > - GPU & Cuda12 on GNU/Linux with pre-trained [models](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/FreeTrace/models/README.md) (recommended)</br>
 
@@ -26,7 +25,7 @@
 > - Check [compatibilities](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/FreeTrace/models/README.md) of Python and Tensorflow to run FreeTrace with source code.</br>
 > - Without GPU, FreeTrace is slow if it infers under fractional Brownian motion.</br>
 > - Current version is stable with python 3.10 / 3.11 / 3.12</br>
-> - The updates from version 1.6 may include Claude-generated code, and any code modified by Claude will be explicitly marked with comments. This aims to make FreeTrace easy to use, such as by providing a generated GUI. Version 1.5.19 is the last version without any modification via Claude. The result affecting modification will be noticed via <em><strong>Major update</em></strong> tag.</br>
+> - The updates from version 1.6 may include Claude-generated code, and any code modified by Claude will be explicitly marked with comments. This aims to make FreeTrace easy to use, such as by providing a generated GUI.  <em><strong>Version 1.5.19</em></strong> is the last version without any modification via Claude. The result affecting modification will be noticed via <em><strong>Major update</em></strong> tag.</br>
 
 
 <h2>Visualised FreeTrace results</h2>
