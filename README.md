@@ -19,6 +19,7 @@
 > ```
 > pip install freetrace
 > ```
+> **C++ version**: A standalone C++ port of FreeTrace (no Python/GPU dependency) is available at [FreeTrace_cpp](https://github.com/JunwooParkSaribu/FreeTrace_cpp). It produces identical results and runs ~15-18x faster. Recommended for integration, automation, and AI-agent workflows.
 
 > [!NOTE]
 > - PRE-REQUISITE: pre-installation and compilation, check [Tutorial](https://colab.research.google.com/github/JunwooParkSaribu/FreeTrace/blob/main/tutorial.ipynb) in Colab. </br>
