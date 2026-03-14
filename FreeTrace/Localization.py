@@ -686,6 +686,7 @@ def run(input_video_path:str, output_path:str, window_size=7, threshold=1.0, def
         realtime_obj.turn_on()
 
 
+    np.random.seed(42)  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-14
     if VERBOSE:
         PBAR = tqdm(total=len(images), desc="Localization", unit=f"frame", ncols=120)
     if PARALLEL:
