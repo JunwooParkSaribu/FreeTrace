@@ -159,10 +159,10 @@ def read_localization(input_file:str|tuple, video=None):
     locals = {}
     locals_info = {}
     if type(input_file) is tuple:
-        df = pd.read_csv(input_file[0])
+        df = pd.read_csv(input_file[0], float_precision='round_trip')  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-14
         pixel_microns = input_file[1]
     else:
-        df = pd.read_csv(input_file)
+        df = pd.read_csv(input_file, float_precision='round_trip')  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-14
         pixel_microns = 1.0
 
     df = df.rename(columns={key:key.lower() for key in df.keys()})
