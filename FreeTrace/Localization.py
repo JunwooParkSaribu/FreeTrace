@@ -624,8 +624,8 @@ def main_process(imgs, forward_gauss_grids, backward_gauss_grids, *args):
     return xyz_coord, pdf, info
 
 
-def run(input_video_path:str, output_path:str, window_size=7, threshold=1.0, deflation=0, sigma=4.0, shift=1, z_calib=None,
-        gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False, return_state=0):
+def run(input_video_path:str, output_path:str, window_size=7, threshold=1.0, deflation=0, sigma=4.0, shift=1, z_calib=None, # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-15
+        gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False, return_state=0, batch_size=0): # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-15
     
     global VERBOSE
     global BATCH
@@ -663,10 +663,13 @@ def run(input_video_path:str, output_path:str, window_size=7, threshold=1.0, def
     if CUDA:
         from FreeTrace.module import gpu_module
         MEM_SIZE = gpu_module.get_gpu_mem_size()
-        DIV_Q = int(64 * 512 * 512 / images.shape[1] / images.shape[2] * (7**2 / WINSIZE**2) * MEM_SIZE / 24 * shift**2) 
+    if batch_size > 0: # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-15
+        DIV_Q = batch_size
+    elif CUDA:
+        DIV_Q = int(64 * 512 * 512 / images.shape[1] / images.shape[2] * (7**2 / WINSIZE**2) * MEM_SIZE / 24 * shift**2)
     else:
         DIV_Q = min(50, int(2.7 * 4194304 / images.shape[1] / images.shape[2] * (7**2 / WINSIZE**2)))
-    DIV_Q = max(DIV_Q, 1)
+    DIV_Q = max(DIV_Q, 1) # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-15
     if WINSIZE % 2 == 0:
         WINSIZE += 1
 
@@ -748,8 +751,8 @@ def run(input_video_path:str, output_path:str, window_size=7, threshold=1.0, def
     return True
 
 
-def run_process(input_video_path:str, output_path:str, window_size=7, threshold=1.0, deflation=0, sigma=4.0, shift=1, z_calib=None,
-                gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False) -> bool:
+def run_process(input_video_path:str, output_path:str, window_size=7, threshold=1.0, deflation=0, sigma=4.0, shift=1, z_calib=None, # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-15
+                gpu_on=True, save_video=False, verbose=False, batch=False, realtime_visualization=False, batch_size=0) -> bool: # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-15
     """
     Create a process to localize the positions of particles from video.
 
@@ -810,7 +813,8 @@ def run_process(input_video_path:str, output_path:str, window_size=7, threshold=
         'verbose': verbose,
         'batch': batch,
         'realtime_visualization': realtime_visualization,
-        'return_state': return_state
+        'return_state': return_state,
+        'batch_size': batch_size # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-15
     }
 
     p = Process(target=run, args=(input_video_path, output_path),  kwargs=options)
