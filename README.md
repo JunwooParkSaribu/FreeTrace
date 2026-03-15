@@ -18,7 +18,7 @@
 
 > [!TIP]
 > **Windows standalone installer (GPU):** Download the self-contained FreeTrace C++ installer with full GPU support — no compilation needed (only NVIDIA GPU driver required):
-> **[Download FreeTrace for Windows (GPU)](https://psilo.sorbonne-universite.fr/public.php/dav/files/L3DMj654XrXzygt/?accept=zip)** <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-15 -->
+> **[Download FreeTrace for Windows (GPU)](https://psilo.sorbonne-universite.fr/public.php/dav/files/3MAw8yFD7mAt8kc/?accept=zip)** <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-15 -->
 >
 > FreeTrace is available on PyPI and can be installed with:
 > ```
