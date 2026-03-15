@@ -7,7 +7,9 @@
 
 ## FreeTrace
 
-> [!IMPORTANT]  
+**Data privacy:** FreeTrace runs entirely on your local machine. No data is transmitted to any external server. Your images, localizations, and trajectories never leave your computer.
+
+> [!IMPORTANT]
 > Requirements </br>
 > - Windows(10/11) / GNU/Linux(Debian/Ubuntu) / MacOS(Sequoia/Tahoe)</br>
 > - Python3.10 &#8593;</br>
@@ -15,11 +17,14 @@
 
 
 > [!TIP]
+> **Windows standalone installer (GPU):** Download the self-contained FreeTrace C++ installer with full GPU support — no compilation needed (only NVIDIA GPU driver required):
+> **[Download FreeTrace for Windows (GPU)](https://psilo.sorbonne-universite.fr/s/arJrrfsFKMpRSH9)** <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-15 -->
+>
 > FreeTrace is available on PyPI and can be installed with:
 > ```
 > pip install freetrace
 > ```
-> **C++ version**: A standalone C++ port of FreeTrace (no Python/GPU dependency) is available at [FreeTrace_cpp](https://github.com/JunwooParkSaribu/FreeTrace_cpp). It produces identical results and runs ~15-18x faster. Recommended for integration, automation, and AI-agent workflows.
+> **C++ version**: A standalone C++ port of FreeTrace (no Python/GPU dependency) is available at [FreeTrace_cpp](https://github.com/JunwooParkSaribu/FreeTrace_cpp). It produces identical results and runs **2–7x faster** for tracking. Recommended for integration, automation, and AI-agent workflows. See the [pipeline architecture](https://github.com/JunwooParkSaribu/FreeTrace_cpp#pipeline-architecture) for details on GPU/CPU dispatch and fBm mode branching.
 
 > [!NOTE]
 > - PRE-REQUISITE: pre-installation and compilation, check [Tutorial](https://colab.research.google.com/github/JunwooParkSaribu/FreeTrace/blob/main/tutorial.ipynb) in Colab. </br>
