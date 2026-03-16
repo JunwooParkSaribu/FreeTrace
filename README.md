@@ -22,7 +22,7 @@
 
 
 > [!IMPORTANT]
-> Requirements **[Python]** </br>
+> Requirements for **Python** </br>
 > - Windows(10/11) / GNU/Linux(Debian/Ubuntu) / MacOS(Sequoia/Tahoe)</br>
 > - Python3.10 &#8593;</br>
 > - GPU & Cuda12 on GNU/Linux with pre-trained [models](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/FreeTrace/models/README.md) (recommended)</br>
