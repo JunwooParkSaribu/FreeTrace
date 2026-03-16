@@ -21,7 +21,7 @@
 > - **RTX 2000 / 3000 / 4000 series:** **[Download FreeTrace (cuDNN 9.2)](https://psilo.sorbonne-universite.fr/public.php/dav/files/XmTL99cCx4iXDdH/?accept=zip)**
 > - **RTX 5000 series (Blackwell):** **[Download FreeTrace (cuDNN 9.20)](https://psilo.sorbonne-universite.fr/public.php/dav/files/jXMnok9WDWAX8c2/?accept=zip)** <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-16 -->
 >
-> FreeTrace is available on PyPI and can be installed with:
+> FreeTrace is also downloadable via PyPI: <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-16 -->
 > ```
 > pip install freetrace
 > ```
