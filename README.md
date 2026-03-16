@@ -17,9 +17,9 @@
 
 
 > [!TIP]
-> **Windows standalone installer (GPU):** Download the self-contained FreeTrace C++ installer with full GPU support — no compilation needed (only NVIDIA GPU driver required):
-> **[Download FreeTrace for Windows (GPU)](https://psilo.sorbonne-universite.fr/public.php/dav/files/XmTL99cCx4iXDdH/?accept=zip)**
-> **Note:** The standalone installer uses cuDNN 9.2, which does **not** support RTX 5000 series (Blackwell) or newer GPUs. On unsupported GPUs, H (Hurst exponent) estimation will silently produce incorrect values. Supported GPUs: RTX 2000/3000/4000 series and equivalent. <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-15 -->
+> **Windows standalone installer (GPU):** Download the self-contained FreeTrace C++ installer with full GPU support — no compilation needed (only NVIDIA GPU driver required): <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-16 -->
+> - **RTX 2000 / 3000 / 4000 series:** **[Download FreeTrace (cuDNN 9.2)](https://psilo.sorbonne-universite.fr/public.php/dav/files/XmTL99cCx4iXDdH/?accept=zip)**
+> - **RTX 5000 series (Blackwell):** **[Download FreeTrace (cuDNN 9.20)](https://psilo.sorbonne-universite.fr/public.php/dav/files/jXMnok9WDWAX8c2/?accept=zip)** <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-16 -->
 >
 > FreeTrace is available on PyPI and can be installed with:
 > ```
