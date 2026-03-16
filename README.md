@@ -9,13 +9,6 @@
 
 **Data privacy:** FreeTrace runs entirely on your local machine. No data is transmitted to any external server. Your images, localizations, and trajectories never leave your computer.
 
-> [!IMPORTANT]
-> Requirements </br>
-> - Windows(10/11) / GNU/Linux(Debian/Ubuntu) / MacOS(Sequoia/Tahoe)</br>
-> - Python3.10 &#8593;</br>
-> - GPU & Cuda12 on GNU/Linux with pre-trained [models](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/FreeTrace/models/README.md) (recommended)</br>
-
-
 > [!TIP]
 > **Windows standalone installer (GPU):** Download the self-contained FreeTrace C++ installer with full GPU support — no compilation needed (only NVIDIA GPU driver required): <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-16 -->
 > - **RTX 2000 / 3000 / 4000 series:** **[Download FreeTrace (cuDNN 9.2)](https://psilo.sorbonne-universite.fr/public.php/dav/files/XmTL99cCx4iXDdH/?accept=zip)**
@@ -27,12 +20,20 @@
 > ```
 > **C++ version**: A standalone C++ port of FreeTrace (no Python/GPU dependency) is available at [FreeTrace_cpp](https://github.com/JunwooParkSaribu/FreeTrace_cpp). It produces identical results and runs **2–7x faster** for tracking. Recommended for integration, automation, and AI-agent workflows. See the [pipeline architecture](https://github.com/JunwooParkSaribu/FreeTrace_cpp#pipeline-architecture) for details on GPU/CPU dispatch and fBm mode branching.
 
-> [!NOTE]
+
+> [!IMPORTANT] [Python]
+> Requirements</br>
+> - Windows(10/11) / GNU/Linux(Debian/Ubuntu) / MacOS(Sequoia/Tahoe)</br>
+> - Python3.10 &#8593;</br>
+> - GPU & Cuda12 on GNU/Linux with pre-trained [models](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/FreeTrace/models/README.md) (recommended)</br>
+
+
+> [!NOTE] [Python]
 > - PRE-REQUISITE: pre-installation and compilation, check [Tutorial](https://colab.research.google.com/github/JunwooParkSaribu/FreeTrace/blob/main/tutorial.ipynb) in Colab. </br>
-> - Check [compatibilities](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/FreeTrace/models/README.md) of Python and Tensorflow to run FreeTrace with source code.</br>
+> - [compatibilities](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/FreeTrace/models/README.md) for Tensorflow to run FreeTrace with source code.</br>
 > - Without GPU, FreeTrace is slow if it infers under fractional Brownian motion.</br>
 > - Current version is stable with python 3.10 / 3.11 / 3.12</br>
-> - The updates from version 1.6 may include Claude-generated code, and any code modified by Claude-like will be explicitly marked with comments. This aims to make FreeTrace easy to use, such as by providing a generated GUI.  <em><strong>Version 1.5.19</em></strong> is the last version completely maintained only by the author, without any modification via Claude-like. The result affecting modification will be noticed via <em><strong>Major update</em></strong> tag.</br>
+> - The updates from version 1.6 may include Claude-generated code, and any code modified by GPT-like will be explicitly marked with comments. This aims to make precompiled FreeTrace, easy to use with a GUI.  <em><strong>Version 1.5.19</em></strong> is the last version completely maintained purely by the author, without any modification via GPT-like. The result affecting modification will be noticed via <em><strong>Major update</em></strong> tag.</br>
 
 
 <h2>Visualised FreeTrace results</h2>
