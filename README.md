@@ -21,14 +21,14 @@
 > **C++ version**: A standalone C++ port of FreeTrace (no Python/GPU dependency) is available at [FreeTrace_cpp](https://github.com/JunwooParkSaribu/FreeTrace_cpp). It produces identical results and runs **2–7x faster** for tracking. Recommended for integration, automation, and AI-agent workflows. See the [pipeline architecture](https://github.com/JunwooParkSaribu/FreeTrace_cpp#pipeline-architecture) for details on GPU/CPU dispatch and fBm mode branching.
 
 
-> [!IMPORTANT] \[Python\]
+> [!IMPORTANT] \[Python\]</br>
 > Requirements</br>
 > - Windows(10/11) / GNU/Linux(Debian/Ubuntu) / MacOS(Sequoia/Tahoe)</br>
 > - Python3.10 &#8593;</br>
 > - GPU & Cuda12 on GNU/Linux with pre-trained [models](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/FreeTrace/models/README.md) (recommended)</br>
 
 
-> [!NOTE] \[Python\]
+> [!NOTE] \[Python\]</br>
 > - PRE-REQUISITE: pre-installation and compilation, check [Tutorial](https://colab.research.google.com/github/JunwooParkSaribu/FreeTrace/blob/main/tutorial.ipynb) in Colab. </br>
 > - [compatibilities](https://github.com/JunwooParkSaribu/FreeTrace/blob/main/FreeTrace/models/README.md) for Tensorflow to run FreeTrace with source code.</br>
 > - Without GPU, FreeTrace is slow if it infers under fractional Brownian motion.</br>
