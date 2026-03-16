@@ -11,8 +11,8 @@
 
 > [!TIP]
 > **Windows standalone installer (GPU):** Download the self-contained FreeTrace C++ installer with full GPU support — no compilation needed (only NVIDIA GPU driver required): <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-16 -->
-> - **RTX 2000 / 3000 / 4000 series:** **[Download FreeTrace (cuDNN 9.2)](https://psilo.sorbonne-universite.fr/s/NyWrgJCRdRH79oM)**
-> - **RTX 5000 series (Blackwell):** **[Download FreeTrace (cuDNN 9.20)](https://psilo.sorbonne-universite.fr/s/ky38QxJKqdwY83K)** <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-16 -->
+> - **RTX 2000 / 3000 / 4000 series:** **[Download FreeTrace (cuDNN 9.2)](https://psilo.sorbonne-universite.fr/public.php/dav/files/NyWrgJCRdRH79oM/?accept=zip)**
+> - **RTX 5000 series (Blackwell):** **[Download FreeTrace (cuDNN 9.20)](https://psilo.sorbonne-universite.fr/public.php/dav/files/ky38QxJKqdwY83K/?accept=zip)** <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-16 -->
 >
 > FreeTrace is also downloadable via PyPI: <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-16 -->
 > ```
