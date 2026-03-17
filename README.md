@@ -10,11 +10,9 @@
 **Data privacy:** FreeTrace runs entirely on your local machine. No data is transmitted to any external server. Your images, localizations, and trajectories never leave your computer.
 
 > [!TIP]
-> **Standalone installer (GPU):** Download the self-contained FreeTrace C++ installer — no compilation needed: <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-16 18:00 -->
-> - **Windows (NVIDIA GPU required):**
->   - **RTX 2000 / 3000 series:** **[Download FreeTrace (cuDNN 9.2)](https://psilo.sorbonne-universite.fr/public.php/dav/files/xz6qFa2zTxDQPYJ/?accept=zip)** <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-16 19:00 -->
->   - **RTX 4000 / 5000 series:** **[Download FreeTrace (cuDNN 9.20)](https://psilo.sorbonne-universite.fr/public.php/dav/files/ToCEbcMSkqyMZHD/?accept=zip)**
-> - **Mac (Apple Silicon — Apple Neural Engine):** **[Download FreeTrace for macOS](https://psilo.sorbonne-universite.fr/public.php/dav/files/z5SWaBXqns4tB53/?accept=zip)** <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-16 19:00 --> <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-16 18:00 -->
+> **Standalone installer (GPU):** Download the self-contained FreeTrace C++ installer — no compilation needed: <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-17 11:00 -->
+> - **Windows (NVIDIA GPU required):** **[Download FreeTrace](https://psilo.sorbonne-universite.fr/public.php/dav/files/ToCEbcMSkqyMZHD/?accept=zip)** (RTX 2000 / 3000 / 4000 / 5000 series, cuDNN 9.20) <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-17 11:00 -->
+> - **Mac (Apple Silicon — Apple Neural Engine):** **[Download FreeTrace for macOS](https://psilo.sorbonne-universite.fr/public.php/dav/files/z5SWaBXqns4tB53/?accept=zip)**
 >
 > FreeTrace is also downloadable via PyPI: <!-- Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-16 -->
 > ```
