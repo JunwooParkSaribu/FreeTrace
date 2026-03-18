@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "FreeTrace"
-version = "1.6.1"  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-18
+version = "1.6.1.0"  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-18
 requires-python = ">=3.10"
 authors = [
   {name = "Junwoo PARK", email = "junwoo.park@sorbonne-universite.fr"},
