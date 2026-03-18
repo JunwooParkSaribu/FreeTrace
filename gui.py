@@ -327,7 +327,8 @@ class HKGatingCanvas(QGraphicsView):  # Modified by Claude (claude-opus-4-6, Ant
         self._current_path_item = None    # live preview path item
         self._boundaries = []             # list of finalized boundary point lists
         self._boundary_path_items = []    # list of finalized QGraphicsPathItem
-        self._dot_items = []              # QGraphicsEllipseItem for each trajectory
+        self._dot_pixmap_item = None       # single pixmap for all dots  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-18
+        self._dot_coords = []             # (x, y) per point or None if out of bounds
         self._region_labels = None        # np.array, 0..N per trajectory
 
         self._color_default = QColor(180, 180, 180, 160)  # grey
@@ -367,11 +368,11 @@ class HKGatingCanvas(QGraphicsView):  # Modified by Claude (claude-opus-4-6, Ant
         frac = 1.0 - (y - self._MARGIN_TOP) / self._PLOT_H
         return self._logk_min + frac * (self._logk_max - self._logk_min)
 
-    def _draw_plot(self):
+    def _draw_plot(self):  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-18
         """Render the scatter plot with axes."""
         self._scene.clear()
-        self._dot_items = []
-        self._boundary_path_item = None
+        self._dot_pixmap_item = None
+        self._boundary_path_items = []
 
         total_w = self._MARGIN_LEFT + self._PLOT_W + self._MARGIN_RIGHT
         total_h = self._MARGIN_TOP + self._PLOT_H + self._MARGIN_BOTTOM
@@ -424,36 +425,54 @@ class HKGatingCanvas(QGraphicsView):  # Modified by Claude (claude-opus-4-6, Ant
         y_label.setBrush(pen_text)
         y_label.setPos(5, self._MARGIN_TOP + self._PLOT_H / 2 - 8)
 
-        # Scatter dots
-        dot_r = 3.0
+        # Scatter dots — collect coordinates, render as single pixmap  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-18
+        self._dot_coords = []
         for i in range(len(self._H)):
             x = self._h_to_x(self._H[i])
             y = self._logk_to_y(self._log_K[i])
-            # Skip points outside plot area
-            if x < self._MARGIN_LEFT or x > self._MARGIN_LEFT + self._PLOT_W:
-                dot = None
-                self._dot_items.append(dot)
+            if (x < self._MARGIN_LEFT or x > self._MARGIN_LEFT + self._PLOT_W or
+                    y < self._MARGIN_TOP or y > self._MARGIN_TOP + self._PLOT_H):
+                self._dot_coords.append(None)
                 continue
-            if y < self._MARGIN_TOP or y > self._MARGIN_TOP + self._PLOT_H:
-                dot = None
-                self._dot_items.append(dot)
-                continue
-            color = self._color_default
-            if self._region_labels is not None:
-                idx = int(self._region_labels[i]) % len(self._REGION_COLORS)
-                color = self._REGION_COLORS[idx]
-            dot = QGraphicsEllipseItem(x - dot_r, y - dot_r, dot_r * 2, dot_r * 2)
-            dot.setPen(QPen(Qt.PenStyle.NoPen))
-            dot.setBrush(QBrush(color))
-            self._scene.addItem(dot)
-            self._dot_items.append(dot)
+            self._dot_coords.append((x, y))
+        self._render_dot_pixmap()  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-18
 
         # Redraw all finalized boundaries
-        self._boundary_path_items = []
         for boundary in self._boundaries:
             self._draw_finalized_boundary(boundary)
 
         self.fitInView(self._scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+
+    def _render_dot_pixmap(self):  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-18
+        """Render all scatter dots onto a single QPixmap for performance."""
+        if self._dot_pixmap_item and self._dot_pixmap_item.scene():
+            self._scene.removeItem(self._dot_pixmap_item)
+            self._dot_pixmap_item = None
+        rect = self._scene.sceneRect()
+        w, h = int(rect.width()), int(rect.height())
+        if w <= 0 or h <= 0:
+            return
+        pix = QPixmap(w, h)
+        pix.fill(QColor(0, 0, 0, 0))
+        painter = QPainter(pix)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(Qt.PenStyle.NoPen)
+        dot_r = 3.0
+        for i, coord in enumerate(self._dot_coords):
+            if coord is None:
+                continue
+            x, y = coord
+            if self._region_labels is not None:
+                idx = int(self._region_labels[i]) % len(self._REGION_COLORS)
+                color = self._REGION_COLORS[idx]
+            else:
+                color = self._color_default
+            painter.setBrush(QBrush(color))
+            painter.drawEllipse(QPointF(x, y), dot_r, dot_r)
+        painter.end()
+        self._dot_pixmap_item = self._scene.addPixmap(pix)
+        self._dot_pixmap_item.setZValue(-1)  # behind boundaries
+        # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-18
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -721,16 +740,7 @@ class HKGatingCanvas(QGraphicsView):  # Modified by Claude (claude-opus-4-6, Ant
         # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-18
 
     def _update_dot_colors(self):  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-18
-        """Update dot colors based on region classification."""
-        for i, dot in enumerate(self._dot_items):
-            if dot is None:
-                continue
-            if self._region_labels is not None:
-                idx = int(self._region_labels[i]) % len(self._REGION_COLORS)
-                color = self._REGION_COLORS[idx]
-            else:
-                color = self._color_default
-            dot.setBrush(QBrush(color))  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-18
+        self._render_dot_pixmap()  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-18
 
     def _clear_boundary(self):  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-18
         """Remove all boundaries and reset classification."""
@@ -827,6 +837,7 @@ class FreeTraceGUI(QMainWindow):  # Modified by Claude (claude-opus-4-6, Anthrop
         self._resize_timer = QTimer(self)
         self._resize_timer.setSingleShot(True)
         self._resize_timer.timeout.connect(self._apply_fonts)
+        self._last_applied_scale = None  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-18
         self._setup_ui()
         self._apply_fonts()
 
@@ -1252,8 +1263,12 @@ class FreeTraceGUI(QMainWindow):  # Modified by Claude (claude-opus-4-6, Anthrop
         # Debounce: wait 80 ms after the last resize before updating fonts
         self._resize_timer.start(80)
 
-    def _apply_fonts(self):
+    def _apply_fonts(self):  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-18
         """Recompute all font sizes based on current window dimensions."""
+        current_scale = self._scale()
+        if self._last_applied_scale is not None and self._last_applied_scale == current_scale:
+            return
+        self._last_applied_scale = current_scale  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-18
         f = self._f
 
         # Stylesheet — all font-size values are scaled
@@ -1699,6 +1714,7 @@ class FreeTraceGUI(QMainWindow):  # Modified by Claude (claude-opus-4-6, Anthrop
                 QPen(Qt.PenStyle.NoPen), QBrush(QColor(0, 0, 0))
             )
 
+            color_paths = {}  # (r,g,b,a) -> QPainterPath  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-18
             for tidx in df['traj_idx'].unique():
                 traj_data = df[df['traj_idx'] == tidx].sort_values('frame')
                 positions = list(zip(traj_data['x'].values, traj_data['y'].values))
@@ -1716,12 +1732,16 @@ class FreeTraceGUI(QMainWindow):  # Modified by Claude (claude-opus-4-6, Anthrop
                         rng_colors[key] = QColor(int(rgb[0]), int(rgb[1]), int(rgb[2]), 200)
                     color = rng_colors[key]
 
-                pen = QPen(color, 0.5)
-                path = QPainterPath()
+                color_key = (color.red(), color.green(), color.blue(), color.alpha())
+                if color_key not in color_paths:
+                    color_paths[color_key] = QPainterPath()
+                path = color_paths[color_key]
                 path.moveTo(positions[0][0], positions[0][1])
                 for x, y in positions[1:]:
                     path.lineTo(x, y)
-                scene.addPath(path, pen)
+
+            for color_key, path in color_paths.items():
+                scene.addPath(path, QPen(QColor(*color_key), 0.5))  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-18
 
             view.fitInView(scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
             container_layout.addWidget(panel)
