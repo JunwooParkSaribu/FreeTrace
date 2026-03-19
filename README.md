@@ -18,7 +18,7 @@
 > ```
 > pip install freetrace
 > ```
-> **C++ version**: A standalone C++ port of FreeTrace (no Python/GPU dependency) is available at [FreeTrace_cpp](https://github.com/JunwooParkSaribu/FreeTrace_cpp). It produces identical results and runs **2–7x faster** for tracking. Recommended for integration, automation, and AI-agent workflows. See the [pipeline architecture](https://github.com/JunwooParkSaribu/FreeTrace_cpp#pipeline-architecture) for details on GPU/CPU dispatch and fBm mode branching.
+> **C++ version**: The above installer is the C++ port of [FreeTrace](https://github.com/JunwooParkSaribu/FreeTrace_cpp). It produces identical results and runs **2–7x faster** for tracking. Recommended for integration, automation, and AI-agent workflows. See the [pipeline architecture](https://github.com/JunwooParkSaribu/FreeTrace_cpp?tab=readme-ov-file#about) for details on GPU/CPU dispatch and fBm mode branching.
 
 
 > [!IMPORTANT]
