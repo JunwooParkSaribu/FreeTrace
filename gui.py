@@ -1679,6 +1679,9 @@ class FreeTraceGUI(QMainWindow):  # Modified by Claude (claude-opus-4-6, Anthrop
         help_text.setTextFormat(Qt.TextFormat.RichText)
         help_text.setStyleSheet("color:#cccccc; font-size:13px; padding:12px 20px;")
         help_text.setText(  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-19
+            "<p style='font-size:13px; color:#aaaaaa;'>Suggestions for additional statistics or modifications are welcome — "  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-19
+            "please contact <a style='color:#66ccff;' href='mailto:junwoo.park@sorbonne-universite.fr'>"
+            "junwoo.park@sorbonne-universite.fr</a></p>"
             "<p style='font-size:14px;'><b>Paper:</b> "
             "https://doi.org/10.64898/2026.01.08.698486</p>"
             "<h3 style='color:#66ccff;'>Loading Data</h3>"
