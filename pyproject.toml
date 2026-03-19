@@ -42,7 +42,6 @@ dependencies = [
     "tqdm",
     "setuptools",
     "Cython",
-    "cupy-cuda12x",
     # TensorFlow — platform-specific
     "tensorflow==2.14; python_version=='3.10' and sys_platform!='linux'",
     "tensorflow[and-cuda]==2.14.1; python_version=='3.10' and sys_platform=='linux'",
@@ -54,9 +53,13 @@ dependencies = [
     "tensorflow[and-cuda]==2.20; python_version=='3.13' and sys_platform=='linux'",
 ]
 
-[project.optional-dependencies]
-gui = ["PyQt6"]
+[project.optional-dependencies]  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-19
+gui = ["PyQt6", "matplotlib", "seaborn", "scipy", "tifffile", "nd2"]
+gpu = ["cupy-cuda12x"]
 macos-gpu = ["tensorflow-metal; python_version<'3.13'"]
+
+[project.scripts]
+freetrace-gui = "FreeTrace.gui:main"
 
 [project.urls]
 Homepage = "https://github.com/JunwooParkSaribu/FreeTrace"
@@ -65,3 +68,6 @@ Repository = "https://doi.org/10.5281/zenodo.13336251"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["FreeTrace*"]
+
+[tool.setuptools.package-data]  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-19
+FreeTrace = ["icon/*.png", "icon/*.jpg", "icon/*.svg", "icon/*.ico"]
