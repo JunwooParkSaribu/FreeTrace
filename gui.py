@@ -37,6 +37,10 @@ from PyQt6.QtWidgets import (
 # Base window size — font sizes are defined relative to this
 _BASE_W, _BASE_H = 1920, 1080
 
+# Current version — used for update check against GitHub releases  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-20
+_VERSION = "1.6.1.1"
+_GITHUB_REPO = "JunwooParkSaribu/FreeTrace"
+
 
 # ---------------------------------------------------------------------------
 # Worker thread — runs FreeTrace without blocking the UI
@@ -1305,12 +1309,51 @@ class HKGatingCanvas(QGraphicsView):  # Modified by Claude (claude-opus-4-6, Ant
 
 
 # ---------------------------------------------------------------------------
+# Update checker — queries GitHub API for latest release in background
+# ---------------------------------------------------------------------------
+class UpdateChecker(QThread):  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-20
+    """Check GitHub for a newer FreeTrace release. Emits update_available if found."""
+    update_available = pyqtSignal(str, str, str)  # latest_version, release_body, release_url
+
+    def run(self):
+        try:
+            import urllib.request
+            import ssl
+            import json as _json
+            url = f"https://api.github.com/repos/{_GITHUB_REPO}/releases/latest"
+            req = urllib.request.Request(url, headers={"Accept": "application/vnd.github.v3+json"})
+            # Try with default SSL first, fall back to unverified if certificates are missing
+            try:
+                resp = urllib.request.urlopen(req, timeout=5)
+            except (ssl.SSLError, urllib.error.URLError):
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+                resp = urllib.request.urlopen(req, timeout=5, context=ctx)
+            with resp:
+                data = _json.loads(resp.read().decode())
+            tag = data.get("tag_name", "").lstrip("v")
+            if not tag:
+                return
+            # Compare version tuples
+            def _ver_tuple(s):
+                return tuple(int(x) for x in s.split("."))
+            if _ver_tuple(tag) > _ver_tuple(_VERSION):
+                body = data.get("body", "")
+                html_url = data.get("html_url", f"https://github.com/{_GITHUB_REPO}/releases/latest")
+                self.update_available.emit(tag, body, html_url)
+        except Exception:
+            pass  # silently ignore — network issues should not affect the GUI
+    # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-20
+
+
+# ---------------------------------------------------------------------------
 # Main window
 # ---------------------------------------------------------------------------
 class FreeTraceGUI(QMainWindow):  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-17
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("FreeTrace v1.6.1.0") # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-18
+        self.setWindowTitle(f"FreeTrace v{_VERSION}") # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-20
         # Scale initial size to ~70% of screen, with a reasonable minimum
         screen = QApplication.primaryScreen().availableGeometry()
         init_w = min(int(screen.width() * 0.7), _BASE_W)
@@ -1326,8 +1369,101 @@ class FreeTraceGUI(QMainWindow):  # Modified by Claude (claude-opus-4-6, Anthrop
         self._resize_timer.setSingleShot(True)
         self._resize_timer.timeout.connect(self._apply_fonts)
         self._last_applied_scale = None  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-18
+        self._update_banner = None  # placeholder for update notification widget
         self._setup_ui()
         self._apply_fonts()
+        # Start background update check  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-20
+        self._update_checker = UpdateChecker()
+        self._update_checker.update_available.connect(self._show_update_banner)
+        self._update_checker.start()
+
+    # ------------------------------------------------------------------
+    # Update notification banner
+    # ------------------------------------------------------------------
+    def _show_update_banner(self, latest_ver: str, body: str, url: str):  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-20
+        """Show a dismissible banner at the top of the window when an update is available."""
+        if self._update_banner is not None:
+            return  # already showing
+
+        banner = QWidget()
+        banner.setObjectName("updateBanner")
+        banner.setStyleSheet(
+            "#updateBanner { background-color: #1e1e1e; border-bottom: 2px solid #555; }"
+            "#updateBanner QLabel { background-color: #1e1e1e; color: #ddd; font-size: 13px; }"
+            "#updateBanner QPushButton { background-color: #1e1e1e; }"
+        )
+        layout = QVBoxLayout(banner)
+        layout.setContentsMargins(12, 8, 12, 8)
+
+        # Top row: message + dismiss button
+        top_row = QHBoxLayout()
+        title_label = QLabel(
+            f"<b>FreeTrace v{latest_ver} is available</b>  (current: v{_VERSION})"
+        )
+        top_row.addWidget(title_label)
+        top_row.addStretch()
+
+        download_btn = QPushButton("Download")
+        download_btn.setStyleSheet(
+            "QPushButton { background-color: #2980b9 !important; color: white; border: none; "
+            "padding: 4px 12px; border-radius: 3px; font-size: 12px; }"
+            "QPushButton:hover { background-color: #3498db !important; }"
+        )
+        download_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        download_btn.clicked.connect(lambda: __import__('webbrowser').open(url))
+        top_row.addWidget(download_btn)
+
+        dismiss_btn = QPushButton("X")
+        dismiss_btn.setFixedSize(36, 36)
+        dismiss_btn.setStyleSheet(
+            "QPushButton { background: transparent !important; color: #e74c3c; "
+            "border: 1px solid #e74c3c; border-radius: 4px; font-size: 20px; font-weight: bold; }"
+            "QPushButton:hover { color: #ff6b6b; border-color: #ff6b6b; }"
+        )
+        dismiss_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        dismiss_btn.clicked.connect(lambda: self._dismiss_update_banner())
+        top_row.addWidget(dismiss_btn)
+        layout.addLayout(top_row)
+
+        # Changelog section (collapsible)
+        if body.strip():
+            changelog_toggle = QPushButton("▶ What's new")
+            changelog_toggle.setStyleSheet(
+                "QPushButton { background: transparent !important; color: #7ec8e3; border: none; "
+                "font-size: 12px; text-align: left; padding: 2px 0px; }"
+                "QPushButton:hover { color: #aed6f1; }"
+            )
+            changelog_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
+
+            changelog_text = QTextEdit()
+            changelog_text.setReadOnly(True)
+            changelog_text.setMarkdown(body)
+            changelog_text.setMaximumHeight(200)
+            changelog_text.setStyleSheet(
+                "QTextEdit { background-color: #2a2a2a; color: #ddd; border: 1px solid #555; "
+                "border-radius: 3px; font-size: 11px; padding: 6px; }"
+            )
+            changelog_text.setVisible(False)
+
+            def _toggle_changelog():
+                vis = not changelog_text.isVisible()
+                changelog_text.setVisible(vis)
+                changelog_toggle.setText("▼ What's new" if vis else "▶ What's new")
+
+            changelog_toggle.clicked.connect(_toggle_changelog)
+            layout.addWidget(changelog_toggle)
+            layout.addWidget(changelog_text)
+
+        self._update_banner = banner
+        # Insert at the very top of the central widget layout
+        central_layout = self.centralWidget().layout()
+        central_layout.insertWidget(0, banner)  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-20
+
+    def _dismiss_update_banner(self):  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-20
+        if self._update_banner is not None:
+            self._update_banner.setParent(None)
+            self._update_banner.deleteLater()
+            self._update_banner = None
 
     # ------------------------------------------------------------------
     # Scale helpers
@@ -1692,23 +1828,23 @@ class FreeTraceGUI(QMainWindow):  # Modified by Claude (claude-opus-4-6, Anthrop
             "<code>_diffusion.csv</code> is optional. If only traces are available, "
             "all trajectory-based plots (jump distance, duration, EA-SD, angles) work normally. "
             "H and K distributions require <code>_diffusion.csv</code>.</p>"
-            "<p><b>Advanced Stats tab</b> — Same as Basic Stats: <code>_traces.csv</code> required, "
-            "<code>_diffusion.csv</code> optional.</p>"
+            "<p><b>Advanced Stats tab</b> — Requires only <code>_traces.csv</code> "  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-20
+            "(<code>_diffusion.csv</code> is not used).</p>"
             "<h3 style='color:#66ccff;'>Key Concepts</h3>"
             "<p><b>Consecutive frames only (Δt = 1)</b> — Jump distance, mean jump distance, "
             "1D displacement, 1D displacement ratio, and angle distributions use only steps "
             "between consecutive frames. Steps spanning frame gaps (Δt &gt; 1) are excluded "
             "because they are not directly comparable: a molecule diffusing for 2 frames "
             "covers a different distance than one diffusing for 1 frame.</p>"
-            "<p><b>Trajectory splitting</b> — Trajectories are split only at <i>state changes</i>, "
-            "not at frame gaps. This preserves trajectory identity and avoids artificially "
-            "inflating trajectory counts. Duration and MSD span the full observation "
-            "including gaps.</p>"
+            "<p><b>Frame gaps</b> — Trajectories are not split at frame gaps. "  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-20
+            "This preserves trajectory identity and avoids artificially inflating "
+            "trajectory counts. Duration and MSD span the full observation including gaps.</p>"
             "<h3 style='color:#66ccff;'>Class Tab</h3>"
             "<p>The Class tab provides an interactive H-K scatter plot for gating trajectories "
             "by their diffusion properties. Load one or more FreeTrace output datasets "
             "(<code>_diffusion.csv</code> + <code>_traces.csv</code>) and visualise the "
-            "Hurst exponent (H) vs. diffusion coefficient (K) for each trajectory.</p>"
+            "Hurst exponent (H) vs. diffusion coefficient (K) for each trajectory. "  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-20
+            "Note that 2H = α (the anomalous diffusion exponent).</p>"
             "<p><b>Gating</b> — Draw boundaries on the H-K scatter plot to select subsets of "
             "trajectories. Gated trajectories can be exported or further analysed.</p>"
             "<p><b>Load Boundary</b> — Import a previously saved gating boundary.</p>"
@@ -1719,32 +1855,33 @@ class FreeTraceGUI(QMainWindow):  # Modified by Claude (claude-opus-4-6, Anthrop
             "<p><b>Jump Distance</b> — Per-step Euclidean displacement √(Δx² + Δy²), Δt = 1 only. "
             "Assumes isotropic motion.</p>"
             "<p><b>Mean Jump Distance</b> — Average jump distance per trajectory (one value per trajectory).</p>"
-            "<p><b>Duration</b> — Total observation time Σ(frame diffs) × framerate.</p>"
-            "<p><b>EA-SD</b> — Ensemble-Averaged Squared Displacement: average SD over all "
-            "trajectories at each time point.</p>"
+            "<p><b>Duration</b> — Total observation time in frames: the sum of frame differences "  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-20
+            "across the trajectory (last frame − first frame).</p>"
+            "<p><b>EA-SD</b> — Ensemble-Averaged Squared Displacement: at each time point, "  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-20
+            "the squared displacement from the trajectory origin is averaged over all "
+            "trajectories. Here, SD stands for Squared Displacement, not standard deviation.</p>"
             "<p><b>Angle / Polar Angle</b> — Deflection angle (0°–180°) and signed turning "
             "angle (0°–360°) between consecutive step pairs, both Δt = 1. "
             "Uniform if isotropic &amp; Brownian.</p>"
             "<h3 style='color:#66ccff;'>Advanced Stats Tab</h3>"  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-19
             "<p>The Advanced Stats tab provides computationally intensive analyses that "
             "complement the Basic Stats tab. It requires only <code>_traces.csv</code> "
-            "(no diffusion data needed). Each plot is computed per diffusion state.</p>"
-            "<p><b>TA-EA-SD (Time-Averaged Ensemble-Averaged Squared Displacement)</b> — "
+            "(no diffusion data needed).</p>"
+            "<p><b>TA-EA-SD (Time-Averaged Ensemble-Averaged Squared Displacement)</b> — "  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-20
             "For each trajectory, the squared displacement at lag τ is averaged over all "
             "valid time windows of size τ (the <i>time-average</i>). These per-trajectory "
             "means are then averaged across all trajectories in the ensemble (the "
             "<i>ensemble-average</i>). This two-stage averaging is more robust than the "
             "EA-SD in Basic Stats, especially for short trajectories with frame gaps: "
-            "EA-SD uses only the displacement from origin at each time point, while "
-            "TA-EA-SD exploits all overlapping windows. The slope on a log-log plot "
-            "gives the anomalous diffusion exponent: slope = 1 for Brownian motion, "
-            "&lt; 1 for subdiffusion, &gt; 1 for superdiffusion. Only windows where the "
-            "actual frame gap equals the lag τ are included (gaps are skipped, not "
-            "interpolated). The shaded region shows ± 1 std across the ensemble. "
-            "A log-log version is shown below: on a log-log scale, the slope directly "
-            "gives the anomalous diffusion exponent (slope = 1 for Brownian, &lt; 1 for "
-            "subdiffusion, &gt; 1 for superdiffusion). The log-log plot omits the std "
-            "fill to avoid y-axis distortion.</p>"
+            "EA-SD uses only the displacement from the trajectory origin at each time "
+            "point, while TA-EA-SD exploits all overlapping windows of size τ. "
+            "Only windows where the actual frame gap equals the lag τ are included "
+            "(gaps are skipped, not interpolated). The shaded region shows ± 1 std "
+            "across the ensemble.</p>"
+            "<p>The <b>log-log TA-EA-SD</b> is shown below. On a log-log scale, the "
+            "slope directly gives the anomalous diffusion exponent α: slope = 1 for "
+            "Brownian motion, &lt; 1 for subdiffusion, &gt; 1 for superdiffusion. "
+            "The log-log plot omits the std fill to avoid y-axis distortion.</p>"
             "<p><b>1D Displacement (Δx, Δy)</b> — Projection of each step onto the x and y "
             "axes separately, using only consecutive-frame steps (Δt = 1). For a "
             "homogeneous population of Brownian or fBm molecules, each projection is "
@@ -1783,8 +1920,8 @@ class FreeTraceGUI(QMainWindow):  # Modified by Claude (claude-opus-4-6, Anthrop
             "<p>Deviation of the observed histogram from the fitted Cauchy curve suggests "
             "the underlying motion is not purely fractional Brownian (e.g., confined "
             "diffusion, active transport, or a mixture of diffusion states). "
-            "Ratios are clipped to [−10, 10] and data with fewer than 10 valid ratios "
-            "per state are excluded from fitting.</p>"
+            "Ratios are clipped to [−10, 10] and data with fewer than 10 valid ratios "  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-20
+            "per homogeneous population are excluded from fitting.</p>"
             "<h3 style='color:#66ccff;'>Log-log TA-EA-SD vs Cauchy Fit — When to Use Which?</h3>"  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-19
             "<p>Both the log-log TA-EA-SD plot and the Cauchy ratio fit estimate the "
             "anomalous diffusion exponent (and hence the Hurst exponent H), but they "
@@ -1816,6 +1953,44 @@ class FreeTraceGUI(QMainWindow):  # Modified by Claude (claude-opus-4-6, Anthrop
             "diffusion regime across time scales, and the Cauchy fit for the "
             "quantitative Ĥ estimate. If they disagree, the motion may not be "
             "well-described by a single fBm model.</p>"
+            "<h3 style='color:#66ccff;'>NN-estimated H vs Cauchy-fitted Ĥ</h3>"  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-20
+            "<p>FreeTrace provides two independent estimates of the Hurst exponent:</p>"
+            "<table style='border-collapse:collapse; margin:8px 0;'>"
+            "<tr style='border-bottom:1px solid #555;'>"
+            "<th style='padding:4px 12px; text-align:left;'></th>"
+            "<th style='padding:4px 12px; text-align:left;'>NN-estimated H</th>"
+            "<th style='padding:4px 12px; text-align:left;'>Cauchy-fitted Ĥ</th></tr>"
+            "<tr><td style='padding:4px 12px;'><b>Source</b></td>"
+            "<td style='padding:4px 12px;'>Neural network inference during tracking "
+            "(stored in <code>_diffusion.csv</code>)</td>"
+            "<td style='padding:4px 12px;'>Cauchy fit to displacement ratios "
+            "(computed from <code>_traces.csv</code>)</td></tr>"
+            "<tr><td style='padding:4px 12px;'><b>Granularity</b></td>"
+            "<td style='padding:4px 12px;'>Per-trajectory — each trajectory gets its own H</td>"
+            "<td style='padding:4px 12px;'>Per-population — one Ĥ per homogeneous population</td></tr>"
+            "<tr><td style='padding:4px 12px;'><b>Requires</b></td>"
+            "<td style='padding:4px 12px;'><code>_diffusion.csv</code> (Basic Stats / Class tab)</td>"
+            "<td style='padding:4px 12px;'><code>_traces.csv</code> only (Advanced Stats tab)</td></tr>"
+            "<tr><td style='padding:4px 12px;'><b>Best for</b></td>"
+            "<td style='padding:4px 12px;'>Per-trajectory H distribution, H-K scatter classification</td>"
+            "<td style='padding:4px 12px;'>Independent validation of the ensemble diffusion regime</td></tr>"
+            "</table>"
+            "<p>Comparing the two: the NN-estimated H distribution (Basic Stats) "
+            "shows the spread of H across individual trajectories, while the "
+            "Cauchy-fitted Ĥ (Advanced Stats) gives an ensemble-level estimate. "
+            "If the Cauchy Ĥ falls near the peak of the NN H distribution, "
+            "both methods agree. A significant discrepancy may indicate that the "
+            "NN model and the Cauchy assumption capture different aspects of the "
+            "motion, or that the population is heterogeneous.</p>"
+            "<p><b>Bias warning:</b> The NN-estimated H can be biased for short "
+            "trajectories. The neural network requires a minimum number of "
+            "data points to produce a reliable estimate; when the trajectory is "
+            "too short, the network tends to regress toward H ≈ 0.5 (Brownian) "
+            "regardless of the true dynamics. The Cauchy fit, by pooling all "
+            "displacement ratios across an entire population, is more robust "
+            "against short trajectory lengths. When the NN H distribution "
+            "shows a strong peak at H = 0.5 while the Cauchy Ĥ deviates from "
+            "0.5, short-trajectory bias in the NN estimate is a likely cause.</p>"
             "<h3 style='color:#66ccff;'>Common Normalisation</h3>"
             "<p>When enabled, all datasets share the same bin edges and the y-axis is "
             "normalised to the dataset with the most data points. The largest dataset "
