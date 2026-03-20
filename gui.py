@@ -20,11 +20,11 @@ from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import seaborn as sns  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-19
 
-from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal, QPointF, QRectF
+from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal, QPointF, QRectF, QUrl  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-20
 from PyQt6.QtGui import (
     QPixmap, QFont, QColor, QPalette, QIcon, QPen, QBrush, QPainter,
-    QPainterPath,
-)
+    QPainterPath, QDesktopServices,
+)  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-20
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QGridLayout, QGroupBox, QLabel, QLineEdit, QPushButton, QCheckBox,
@@ -1309,6 +1309,15 @@ class HKGatingCanvas(QGraphicsView):  # Modified by Claude (claude-opus-4-6, Ant
 
 
 # ---------------------------------------------------------------------------
+def _open_url(url: str):  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-20
+    """Open a URL in the default browser, with WSL2 fallback."""
+    import subprocess, webbrowser
+    if 'microsoft' in os.uname().release.lower():
+        subprocess.Popen(['cmd.exe', '/c', 'start', url.replace('&', '^&')])
+    elif not QDesktopServices.openUrl(QUrl(url)):
+        webbrowser.open(url)
+
+
 # Update checker — queries GitHub API for latest release in background
 # ---------------------------------------------------------------------------
 class UpdateChecker(QThread):  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-20
@@ -1410,7 +1419,7 @@ class FreeTraceGUI(QMainWindow):  # Modified by Claude (claude-opus-4-6, Anthrop
             "QPushButton:hover { background-color: #3498db !important; }"
         )
         download_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        download_btn.clicked.connect(lambda: __import__('webbrowser').open(url))
+        download_btn.clicked.connect(lambda: _open_url(url))  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-20
         top_row.addWidget(download_btn)
 
         dismiss_btn = QPushButton("X")
