@@ -54,7 +54,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-19
-gui = ["PyQt6", "matplotlib", "seaborn", "scipy", "tifffile", "nd2"]
+gui = ["PyQt6", "matplotlib", "seaborn", "scipy", "tifffile", "nd2", "google-genai"]
 gpu = ["cupy-cuda12x"]
 macos-gpu = ["tensorflow-metal; python_version<'3.13'"]
 
