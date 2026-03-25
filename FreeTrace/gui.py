@@ -1310,7 +1310,7 @@ class HKGatingCanvas(QGraphicsView):  # Modified by Claude (claude-opus-4-6, Ant
 class FreeTraceGUI(QMainWindow):  # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-17
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("FreeTrace v1.6.1.0") # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-18
+        self.setWindowTitle("FreeTrace v1.6.1.2") # Modified by Claude (claude-opus-4-6, Anthropic AI) - 2026-03-25
         # Scale initial size to ~70% of screen, with a reasonable minimum
         screen = QApplication.primaryScreen().availableGeometry()
         init_w = min(int(screen.width() * 0.7), _BASE_W)
