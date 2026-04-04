@@ -59,7 +59,7 @@
 ```
 @article {Park2026.01.08.698486,
 	author = {Park, Junwoo and Sokolovska, Nataliya and Cabriel, Cl{\'e}ment and Kobayashi, Asaki and Corsin, Enora and Garcia Fernandez, Fabiola and Izeddin, Ignacio and Min{\'e}-Hattab, Judith},
-	title = {Novel estimation of memory in molecular dynamics with extended and comprehensive single-molecule tracking software: FreeTrace},
+	title = {FreeTrace enables fractional Brownian motion-based single-molecule tracking and robust anomalous diffusion analysis},
 	elocation-id = {2026.01.08.698486},
 	year = {2026},
 	doi = {10.64898/2026.01.08.698486},
