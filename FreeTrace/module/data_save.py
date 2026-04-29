@@ -144,10 +144,12 @@ def write_trxyt(file: str, trajectory_list: list, pixel_microns=1.0, frame_rate=
         print(e)
 
 
-def write_localization(output_dir, coords, all_pdfs, infos):
-    lines = f'frame,x,y,z,xvar,yvar,rho,norm_cst,intensity,window_size\n'
+def write_localization(output_dir, coords, all_pdfs, infos, bg_stats=None):  # Modified by Claude (claude-opus-4-7, Anthropic AI) - 2026-04-28
+    # bg_stats[frame][spot] = (bg_median, bg_var, integrated_flux) in raw ADU; None -> writes nan.
+    lines = f'frame,x,y,z,xvar,yvar,rho,norm_cst,intensity,window_size,bg_median,bg_var,integrated_flux\n'
     for frame, (coord, pdfs, info) in enumerate(zip(coords, all_pdfs, infos)):
-        for pos, (x_var, y_var, rho, amp), pdf in zip(coord, info, pdfs):
+        bg_frame = bg_stats[frame] if (bg_stats is not None and frame < len(bg_stats)) else None
+        for spot_idx, (pos, (x_var, y_var, rho, amp), pdf) in enumerate(zip(coord, info, pdfs)):
             window_size = int(np.sqrt(len(pdf)))
             peak_val = pdf[int((len(pdf) - 1) / 2)]
             lines += f'{frame + 1}'
@@ -161,6 +163,11 @@ def write_localization(output_dir, coords, all_pdfs, infos):
                 print(f'Localization writing Err')
                 raise Exception
             lines += f',{x_var},{y_var},{rho},{amp},{peak_val},{window_size}'
+            if bg_frame is not None and spot_idx < len(bg_frame):
+                bgm, bgv, flux = bg_frame[spot_idx]
+                lines += f',{bgm},{bgv},{flux}'
+            else:
+                lines += f',nan,nan,nan'
             lines += f'\n'
 
     with open(f'{output_dir}_loc.csv', 'w') as f:
@@ -168,14 +175,23 @@ def write_localization(output_dir, coords, all_pdfs, infos):
 
 
 def rewrite_localization(output_dir, coords, infos):
-    lines = f"frame,x,y,z,xvar,yvar,rho,norm_cst,intensity,window_size\n"
+    # Note: vintage callers pass infos with 6 fields (no bg_stats). Reformat with nan tail.
+    lines = f"frame,x,y,z,xvar,yvar,rho,norm_cst,intensity,window_size,bg_median,bg_var,integrated_flux\n"  # Modified by Claude (claude-opus-4-7, Anthropic AI) - 2026-04-28
     for frame in sorted(coords.keys()):
         coord = coords[frame]
         info = infos[frame]
-        for (x, y, z), (x_var, y_var, rho, norm_cst, intensity, winsize) in zip(coord, info):
+        for (x, y, z), info_row in zip(coord, info):
+            # Allow vintage 6-field info or new 9-field info (with bg_median, bg_var, integrated_flux).
+            x_var, y_var, rho, norm_cst, intensity, winsize = info_row[:6]
+            if len(info_row) >= 9:
+                bgm, bgv, flux = info_row[6], info_row[7], info_row[8]
+                tail = f",{bgm},{bgv},{flux}"
+            else:
+                tail = ",nan,nan,nan"
             lines += f"{frame}"
             lines += f",{x},{y},{z}"
             lines += f",{x_var},{y_var},{rho},{norm_cst},{intensity},{winsize}"
+            lines += tail
             lines += f"\n"
     with open(f"{output_dir}", 'w') as f:
         f.write(lines)

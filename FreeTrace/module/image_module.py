@@ -169,7 +169,7 @@ class RealTimePlot(tk.Tk):
                 self.past_t_steps.append(t)
 
 
-def read_tif(filepath):
+def read_tif(filepath, return_params=False):  # Modified by Claude (claude-opus-4-7, Anthropic AI) - 2026-04-28
     normalized_imgs = []
     if ".nd2" in filepath.split('/')[-1]:
         import nd2
@@ -191,14 +191,18 @@ def read_tif(filepath):
 
         s_min = np.min(np.min(imgs, axis=(1, 2)))
         s_max = np.max(np.max(imgs, axis=(1, 2)))
+        # Capture raw per-frame max BEFORE normalisation, used by downstream // Modified by Claude (claude-opus-4-7, Anthropic AI) - 2026-04-28
+        # de-normalisation in compute_background_stats.
+        frame_max_raw = np.max(imgs, axis=(1, 2)).astype(np.float32)
     elif len(imgs.shape) == 2:
         nb_tif = 1
         y_size = imgs.shape[0]
         x_size = imgs.shape[1]
         s_min = np.min(np.min(imgs, axis=(0, 1)))
         s_max = np.max(np.max(imgs, axis=(0, 1)))
+        frame_max_raw = np.array([np.max(imgs)], dtype=np.float32)
     else:
-        raise Exception 
+        raise Exception
 
     for i, img in enumerate(imgs):
         img = (img - s_min) / (s_max - s_min)
@@ -206,9 +210,131 @@ def read_tif(filepath):
 
     normalized_imgs = np.array(normalized_imgs, dtype=np.float32).reshape(-1, y_size, x_size)
     normalized_imgs /= np.max(normalized_imgs, axis=(1, 2)).reshape(-1, 1, 1)  # normalize local
-    
+
+    if return_params:
+        return normalized_imgs, float(s_min), frame_max_raw
     return normalized_imgs
-    
+
+
+# Modified by Claude (claude-opus-4-7, Anthropic AI) - 2026-04-28
+def compute_background_stats(images, xyz_coords, reg_pdfs, reg_infos, s_min, frame_max_raw):
+    """Compute per-spot {bg_median, bg_var, integrated_flux} in raw ADU.
+
+    Mirrors the C++ implementation in src/localization.cpp. Pure additive — does not
+    modify xyz_coords, reg_pdfs, or reg_infos.
+
+      bg_median       = median of annulus pixels in the residual frame (raw - sum_of_PSFs)
+      bg_var          = population variance ddof=0 (centred at mean) of the same annulus pixels
+      integrated_flux = sum(raw window) - n_pixels * bg_median
+
+    Annulus: 13x13 patch around (round(x), round(y)) excluding central disk r<=R_SIGNAL=3.
+    Returns (nan, nan, nan) when annulus has <10 valid pixels or fit is invalid (xv<=0).
+
+    Inputs:
+      images       : normalised image cube returned by read_tif (shape (nb, H, W))
+      xyz_coords   : per-frame list of (y, x, z) tuples
+      reg_pdfs     : per-frame list of flat pdf arrays (length ws*ws)
+      reg_infos    : per-frame list of (x_var, y_var, rho, amp) tuples
+      s_min        : global pixel min in raw units
+      frame_max_raw: per-frame max in raw units (length nb_frames)
+
+    Returns: per-frame list of (bg_median, bg_var, integrated_flux) tuples, each in raw ADU.
+    """
+    R_BG = 6
+    R_SIGNAL = 3
+    R_SIGNAL_SQ = R_SIGNAL * R_SIGNAL
+    nb, rows, cols = images.shape
+    bg_stats = []
+    for f in range(nb):
+        coords_f = xyz_coords[f] if f < len(xyz_coords) else []
+        infos_f = reg_infos[f] if f < len(reg_infos) else []
+        pdfs_f = reg_pdfs[f] if f < len(reg_pdfs) else []
+        if len(coords_f) == 0:
+            bg_stats.append([])
+            continue
+        scale = float(frame_max_raw[f] - s_min)
+        # 1. residual = norm - sum(pure PSF) in normalised pixel space (amp is normalised)
+        residual = np.array(images[f], dtype=np.float64, copy=True)
+        for i, (pos, info, pdf) in enumerate(zip(coords_f, infos_f, pdfs_f)):
+            x_var, y_var, rho, amp = info[:4]
+            if not (x_var > 0 and y_var > 0):
+                continue
+            ws = int(np.sqrt(len(pdf)))
+            if ws <= 0:
+                continue
+            half = ws // 2
+            yc = int(round(pos[0]))   # row
+            xc = int(round(pos[1]))   # col
+            sx = float(np.sqrt(abs(x_var)))
+            sy = float(np.sqrt(abs(y_var)))
+            k_cov = max(1.0 - rho * rho, 1e-12)
+            det = max(x_var * y_var * k_cov, 1e-12)
+            inv00 = y_var / det
+            inv01 = -rho * sx * sy / det
+            inv11 = x_var / det
+            for dy in range(-half, half + 1):
+                rr = yc + dy
+                if rr < 0 or rr >= rows:
+                    continue
+                for dx in range(-half, half + 1):
+                    cc = xc + dx
+                    if cc < 0 or cc >= cols:
+                        continue
+                    fdx = float(dx); fdy = float(dy)
+                    exponent = -0.5 * (fdx * fdx * inv00
+                                       + 2.0 * fdx * fdy * inv01
+                                       + fdy * fdy * inv11)
+                    residual[rr, cc] -= amp * np.exp(exponent)
+        # 2. per-spot stats; normalised → raw ADU at the end
+        spot_stats = []
+        for (pos, info, pdf) in zip(coords_f, infos_f, pdfs_f):
+            x_var, y_var, rho, amp = info[:4]
+            if not (x_var > 0 and y_var > 0):
+                spot_stats.append((float('nan'), float('nan'), float('nan')))
+                continue
+            yc = int(round(pos[0]))
+            xc = int(round(pos[1]))
+            annulus = []
+            for dy in range(-R_BG, R_BG + 1):
+                rr = yc + dy
+                if rr < 0 or rr >= rows:
+                    continue
+                for dx in range(-R_BG, R_BG + 1):
+                    if dx * dx + dy * dy <= R_SIGNAL_SQ:
+                        continue
+                    cc = xc + dx
+                    if cc < 0 or cc >= cols:
+                        continue
+                    annulus.append(residual[rr, cc])
+            if len(annulus) < 10:
+                spot_stats.append((float('nan'), float('nan'), float('nan')))
+                continue
+            annulus = np.array(annulus)
+            bg_median_norm = float(np.median(annulus))
+            bg_var_norm = float(np.var(annulus, ddof=0))
+            ws = int(np.sqrt(len(pdf)))
+            half = ws // 2
+            flux_sum = 0.0
+            flux_n = 0
+            for dy in range(-half, half + 1):
+                rr = yc + dy
+                if rr < 0 or rr >= rows:
+                    continue
+                for dx in range(-half, half + 1):
+                    cc = xc + dx
+                    if cc < 0 or cc >= cols:
+                        continue
+                    flux_sum += float(images[f, rr, cc])
+                    flux_n += 1
+            flux_norm = flux_sum - flux_n * bg_median_norm
+            # de-normalise to raw ADU (scale = frame_max_raw[f] - s_min)
+            bg_median_raw = bg_median_norm * scale + s_min
+            bg_var_raw = bg_var_norm * scale * scale
+            flux_raw = flux_norm * scale
+            spot_stats.append((bg_median_raw, bg_var_raw, flux_raw))
+        bg_stats.append(spot_stats)
+    return bg_stats
+
 
 def read_tif_unnormalized(filepath):
     if ".nd2" in filepath.split('/')[-1]:

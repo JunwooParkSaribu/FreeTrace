@@ -7,7 +7,7 @@ from FreeTrace.module import image_pad
 from FreeTrace.module import regression
 from FreeTrace.module.data_save import write_localization
 from FreeTrace.module.auxiliary import initialization, calibration_3d
-from FreeTrace.module.image_module import draw_cross, make_loc_depth_image, read_tif
+from FreeTrace.module.image_module import draw_cross, make_loc_depth_image, read_tif, compute_background_stats  # Modified by Claude (claude-opus-4-7, Anthropic AI) - 2026-04-28
 
 
 def region_max_filter2(maps, window_size, thresholds, detect_range=0):
@@ -658,7 +658,7 @@ def run(input_video_path:str, output_path:str, window_size=7, threshold=1.0, def
     MULTI_THRESHOLDS = None
 
 
-    images = read_tif(input_video_path)
+    images, s_min_raw, frame_max_raw = read_tif(input_video_path, return_params=True)  # Modified by Claude (claude-opus-4-7, Anthropic AI) - 2026-04-28
     CUDA, _ = initialization(gpu_on, ptype=0, verbose=VERBOSE, batch=BATCH)
     if CUDA:
         from FreeTrace.module import gpu_module
@@ -745,7 +745,11 @@ def run(input_video_path:str, output_path:str, window_size=7, threshold=1.0, def
     if return_state != 0:
         return_state.value = 1
 
-    write_localization(loc_output_path, xyz_coords, reg_pdfs, reg_infos)
+    # Compute per-spot local background statistics from the residual frame, // Modified by Claude (claude-opus-4-7, Anthropic AI) - 2026-04-28
+    # de-normalised to raw ADU. Pure additive — does not modify xyz_coords/reg_pdfs/reg_infos.
+    bg_stats = compute_background_stats(images, xyz_coords, reg_pdfs, reg_infos,
+                                        s_min_raw, frame_max_raw)
+    write_localization(loc_output_path, xyz_coords, reg_pdfs, reg_infos, bg_stats=bg_stats)
     make_loc_depth_image(loc_output_path, xyz_coords, multiplier=4, winsize=WINSIZE, resolution=2, dim=dim)
 
     return True
